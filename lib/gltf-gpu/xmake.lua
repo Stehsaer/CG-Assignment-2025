@@ -9,6 +9,7 @@ target("gltf-gpu")
 		"libsdl3", 
 		"tinygltf",
 		"meshoptimizer",
+		"paul_thread_pool",
 		{public=true}
 	) 
 

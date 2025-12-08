@@ -23,20 +23,23 @@ namespace gltf
 	}
 
 	///
-	/// @brief Extract raw typed data from an accessor.
+	/// @brief Extract typed data from an accessor
 	///
 	/// @tparam T Type to extract
 	/// @param model Tinygltf model
 	/// @param accessor Accessor
-	/// @return Raw typed data in `std::vector`, or error on failure
+	/// @return Extract result, or error on failure
 	///
 	template <typename T>
-	std::expected<std::vector<T>, util::Error> extract_raw_from_accessor(
+	std::expected<std::vector<T>, util::Error> extract_from_accessor(
 		const tinygltf::Model& model,
 		const tinygltf::Accessor& accessor
 	) noexcept
 	{
 		/* Accessor Check */
+
+		if (!detail::check_accessor_for_type<T>(accessor))
+			return util::Error(std::format("Accessor type ({}) doesn't match requested type", accessor.type));
 
 		if (accessor.bufferView < 0) return util::Error("Accessor has no buffer view");
 		if (std::cmp_greater_equal(accessor.bufferView, static_cast<int>(model.bufferViews.size())))
@@ -75,30 +78,7 @@ namespace gltf
 		for (const auto idx : std::views::iota(0u, elem_count))
 			std::memcpy(&data[idx], &buffer.data[byte_offset + idx * byte_stride], elem_size);
 
-		return data;
-	}
-
-	///
-	/// @brief Extract typed data from an accessor
-	///
-	/// @tparam T Type to extract
-	/// @param model Tinygltf model
-	/// @param accessor Accessor
-	/// @return Extract result, or error on failure
-	///
-	template <typename T>
-	std::expected<std::vector<T>, util::Error> extract_from_accessor(
-		const tinygltf::Model& model,
-		const tinygltf::Accessor& accessor
-	) noexcept
-	{
-		if (!detail::check_accessor_for_type<T>(accessor))
-			return util::Error(std::format("Accessor type ({}) doesn't match requested type", accessor.type));
-
-		auto data = extract_raw_from_accessor<T>(model, accessor);
-		if (!data) return data.error().propagate("Extract raw data failed");
-
-		return std::move(*data);
+		return std::move(data);
 	}
 
 	/* Template Instantiation */

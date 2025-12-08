@@ -150,9 +150,13 @@ def main():
         heading, trailing = _get_namespace_string(args.namespace)
 
         file_list = _get_file_list(args.root, args.input)
-        cpp_array_lines = multiprocessing.Pool(
-            min(multiprocessing.cpu_count(), len(file_list))
-        ).map(_to_cpp_array_line, file_list)
+
+        if len(file_list) == 0:
+            cpp_array_lines = []
+        else:
+            cpp_array_lines = multiprocessing.Pool(
+                min(multiprocessing.cpu_count(), len(file_list))
+            ).map(_to_cpp_array_line, file_list)
 
         prefix_lines = [
             "// Auto-generated file, do not modify",

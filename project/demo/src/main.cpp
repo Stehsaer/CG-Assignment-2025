@@ -1,12 +1,12 @@
 #include <SDL3/SDL_events.h>
 #include <array>
+#include <future>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <iostream>
 #include <print>
 
-#include "asset/graphic-asset.hpp"
 #include "asset/shader/simple.frag.hpp"
 #include "asset/shader/simple.vert.hpp"
 
@@ -14,6 +14,7 @@
 #include "config/texture.hpp"
 
 #include <backend/imgui.hpp>
+#include <backend/loop.hpp>
 #include <backend/sdl.hpp>
 #include <camera/projection/perspective.hpp>
 #include <camera/view/orbit.hpp>
@@ -30,6 +31,7 @@
 #include <image/io.hpp>
 #include <tiny_gltf.h>
 #include <util/asset.hpp>
+#include <util/file.hpp>
 #include <util/unwrap.hpp>
 #include <zip/zip.hpp>
 
@@ -52,7 +54,7 @@ static std::pair<gpu::Graphic_shader, gpu::Graphic_shader> create_shaders(SDL_GP
 			device,
 			std::as_bytes(shader_asset::simple_frag),
 			gpu::Graphic_shader::Stage::Fragment,
-			0,
+			1,
 			0,
 			0,
 			0
@@ -214,46 +216,61 @@ static SDL_GPUColorTargetInfo gen_swapchain_target_info(SDL_GPUTexture* swapchai
 	return swapchain_target;
 }
 
-static std::expected<std::vector<std::tuple<gpu::Buffer, gpu::Buffer, uint32_t>>, util::Error>
-create_buffer_from_model(SDL_GPUDevice* device, const std::vector<std::byte>& model_data) noexcept
+static std::expected<gltf::Model, util::Error> create_scene_from_model(
+	const backend::SDL_context& context,
+	const std::vector<std::byte>& model_data
+) noexcept
 {
-	tinygltf::TinyGLTF loader;
-	tinygltf::Model model;
-
-	std::string err;
-	std::string warn;
-
-	const bool ret = loader.LoadBinaryFromMemory(
-		&model,
-		&err,
-		&warn,
-		reinterpret_cast<const unsigned char*>(model_data.data()),
-		model_data.size()
-	);
-
-	if (!ret) return util::Error(std::format("加载 glTF 模型失败: {}", err));
-
-	std::vector<std::tuple<gpu::Buffer, gpu::Buffer, uint32_t>> buffers;
-
-	for (const auto& mesh : model.meshes)
-	{
-		for (const auto& primitive : mesh.primitives)
-		{
-			const auto primitive_cpu = gltf::Primitive::from_tinygltf(model, primitive);
-			if (!primitive_cpu) return primitive_cpu.error().propagate("解析 Primitive 失败");
-
-			auto primitive_gpu = gltf::Primitive_gpu::from_primitive(device, *primitive_cpu);
-			if (!primitive_gpu) return primitive_gpu.error().propagate("上传 Primitive 到 GPU 失败");
-
-			buffers.emplace_back(
-				std::move(primitive_gpu->vertex_buffer),
-				std::move(primitive_gpu->index_buffer),
-				primitive_gpu->index_count
-			);
+	auto gltf_load_result = backend::display_until_task_done(
+		context,
+		std::async(std::launch::async, gltf::load_tinygltf_model, std::ref(model_data)),
+		[] {
+			ImGui::Text("正在加载模型...");
+			ImGui::ProgressBar(-ImGui::GetTime(), ImVec2(300.0f, 0.0f));
 		}
-	}
+	);
+	if (!gltf_load_result) return gltf_load_result.error().propagate("加载 tinygltf 模型失败");
 
-	return std::move(buffers);
+	std::atomic<gltf::Model::Load_progress> load_progress;
+
+	auto future = std::async(std::launch::async, [&context, &gltf_load_result, &load_progress]() {
+		return gltf::Model::load_model(
+			context.device,
+			*gltf_load_result,
+			{},
+			{.color_mode = gltf::Image_compress_mode::RGBA8_BC3,
+			 .normal_mode = gltf::Image_compress_mode::RGn_BC5},
+			std::ref(load_progress)
+		);
+	});
+
+	auto gltf_result = backend::display_until_task_done(context, std::move(future), [&load_progress] {
+		const auto current = load_progress.load();
+
+		switch (current.stage)
+		{
+		case gltf::Model::Load_stage::Node:
+			ImGui::Text("正在解析节点...");
+			break;
+		case gltf::Model::Load_stage::Mesh:
+			ImGui::Text("正在解析网格...");
+			break;
+		case gltf::Model::Load_stage::Material:
+			ImGui::Text("正在解析材质...");
+			break;
+		case gltf::Model::Load_stage::Animation:
+			ImGui::Text("正在解析动画...");
+			break;
+		case gltf::Model::Load_stage::Postprocess:
+			ImGui::Text("处理中...");
+			break;
+		}
+
+		ImGui::ProgressBar(current.progress.value_or(-ImGui::GetTime()), ImVec2(300.0f, 0.0f));
+	});
+	if (!gltf_result) return gltf_result.error().propagate("加载 glTF 模型失败");
+
+	return gltf_result;
 }
 
 #ifdef NDEBUG
@@ -286,11 +303,14 @@ try
 
 	/* 加载模型和贴图 */
 
-	const auto buffers =
-		util::get_asset(resource_asset::graphic_asset, "model/WaterBottle.glb")
-			.and_then(zip::Decompress(50 * 1048576))
-			.and_then([gpu_device](const std::vector<std::byte>& model) {
-				return create_buffer_from_model(gpu_device, model);
+	std::println("模型路径:");
+	std::string model_path;
+	std::getline(std::cin, model_path);
+
+	const auto scene =
+		util::read_file(model_path, 1024 * 1048576)
+			.and_then([&sdl_context](const std::vector<std::byte>& model) {
+				return create_scene_from_model(*sdl_context, model);
 			})
 		| util::unwrap("加载模型失败");
 
@@ -373,6 +393,8 @@ try
 		}
 		ImGui::End();
 
+		const auto drawcalls = scene.generate_drawdata(glm::mat4(1.0f));
+
 		backend::imgui_upload_data(command_buffer);
 
 		// 渲染
@@ -386,7 +408,6 @@ try
 
 			const glm::mat4 camera_matrix =
 				camera_projection.matrix_reverse_z(float(width) / float(height)) * camera_orbit.matrix();
-			command_buffer.push_uniform_to_vertex(0, &camera_matrix, sizeof(glm::mat4));
 
 			command_buffer.run_render_pass(
 				{&color_target, 1},
@@ -405,15 +426,19 @@ try
 
 					render_pass.bind_pipeline(graphics_pipeline);
 
-					for (const auto& [vertex_buffer, index_buffer, index_count] : buffers)
+					for (const auto& drawcall : drawcalls)
 					{
-						const SDL_GPUBufferBinding
-							vertex_buffer_binding{.buffer = vertex_buffer, .offset = 0};
-						const SDL_GPUBufferBinding index_buffer_binding{.buffer = index_buffer, .offset = 0};
+						const glm::mat4 model_matrix = drawcall.world_matrix;
+						const glm::mat4 mvp_matrix = camera_matrix * model_matrix;
+						command_buffer.push_uniform_to_vertex(0, &mvp_matrix, sizeof(glm::mat4));
 
-						render_pass.bind_vertex_buffers(0, {&vertex_buffer_binding, 1});
-						render_pass.bind_index_buffer(index_buffer_binding, SDL_GPU_INDEXELEMENTSIZE_32BIT);
-						render_pass.draw_indexed(index_count, 0, 1, 0, 0);
+						render_pass.bind_vertex_buffers(0, {&drawcall.primitive.vertex_buffer_binding, 1});
+						render_pass.bind_index_buffer(
+							drawcall.primitive.index_buffer_binding,
+							SDL_GPU_INDEXELEMENTSIZE_32BIT
+						);
+						render_pass.bind_fragment_samplers(0, {&drawcall.material.base_color, 1});
+						render_pass.draw_indexed(drawcall.primitive.index_count, 0, 1, 0, 0);
 					}
 				}
 			) | util::unwrap();

@@ -4,11 +4,11 @@
 
 namespace backend
 {
-	static SDL_GPUColorTargetInfo gen_swapchain_target_info(SDL_GPUTexture* swapchain) noexcept
+	static SDL_GPUColorTargetInfo gen_swapchain_target_info(SDL_GPUTexture* swapchain, bool clear) noexcept
 	{
 		SDL_GPUColorTargetInfo swapchain_target;
 		swapchain_target.texture = swapchain;
-		swapchain_target.load_op = SDL_GPU_LOADOP_LOAD;
+		swapchain_target.load_op = clear ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
 		swapchain_target.store_op = SDL_GPU_STOREOP_STORE;
 		swapchain_target.clear_color = SDL_FColor{.r = 0, .g = 0, .b = 0, .a = 1};
 		swapchain_target.resolve_texture = nullptr;
@@ -21,8 +21,13 @@ namespace backend
 
 	std::expected<bool, util::Error> run_one_frame(
 		const SDL_context& context,
-		const UI_func& loop_fn,
-		const Render_func& render_fn
+		bool clear,
+		const std::function<bool()>& loop_fn,
+		const std::function<std::expected<void, util::Error>(
+			const gpu::Command_buffer& command_buffer,
+			SDL_GPUTexture* swapchain,
+			glm::u32vec2 size
+		)>& render_fn
 	)
 	{
 		bool should_continue = true;
@@ -39,7 +44,7 @@ namespace backend
 		/* ImGui Frame Logic */
 
 		backend::imgui_new_frame();
-		should_continue &= loop_fn();
+		should_continue &= (loop_fn == nullptr ? true : loop_fn());
 
 		/* Acquire Swapchain */
 
@@ -56,12 +61,15 @@ namespace backend
 
 		/* Render Custom Logic */
 
-		const auto render_result = render_fn(*command_buffer, swapchain_texture, {width, height});
-		if (!render_result) return render_result.error().propagate("Render function failed");
+		if (render_fn != nullptr)
+		{
+			const auto render_result = render_fn(*command_buffer, swapchain_texture, {width, height});
+			if (!render_result) return render_result.error().propagate("Render function failed");
+		}
 
 		/* Render ImGui Content */
 
-		const auto swapchain_info = gen_swapchain_target_info(swapchain_texture);
+		const auto swapchain_info = gen_swapchain_target_info(swapchain_texture, clear);
 		const auto render_imgui_result = command_buffer->run_render_pass(
 			{&swapchain_info, 1},
 			{},

@@ -7,12 +7,12 @@ namespace image
 {
 	size_t calc_mipmap_levels(glm::u32vec2 size, glm::u32vec2 min_size) noexcept
 	{
-		if (size.x < min_size.x && size.y < min_size.y) return 1;
+		if (size.x < min_size.x || size.y < min_size.y) return 1;
 
 		for (size_t level = 0;; ++level)
 		{
 			size = glm::floor(glm::vec2(size) / 2.0f);
-			if (size.x < min_size.x && size.y < min_size.y) return level + 1;
+			if (size.x < min_size.x || size.y < min_size.y) return level + 1;
 		}
 	}
 

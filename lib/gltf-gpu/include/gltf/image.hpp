@@ -22,28 +22,28 @@ namespace gltf
 	///
 	std::vector<Image_refcount> compute_image_refcounts(const tinygltf::Model& model) noexcept;
 
-	enum class Image_create_mode
+	enum class Image_compress_mode
 	{
-		Color_uncompressed,    // Raw RGBA8 Color Texture
-		Color_compressed_bc3,  // BC3 Compressed Color Texture
-		Color_compressed_bc7,  // BC7 Compressed Color Texture
+		RGBA8_raw,
+		RGBA8_BC3,
+		RGBA8_BC7,
 
-		Normal_uncompressed,        // Uncompressed RG8/RG16 Normal Map
-		Normal_all_compressed,      // BC5 Compressed Normal Map (8-bit Precision, may cause artifacts)
-		Normal_16bit_uncompressed,  // Uncompressed when encounter 16-bit normal map, otherwise BC5 Compressed
+		RGn_raw,
+		RGn_BC5,
+		RG16_raw_RG8_BC5,
 	};
 
 	///
 	/// @brief Create a texture from tinygltf image
 	///
 	/// @param image Tinygltf image
-	/// @param create_mode Create mode, see `Image_create_mode`
+	/// @param compress_mode Compress mode, see `Image_compress_mode`
 	/// @return Created GPU texture or error
 	///
 	std::expected<gpu::Texture, util::Error> create_texture_from_image(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		Image_create_mode create_mode
+		Image_compress_mode compress_mode
 	) noexcept;
 
 	///

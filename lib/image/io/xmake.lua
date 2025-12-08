@@ -7,5 +7,5 @@ target("image.io")
 	add_headerfiles("include/(**.hpp)")
 	add_files("src/**.cpp")
 
-	add_deps("util", "image.repr", {public=true})
+	add_deps("util", "image.repr", "image.impl", {public=true})
 	add_packages("glm", "stb", {public=true})

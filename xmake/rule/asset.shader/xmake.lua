@@ -55,6 +55,8 @@ function _prepare(target, source_path, opt)
 		})
 	end,{
 		files = source_path,
+		dependfile = target:dependfile(source_path),
+		lastmtime = os.mtime(header_output_path),
 		changed = target:is_rebuilt() or not os.exists(header_output_path)
 	})
 end
@@ -91,7 +93,7 @@ function _build(target, source_path, opt)
 	local namespace = "shader_asset"
 	local varname = string.gsub(source_name, "[%.%-]", "_")
 
-	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.3"
+	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.0"
 	local debug = target:extraconf("rules", "asset.shader", "debug") or false
 	local includedir = target:extraconf("rules", "asset.shader", "includedir") or nil
 
@@ -142,6 +144,8 @@ function _build(target, source_path, opt)
 
 	end, {
 		files = header_output_path,
+		dependfile = target:dependfile(header_output_path),
+		lastmtime = os.mtime(object_output_path),
 		changed = target:is_rebuilt() or not os.exists(cpp_temp_path) or not os.exists(object_output_path)
 	})
 

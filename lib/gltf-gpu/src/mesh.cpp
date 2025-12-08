@@ -89,4 +89,39 @@ namespace gltf
 			.position_max = primitive.position_max
 		};
 	}
+
+	std::expected<Mesh, util::Error> Mesh::from_tinygltf(
+		const tinygltf::Model& model,
+		const tinygltf::Mesh& mesh
+	) noexcept
+	{
+		std::vector<Primitive> primitives;
+		primitives.reserve(mesh.primitives.size());
+
+		for (const auto& primitive : mesh.primitives)
+		{
+			auto primitive_result = Primitive::from_tinygltf(model, primitive);
+			if (!primitive_result) return primitive_result.error().propagate("Create Primitive failed");
+
+			primitives.emplace_back(std::move(*primitive_result));
+		}
+
+		return Mesh{.primitives = std::move(primitives)};
+	}
+
+	std::expected<Mesh_gpu, util::Error> Mesh_gpu::from_mesh(SDL_GPUDevice* device, const Mesh& mesh) noexcept
+	{
+		std::vector<Primitive_gpu> primitives;
+		primitives.reserve(mesh.primitives.size());
+
+		for (const auto& primitive : mesh.primitives)
+		{
+			auto primitive_result = Primitive_gpu::from_primitive(device, primitive);
+			if (!primitive_result) return primitive_result.error().propagate("Create Primitive_gpu failed");
+
+			primitives.emplace_back(std::move(*primitive_result));
+		}
+
+		return Mesh_gpu{.primitives = std::move(primitives)};
+	}
 }

@@ -33,7 +33,7 @@ namespace gltf::detail::mesh
 		if (std::cmp_greater_equal(normal_accessor_idx->get(), model.accessors.size()))
 			return util::Error("Primitive NORMAL accessor index out of bounds");
 
-		return extract_raw_from_accessor<glm::vec3>(model, model.accessors[*normal_accessor_idx]);
+		return extract_from_accessor<glm::vec3>(model, model.accessors[*normal_accessor_idx]);
 	}
 
 	std::expected<std::vector<glm::vec2>, util::Error> get_primitive_texcoord_raw(

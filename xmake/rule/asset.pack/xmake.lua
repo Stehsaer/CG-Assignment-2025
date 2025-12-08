@@ -69,6 +69,7 @@ function _prepare(target, source_path, opt)
 		})
 	end, {
 		files = dep_list, 
+		lastmtime = os.mtime(header_output_path),
 		changed = target:is_rebuilt() or not os.exists(header_output_path)
 	})
 
@@ -137,6 +138,8 @@ function _build(target, source_path, opt)
 
 	end, {
 		files = header_output_path, 
+		dependfile = target:dependfile(header_output_path),
+		lastmtime = os.mtime(object_output_path),
 		changed = target:is_rebuilt() or not os.exists(cpp_output_path) or not os.exists(object_output_path)
 	})
 

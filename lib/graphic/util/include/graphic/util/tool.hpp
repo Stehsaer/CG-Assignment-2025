@@ -93,6 +93,8 @@ namespace graphic
 				  return gpu::Transfer_buffer::create_from_data(device, util::as_bytes(image.pixels));
 			  })
 			| std::ranges::to<std::vector>();
+		for (const auto& buffer : transfer_buffers)
+			if (!buffer) return buffer.error().propagate("Create transfer buffer failed");
 
 		const auto transfer_infos =
 			mipmap_chain

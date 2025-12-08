@@ -1,4 +1,0 @@
-{
-	"glsllint.glslangValidatorArgs": ["-V"],
-	"glsllint.linkShader": false
-}

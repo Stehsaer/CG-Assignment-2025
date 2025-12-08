@@ -5,10 +5,53 @@
 #include <cstdlib>
 #include <glm/glm.hpp>
 #include <ranges>
+#include <util/inline.hpp>
 #include <vector>
 
 namespace image
 {
+	namespace detail
+	{
+		template <typename T>
+		concept GLM_type = requires {
+			typename T::length_type;
+			typename T::value_type;
+		};
+
+		template <typename T>
+		struct Component_widen;
+
+		template <>
+		struct Component_widen<uint8_t>
+		{
+			using type = uint16_t;
+		};
+
+		template <>
+		struct Component_widen<uint16_t>
+		{
+			using type = uint32_t;
+		};
+
+		template <>
+		struct Component_widen<uint32_t>
+		{
+			using type = uint64_t;
+		};
+
+		template <>
+		struct Component_widen<float>
+		{
+			using type = float;
+		};
+
+		template <>
+		struct Component_widen<double>
+		{
+			using type = double;
+		};
+	}
+
 	template <typename T>
 	struct Image_container
 	{
@@ -54,23 +97,32 @@ namespace image
 		///
 		/// @return Shrunk Image
 		///
-		Image_container shrink_half(this const Image_container& self) noexcept;
+		Image_container shrink_half(this const Image_container& self) noexcept
+			requires detail::GLM_type<T>
+		{
+			using Comp = typename T::value_type;
+			constexpr glm::length_t len = T::length();
+
+			using Widened_comp = typename detail::Component_widen<Comp>::type;
+			using Wide_t = glm::vec<len, Widened_comp>;
+
+			const glm::u32vec2 new_size(glm::floor(glm::vec2(self.size) / 2.0f));
+			Image_container result{.size = new_size, .pixels = std::vector<T>(new_size.x * new_size.y)};
+
+			for (const auto [y, x] : std::views::cartesian_product(
+					 std::views::iota(0u, new_size.y),
+					 std::views::iota(0u, new_size.x)
+				 ))
+				result[x, y] =
+					(Wide_t(self[x * 2 + 0, y * 2 + 0])
+					 + Wide_t(self[x * 2 + 1, y * 2 + 0])
+					 + Wide_t(self[x * 2 + 0, y * 2 + 1])
+					 + Wide_t(self[x * 2 + 1, y * 2 + 1]))
+					/ Widened_comp(4);
+
+			return result;
+		}
 	};
-
-	template <>
-	Image_container<glm::vec4> Image_container<glm::vec4>::shrink_half(
-		this const Image_container<glm::vec4>& self
-	) noexcept;
-
-	template <>
-	Image_container<glm::u8vec4> Image_container<glm::u8vec4>::shrink_half(
-		this const Image_container<glm::u8vec4>& self
-	) noexcept;
-
-	template <>
-	Image_container<glm::u16vec4> Image_container<glm::u16vec4>::shrink_half(
-		this const Image_container<glm::u16vec4>& self
-	) noexcept;
 
 	enum class Format
 	{
