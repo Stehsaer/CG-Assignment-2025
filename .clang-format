@@ -8,7 +8,7 @@ AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Empty
-AllowShortLambdasOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Inline
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 
@@ -19,6 +19,7 @@ BreakBeforeBraces: Custom
 BreakBeforeTemplateCloser: true
 BracedInitializerIndentWidth: 4
 BreakBinaryOperations: RespectPrecedence
+BreakAfterAttributes: Always
 
 # Bin-packs
 BinPackArguments: false

@@ -1,5 +1,5 @@
 -- Antialiasing Algorithms
-target("lib::graphic::aa")
+target("graphic.aa")
 	set_kind("static")
 	set_languages("c++23")
 
@@ -8,6 +8,6 @@ target("lib::graphic::aa")
 
 	add_files("src/**.cpp")
 	add_includedirs("include", {public=true})
-	add_headerfiles("include/**.hpp")
+	add_headerfiles("include/(**.hpp)")
 	
-	add_deps("lib::graphic::common", {public=true})
+	add_deps("graphic.util", {public=true})

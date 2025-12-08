@@ -1,10 +1,10 @@
 #pragma once
 
 #include <expected>
+#include <functional>
 #include <iostream>
 #include <source_location>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace util
@@ -57,9 +57,14 @@ namespace util
 		/// @return
 		///
 		Error propagate(
-			std::string message,
+			std::string message = "",
 			const std::source_location& location = std::source_location::current()
 		) const noexcept;
+
+		static std::function<util::Error(util::Error&&)> propagate_fn(
+			std::string message,
+			const std::source_location& location = std::source_location::current()
+		) noexcept;
 
 		template <typename V>
 		operator std::expected<V, Error>() const noexcept
@@ -78,66 +83,4 @@ namespace util
 		const std::vector<Trace_entry>& operator*() const noexcept { return entries; }
 		const std::vector<Trace_entry>* operator->() const noexcept { return &(**this); }
 	};
-
-	struct Unwrap
-	{
-		std::source_location location;
-		std::string message;
-	};
-
-	///
-	/// @brief Error unwrapper
-	/// @details Usage: `value = expected_value_or_error | util::unwrap("Error message")`
-	///
-	/// @param message Message for unwrapping error
-	/// @param location Source location, defaults to current location
-	/// @return Unwrapper object
-	///
-	Unwrap unwrap(
-		const std::string& message = "",
-		const std::source_location& location = std::source_location::current()
-	) noexcept;
-
-	template <typename T>
-		requires(!std::is_same_v<T, void>)
-	T operator|(std::expected<T, Error> expected, const Unwrap& unwrap)
-	{
-		if (!expected) throw expected.error().propagate(unwrap.message, unwrap.location);
-		return std::move(expected.value());
-	}
-
-	void operator|(std::expected<void, Error> expected, const Unwrap& unwrap);
-
-	///
-	/// @brief Pack multiple expected results into a tuple
-	/// @return Packed tuple of results, or the first error encountered
-	///
-	template <typename E, typename V>
-	std::expected<std::tuple<V>, E> pack_results(std::expected<V, E> result)
-	{
-		return std::move(result).transform([](V&& value) {
-			return std::make_tuple(std::move(value));
-		});
-	}
-
-	///
-	/// @brief Pack multiple expected results into a tuple
-	/// @return Packed tuple of results, or the first error encountered
-	///
-	template <typename E, typename Vf, typename... V>
-	std::expected<std::tuple<Vf, V...>, E> pack_results(
-		std::expected<Vf, E> result_first,
-		std::expected<V, E>... results
-	)
-	{
-		if (!result_first.has_value()) return std::unexpected(std::move(result_first.error()));
-
-		auto results_expanded = pack_results(std::move(results)...);
-		if (!results_expanded.has_value()) return std::unexpected(std::move(results_expanded.error()));
-
-		return std::tuple_cat(
-			std::make_tuple(std::move(result_first.value())),
-			std::move(results_expanded.value())
-		);
-	}
 }

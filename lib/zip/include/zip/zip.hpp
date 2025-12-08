@@ -25,7 +25,7 @@ namespace zip
 	/// @brief Decompressor functor for monadic usage
 	/// @note Example: `get_asset(...).and_then(zip::Decompressor())`
 	///
-	struct Decompressor
+	struct Decompress
 	{
 		size_t max_size;
 
@@ -34,7 +34,7 @@ namespace zip
 		///
 		/// @param max_size Maximum acceptable size after decompression, default 1GiB
 		///
-		Decompressor(size_t max_size = 1 << 30);
+		Decompress(size_t max_size = 1 << 30);
 
 		std::expected<std::vector<std::byte>, util::Error> operator()(
 			std::span<const std::byte> data

@@ -2,7 +2,7 @@
 
 #include "base.hpp"
 
-#include <graphic/common/fullscreen-pass.hpp>
+#include <graphic/util/fullscreen-pass.hpp>
 
 namespace graphic::aa
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include <glm/ext/matrix_double4x4.hpp>
 
 namespace camera
 {

@@ -1,5 +1,5 @@
 -- Backends, including SDL Window, SDL Device and ImGui integration
-target("lib::backend")
+target("backend")
 	set_kind("static")
 	set_languages("c++23", {public=true})
 
@@ -7,10 +7,10 @@ target("lib::backend")
 
 	add_files("src/*.cpp")
 	add_includedirs("include", {public=true})
-	add_headerfiles("include/**.hpp")
+	add_headerfiles("include/(**.hpp)")
 
-	add_deps("lib::gpu", "lib::zip")
+	add_deps("gpu", "zip")
 
-    add_rules("asset.pack")
+	add_rules("asset.pack")
 	add_files("asset/*.pack-desc")
 

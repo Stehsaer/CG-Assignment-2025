@@ -91,8 +91,7 @@ function _build(target, source_path, opt)
 	local namespace = "shader_asset"
 	local varname = string.gsub(source_name, "[%.%-]", "_")
 
-	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.0"
-	local client = target:extraconf("rules", "asset.shader", "client") or "vulkan100"
+	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.3"
 	local debug = target:extraconf("rules", "asset.shader", "debug") or false
 	local includedir = target:extraconf("rules", "asset.shader", "includedir") or nil
 
@@ -107,7 +106,6 @@ function _build(target, source_path, opt)
 			os.vrunv(tools.glsl_compiler.program, 
 				{
 					"--target-env", targetenv, 
-					"--client", client, 
 					"-gVS", 
 					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
 					"-o", spv_temp_path, 
@@ -118,7 +116,6 @@ function _build(target, source_path, opt)
 			os.vrunv(tools.glsl_compiler.program, 
 				{
 					"--target-env", targetenv, 
-					"--client", client,
 					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
 					"-o", spv_temp_path, 
 					source_path
@@ -150,7 +147,6 @@ function _build(target, source_path, opt)
 
 	table.insert(target:objectfiles(), object_output_path)
 end
-
 
 -- Compile shaders and pack as C++ files
 rule("asset.shader")

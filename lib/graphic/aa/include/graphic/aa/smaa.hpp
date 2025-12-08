@@ -1,8 +1,9 @@
 #pragma once
 
 #include "base.hpp"
-#include "graphic/common/fullscreen-pass.hpp"
-#include "graphic/common/smart-texture.hpp"
+
+#include <graphic/util/fullscreen-pass.hpp>
+#include <graphic/util/smart-texture.hpp>
 
 namespace graphic::aa
 {
@@ -32,10 +33,10 @@ namespace graphic::aa
 
 		std::expected<void, util ::Error> run_antialiasing(
 			SDL_GPUDevice* device,
-			const gpu ::Command_buffer& command_buffer,
+			const gpu::Command_buffer& command_buffer,
 			SDL_GPUTexture* source,
 			SDL_GPUTexture* target,
-			glm ::u32vec2 size
+			glm::u32vec2 size
 		) noexcept override;
 
 	  private:

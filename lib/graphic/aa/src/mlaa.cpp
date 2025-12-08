@@ -4,27 +4,15 @@
 #include "asset/shader/mlaa-pass2.frag.hpp"
 #include "asset/shader/mlaa-pass3.frag.hpp"
 
-#include "graphic/aa/detail/mlaa-smaa-lut.hpp"
+#include "graphic/aa/detail/mlaa-ortho-lut.hpp"
 
 namespace graphic::aa
 {
-	static constexpr SDL_GPUSamplerCreateInfo sampler_info = {
-		.min_filter = SDL_GPU_FILTER_LINEAR,
-		.mag_filter = SDL_GPU_FILTER_LINEAR,
-		.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
-		.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
-		.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
-		.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
-		.mip_lod_bias = 0.0f,
-		.max_anisotropy = 1,
-		.compare_op = SDL_GPU_COMPAREOP_ALWAYS,
-		.min_lod = 0.0f,
-		.max_lod = 1.0f,
-		.enable_anisotropy = false,
-		.enable_compare = false,
-		.padding1 = 0,
-		.padding2 = 0,
-		.props = 0
+	static constexpr gpu::Sampler::Create_info sampler_info = {
+		.mipmap_mode = gpu::Sampler::Mipmap_mode::Nearest,
+		.address_mode_u = gpu::Sampler::Address_mode::Clamp_to_edge,
+		.address_mode_v = gpu::Sampler::Address_mode::Clamp_to_edge,
+		.address_mode_w = gpu::Sampler::Address_mode::Clamp_to_edge
 	};
 
 	static constexpr auto edge_texture_format = gpu::Texture::Format{

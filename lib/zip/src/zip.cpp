@@ -15,7 +15,7 @@ namespace zip
 		try
 		{
 			std::vector<std::byte> decompressed_data;
-			decompressed_data.reserve(1024 * 1024);  // 预分配 1MB 空间以减少重新分配次数
+			decompressed_data.reserve(1024 * 1024);
 
 			const gzip::Decompressor decompressor(max_size);
 
@@ -29,15 +29,15 @@ namespace zip
 		}
 		catch (const std::runtime_error& e)
 		{
-			return util::Error(std::format("解压失败: {}", e.what()));
+			return util::Error(std::format("Decompress failed: {}", e.what()));
 		}
 	}
 
-	Decompressor::Decompressor(size_t max_size) :
+	Decompress::Decompress(size_t max_size) :
 		max_size(max_size)
 	{}
 
-	std::expected<std::vector<std::byte>, util::Error> Decompressor::operator()(
+	std::expected<std::vector<std::byte>, util::Error> Decompress::operator()(
 		std::span<const std::byte> data
 	) const noexcept
 	{

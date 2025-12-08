@@ -36,7 +36,7 @@ namespace gpu
 		/// @param binding Buffer information
 		/// @param element_size Size of index elements in the buffer
 		///
-		void bind_index_buffers(
+		void bind_index_buffer(
 			const SDL_GPUBufferBinding& binding,
 			SDL_GPUIndexElementSize element_size
 		) const noexcept;

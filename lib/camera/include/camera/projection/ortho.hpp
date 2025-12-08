@@ -1,5 +1,7 @@
 #include "camera/projection.hpp"
 
+#include <glm/vec2.hpp>
+
 namespace camera::projection
 {
 	///
@@ -52,8 +54,8 @@ namespace camera::projection
 
 		glm::dmat4 matrix(float aspect_ratio) noexcept override;
 
-		glm::vec2 viewport_size;  // 可视立方体长宽
-		float near_plane;         // 近平面
-		float far_plane;          // 远平面
+		glm::vec2 viewport_size;
+		float near_plane;
+		float far_plane;
 	};
 }

@@ -86,6 +86,10 @@ namespace gpu
 				.padding2 = 0,
 				.padding3 = 0
 			};
+		else
+		{
+			create_info.depth_stencil_state = SDL_GPUDepthStencilState{};
+		}
 
 		auto* const raw_pipeline = SDL_CreateGPUGraphicsPipeline(device, &create_info);
 		if (raw_pipeline == nullptr) RETURN_SDL_ERROR;

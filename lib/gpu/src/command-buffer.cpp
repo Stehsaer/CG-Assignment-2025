@@ -19,12 +19,6 @@ namespace gpu
 		return *this;
 	}
 
-	Command_buffer::~Command_buffer() noexcept
-	{
-		assert(device == nullptr);
-		assert(cmd_buffer == nullptr);
-	}
-
 	std::expected<Command_buffer, util::Error> Command_buffer::acquire_from(SDL_GPUDevice* device) noexcept
 	{
 		assert(device != nullptr);

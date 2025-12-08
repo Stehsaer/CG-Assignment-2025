@@ -22,7 +22,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_index_buffers(
+	void Render_pass::bind_index_buffer(
 		const SDL_GPUBufferBinding& binding,
 		SDL_GPUIndexElementSize element_size
 	) const noexcept

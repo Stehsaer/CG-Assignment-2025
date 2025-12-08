@@ -23,32 +23,30 @@ vec2 get_edge(vec2 offset)
     return textureLod(edge_tex, (gl_FragCoord.xy + offset) / texture_size, 0.0).rg;
 }
 
-float find_horizontal(vec2 offset, vec2 increment)
+float find_horizontal(vec2 offset, const vec2 increment)
 {
     float e;
     int i;
 
     for (i = 0; i < MAX_SEARCH_STEPS; i++)
     {
-        vec2 edge = get_edge(offset);
-        e = edge.g;
-        if (e < 0.9 || edge.r > 0.01) break;
+        e = get_edge(offset).g;
+        if (e < 0.9) break;
         offset += increment;
     }
 
     return 2.0 * min(i + e, MAX_SEARCH_STEPS);
 }
 
-float find_vertical(vec2 offset, vec2 increment)
+float find_vertical(vec2 offset, const vec2 increment)
 {
     float e;
     int i;
 
     for (i = 0; i < MAX_SEARCH_STEPS; i++)
     {
-        vec2 edge = get_edge(offset);
-        e = edge.r;
-        if (e < 0.9 || edge.g > 0.01) break;
+        e = get_edge(offset).r;
+        if (e < 0.9) break;
         offset += increment;
     }
 
@@ -74,8 +72,8 @@ void main()
     // Left edge found, search vertically
     if (current_edge.r > 0.5)
     {
-        float top = find_vertical(vec2(-0.25, -1.5), vec2(0.0, -2.0));
-        float bottom = find_vertical(vec2(-0.25, 1.5), vec2(0.0, 2.0));
+        float top = find_vertical(vec2(0.0, -1.5), vec2(0.0, -2.0));
+        float bottom = find_vertical(vec2(0.0, 1.5), vec2(0.0, 2.0));
 
         float top_edge = get_edge(vec2(-0.25, -top)).g;
         float bottom_edge = get_edge(vec2(-0.25, bottom + 1.0)).g;
@@ -86,8 +84,8 @@ void main()
     // Top edge found, search horizontally
     if (current_edge.g > 0.5)
     {
-        float left = find_horizontal(vec2(-1.5, -0.25), vec2(-2.0, 0.0));
-        float right = find_horizontal(vec2(1.5, -0.25), vec2(2.0, 0.0));
+        float left = find_horizontal(vec2(-1.5, 0.0), vec2(-2.0, 0.0));
+        float right = find_horizontal(vec2(1.5, 0.0), vec2(2.0, 0.0));
 
         float left_edge = get_edge(vec2(-left, -0.25)).r;
         float right_edge = get_edge(vec2(right + 1.0, -0.25)).r;

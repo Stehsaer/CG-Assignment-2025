@@ -17,6 +17,16 @@ namespace util
 		return new_error;
 	}
 
+	std::function<util::Error(util::Error&&)> Error::propagate_fn(
+		std::string message,
+		const std::source_location& location
+	) noexcept
+	{
+		return [msg = std::move(message), loc = location](util::Error&& err) {
+			return std::move(err).propagate(msg, loc);
+		};
+	}
+
 	void Error::dump_trace(std::ostream& os, bool color) const noexcept
 	{
 		for (const auto& [idx, entry] :
@@ -46,15 +56,5 @@ namespace util
 					formatted_message
 				);
 		}
-	}
-
-	Unwrap unwrap(const std::string& message, const std::source_location& location) noexcept
-	{
-		return Unwrap{.location = location, .message = message};
-	}
-
-	void operator|(std::expected<void, Error> expected, const Unwrap& unwrap)
-	{
-		if (!expected) throw expected.error().propagate(unwrap.message, unwrap.location);
 	}
 }

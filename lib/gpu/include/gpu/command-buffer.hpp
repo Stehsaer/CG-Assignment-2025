@@ -28,7 +28,7 @@ namespace gpu
 		Command_buffer(Command_buffer&&) noexcept;
 		Command_buffer& operator=(Command_buffer&&) noexcept;
 
-		~Command_buffer() noexcept;
+		~Command_buffer() noexcept = default;
 
 		///
 		/// @brief Acquire a command buffer from a GPU device

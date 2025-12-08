@@ -2,6 +2,8 @@
 
 #include "camera/view.hpp"
 
+#include <glm/vec3.hpp>
+
 namespace camera::view
 {
 	///

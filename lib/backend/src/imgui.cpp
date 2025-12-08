@@ -45,11 +45,17 @@ namespace backend
 		return {};
 	}
 
-	std::expected<void, util::Error> initialize_imgui(
-		SDL_Window* window,
-		SDL_GPUDevice* gpu_device,
-		float main_scale
-	) noexcept
+	struct ImGui_cleaner
+	{
+		~ImGui_cleaner() noexcept
+		{
+			ImGui_ImplSDLGPU3_Shutdown();
+			ImGui_ImplSDL3_Shutdown();
+			ImGui::DestroyContext();
+		}
+	};
+
+	std::expected<void, util::Error> initialize_imgui(const SDL_context& sdl_context) noexcept
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -57,11 +63,12 @@ namespace backend
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
 		ImGui_ImplSDLGPU3_InitInfo init_info = {};
-		init_info.Device = gpu_device;
-		init_info.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(gpu_device, window);
+		init_info.Device = sdl_context.device;
+		init_info.ColorTargetFormat = sdl_context.get_swapchain_texture_format();
 		init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
 
-		if (!ImGui_ImplSDL3_InitForSDLGPU(window)) return util::Error("Initialize IMGUI SDL3 backend failed");
+		if (!ImGui_ImplSDL3_InitForSDLGPU(sdl_context.window))
+			return util::Error("Initialize IMGUI SDL3 backend failed");
 		if (!ImGui_ImplSDLGPU3_Init(&init_info))
 			return util::Error("Initialize IMGUI SDL-GPU3 backend failed");
 
@@ -70,17 +77,11 @@ namespace backend
 			return load_font_result.error().propagate("Load IMGUI font failed");
 
 		ImGuiStyle& style = ImGui::GetStyle();
+		const auto main_scale = sdl_context.get_window_scale();
 		style.ScaleAllSizes(main_scale);
 		style.FontScaleDpi = main_scale;
 
 		return {};
-	}
-
-	void shutdown_imgui() noexcept
-	{
-		ImGui_ImplSDLGPU3_Shutdown();
-		ImGui_ImplSDL3_Shutdown();
-		ImGui::DestroyContext();
 	}
 
 	void imgui_handle_event(const SDL_Event* event) noexcept
