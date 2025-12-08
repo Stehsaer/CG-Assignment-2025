@@ -60,8 +60,8 @@ class Logic
 	float light_intensity = 20.0;
 	float turbidity = 2.0f;
 	float sky_brightness_mult = 0.1f;
-	float bloom_attenuation = 0.95f;
-	float bloom_strength = 0.35f;
+	float bloom_attenuation = 1.2f;
+	float bloom_strength = 0.13f;
 
 	float csm_linear_blend = 0.56f;
 
