@@ -25,7 +25,7 @@ void Logic::light_control_ui() noexcept
 	ImGui::Separator();
 
 	ImGui::SliderFloat("Bloom 衰减", &bloom_attenuation, 0.0f, 5.0f);
-	ImGui::SliderFloat("Bloom 强度", &bloom_strength, 0.0f, 5.0f);
+	ImGui::SliderFloat("Bloom 强度", &bloom_strength, 0.001f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
 }
 
 void Logic::antialias_control_ui() noexcept
