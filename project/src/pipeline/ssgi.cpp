@@ -20,7 +20,7 @@ namespace pipeline
 	) noexcept
 	{
 		static thread_local std::mt19937 generator{std::random_device{}()};
-		static thread_local std::uniform_int_distribution<int> distribution{-2048, 2048};
+		static thread_local std::uniform_int_distribution<int> distribution{0, 128};
 
 		const glm::mat4 inv_proj_mat = glm::inverse(param.proj_mat);
 
@@ -98,10 +98,19 @@ namespace pipeline
 			.max_lod = 10
 		};
 
-		auto linear_sampler = gpu::Sampler::create(device, linear_sampler_create_info);
+		const auto noise_sampler_create_info = gpu::Sampler::Create_info{
+			.min_filter = gpu::Sampler::Filter::Nearest,
+			.mag_filter = gpu::Sampler::Filter::Nearest,
+			.mipmap_mode = gpu::Sampler::Mipmap_mode::Nearest,
+			.address_mode_u = gpu::Sampler::Address_mode::Repeat,
+			.address_mode_v = gpu::Sampler::Address_mode::Repeat,
+			.address_mode_w = gpu::Sampler::Address_mode::Repeat
+		};
+
 		auto nearest_sampler = gpu::Sampler::create(device, nearest_sampler_create_info);
-		if (!linear_sampler) return linear_sampler.error().forward("Create SSGI linear sampler failed");
+		auto noise_sampler = gpu::Sampler::create(device, noise_sampler_create_info);
 		if (!nearest_sampler) return nearest_sampler.error().forward("Create SSGI nearest sampler failed");
+		if (!noise_sampler) return noise_sampler.error().forward("Create SSGI noise sampler failed");
 
 		/* Create Pipeline */
 
@@ -121,7 +130,7 @@ namespace pipeline
 
 		return SSGI(
 			std::move(*ssgi_pipeline),
-			std::move(*linear_sampler),
+			std::move(*noise_sampler),
 			std::move(*nearest_sampler),
 			std::move(*noise_texture)
 		);
@@ -163,8 +172,8 @@ namespace pipeline
 					light_buffer.light_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler),
-					noise_texture.bind_with_sampler(linear_sampler),
-					gbuffer.albedo_texture->bind_with_sampler(linear_sampler)
+					noise_texture.bind_with_sampler(noise_sampler),
+					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler)
 				);
 				compute_pass.dispatch(dispatch_size.x, dispatch_size.y, 1);
 			}

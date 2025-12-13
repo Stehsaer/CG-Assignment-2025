@@ -122,7 +122,7 @@ vec3 select_march_direction(vec3 normal,
     float u1 = noise_unorm.x;
     float u2 = noise_unorm.y;
     float r = sqrt(u1);
-    float phi = 8.0 * PI * u2;
+    float phi = 2.0 * PI * u2;
     vec3 local = vec3(r * sin(phi), r * cos(phi), sqrt(max(0.0, 1.0 - u1)));
 
     mat3 TBN = build_onb_frivjad(normal); 

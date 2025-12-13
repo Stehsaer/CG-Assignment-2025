@@ -60,17 +60,17 @@ namespace pipeline
 		};
 
 		gpu::Compute_pipeline ssgi_pipeline;
-		gpu::Sampler linear_sampler, nearest_sampler;
+		gpu::Sampler noise_sampler, nearest_sampler;
 		gpu::Texture noise_texture;
 
 		SSGI(
 			gpu::Compute_pipeline ssgi_pipeline,
-			gpu::Sampler linear_sampler,
+			gpu::Sampler noise_sampler,
 			gpu::Sampler nearest_sampler,
 			gpu::Texture noise_texture
 		) :
 			ssgi_pipeline(std::move(ssgi_pipeline)),
-			linear_sampler(std::move(linear_sampler)),
+			noise_sampler(std::move(noise_sampler)),
 			nearest_sampler(std::move(nearest_sampler)),
 			noise_texture(std::move(noise_texture))
 		{}
