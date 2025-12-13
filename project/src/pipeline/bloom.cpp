@@ -201,7 +201,7 @@ namespace pipeline
 			.texture = bloom_target.get_upsample_chain(upsample_mip_level),
 			.mip_level = 0,
 			.layer = 0,
-			.cycle = false,
+			.cycle = upsample_mip_level == 0,  // Cycle only when blurring the first mip level
 			.padding1 = 0,
 			.padding2 = 0,
 			.padding3 = 0
@@ -339,7 +339,7 @@ namespace pipeline
 			.texture = bloom_target.get_upsample_chain(upsample_mip_level),
 			.mip_level = 0,
 			.layer = 0,
-			.cycle = false,
+			.cycle = is_last_mip,
 			.padding1 = 0,
 			.padding2 = 0,
 			.padding3 = 0
