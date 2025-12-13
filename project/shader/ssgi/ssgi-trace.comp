@@ -165,7 +165,7 @@ vec4 get_hiz_pixelcoord_boundary(int hiz_level, ivec2 hiz_resolution, ivec2 hiz_
 {
     int hiz_size = 1 << hiz_level;
     bvec2 coord_at_edge = equal(hiz_coord + 1, hiz_resolution);
-    vec2 size = mix(vec2(hiz_size), vec2(hiz_size) * 2, vec2(coord_at_edge));
+    vec2 size = mix(vec2(hiz_size.xx), vec2(hiz_size.xx << 1), vec2(coord_at_edge));
     return vec4(
         vec2(hiz_coord * hiz_size),
         vec2(hiz_coord * hiz_size) + size
@@ -308,8 +308,8 @@ Hit_result raytrace(vec3 V_start, vec3 V_march_dir, ivec2 PUV_coord)
 void main()
 {
     const ivec2 resolution_ivec = ivec2(resolution);
-    const ivec2 PUV_coord = ivec2(gl_GlobalInvocationID.xy) * 2;
     const ivec2 PUV_coord_half = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 PUV_coord = PUV_coord_half << 1;
     
     if(any(greaterThanEqual(PUV_coord, resolution)))
     {
@@ -320,7 +320,6 @@ void main()
     /* Texture Fetch */
 
     const float depth = texelFetch(depth_tex, PUV_coord, 0).r;
-
     if (depth == 0.0)
     {
         imageStore(ssgi_trace_out, PUV_coord_half, vec4(0.0));
