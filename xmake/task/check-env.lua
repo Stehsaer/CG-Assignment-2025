@@ -22,11 +22,7 @@ task("check-env")
 		end
 
 		function _check_tool_glslang()
-			return (find_tool("glslangValidator") or find_tool("glslc")) ~= nil
-		end
-
-		function _check_tool_spirv_opt()
-			return find_tool("spirv-opt") ~= nil
+			return find_tool("glslc") ~= nil
 		end
 
 		function _check_tool_python()
@@ -61,8 +57,7 @@ task("check-env")
 			return ok
 		end
 
-		local has_glslang = _check_tool_ui(_check_tool_glslang, "glslangValidator/glslc")
-		local has_spirv_opt = _check_tool_ui(_check_tool_spirv_opt, "spirv-opt")
+		local has_glslang = _check_tool_ui(_check_tool_glslang, "glslc")
 		local has_python = _check_tool_ui(_check_tool_python, "Python")
 		local has_python_module = has_python and _check_tool_ui(_check_python_module, "Python Libraries") or false
 		local has_cpp23_features = _check_tool_ui(_check_cpp23_feature, "C++23 Required Features")
@@ -77,25 +72,6 @@ task("check-env")
 			cprint("${green}Pass!")
 		else
 			cprint("${color.error}Failed!")
-
-			if not has_glslang or not has_spirv_opt then
-				cprint("=> ${white}glslangValidator/glslc/spirv-opt${reset}:")
-				cprint("    - Windows: Install Vulkan SDK => https://vulkan.lunarg.com/sdk/home")
-				cprint("    - Ubuntu/Debian: Install using APT => ${cyan onblack}sudo apt install glslang-tools")
-				cprint("    - ${color.warning}[!]${reset} If installed glslangValidator/glslc/Vulkan SDK but still failed, add to system PATH and retry")
-			end
-
-			if not has_python then
-				cprint("=> ${white}Python${reset}: Install Python => https://www.python.org/downloads/")
-			end
-
-			if not has_python_module and has_python then
-				cprint("=> ${white}Python Libraries${reset}: Install Python >= 3.10")
-			end
-
-			if not has_cpp23_features then
-				cprint("=> ${white}C++23 Required Features${reset}: Install latest compiler")
-			end
 		end
 	end)
 

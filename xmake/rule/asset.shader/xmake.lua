@@ -82,13 +82,11 @@ function _build(target, source_path, opt)
 	local paths = get_path(target)
 
 	local tools = {
-		glsl_compiler = find_tool("glslangValidator") or find_tool("glslc"),
-		spirv_opt = find_tool("spirv-opt"),
+		glsl_compiler = find_tool("glslc"),
 		python = find_tool("python3") or find_tool("python")
 	}
 
 	assert(tools.glsl_compiler, "GLSL compiler not found")
-	assert(tools.spirv_opt, "spirv-opt not found")
 	assert(tools.python, "Python not found")
 
 	-- Find directories
@@ -103,8 +101,7 @@ function _build(target, source_path, opt)
 	local namespace = "shader_asset"
 	local varname = string.gsub(source_name, "[%.%-]", "_")
 
-	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.0"
-	local debug = target:extraconf("rules", "asset.shader", "debug") or false
+	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.3"
 	local includedir = target:extraconf("rules", "asset.shader", "includedir") or nil
 
 	-- Compile shader to SPIR-V and generate C++ source file
@@ -114,36 +111,16 @@ function _build(target, source_path, opt)
 
 		-- Compile shader into SPIR-V
 
-		if debug then 
-			os.vrunv(tools.glsl_compiler.program, 
-				{
-					"--target-env", targetenv, 
-					"-gVS", 
-					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
-					"-o", spv_temp_path, 
-					source_path
-				}
-			)
-		else 
-			os.vrunv(tools.glsl_compiler.program, 
-				{
-					"--target-env", targetenv, 
-					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
-					"-o", unopt_spv_temp_path, 
-					source_path
-				}
-			)
-
-			os.vrunv(tools.spirv_opt.program, 
-				{
-					"-O", 
-					"--local-redundancy-elimination",
-					"--loop-invariant-code-motion",
-					unopt_spv_temp_path, 
-					"-o", spv_temp_path
-				}
-			)
-		end
+		os.vrunv(tools.glsl_compiler.program, 
+			{
+				"--target-env=" .. targetenv, 
+				"-g", 
+				includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
+				"-o", spv_temp_path,
+				"-O",
+				source_path
+			}
+		)
 
 		-- Generate C++ source file
 
