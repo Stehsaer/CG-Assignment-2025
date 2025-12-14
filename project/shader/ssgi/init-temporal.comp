@@ -377,7 +377,7 @@ void main()
     {
         float prev_depth = textureLod(prev_depth_tex, UV_prev, 0).r;
 
-        if (distance(P_prev_ndc.z, prev_depth) / P_prev_ndc.z < 0.00001)
+        if (distance(P_prev_ndc.z, prev_depth) / P_prev_ndc.z < 0.001)
         {
             uvec4 candidate;
             int candidate_index;
