@@ -382,11 +382,6 @@ void main()
         }
     }
 
-    if (dot(reservoir.start_normal, W_start_normal) < 0.99)
-    {
-        reservoir = Reservoir(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 0.0, 0.0, 0.0);
-    }
-
     /* Ray Marching */
 
     vec3 V_march_dir = select_march_direction(
@@ -408,12 +403,14 @@ void main()
             
             const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0);
 
-            const float p_hat = (dot(luminance.rgb, vec3(0.2126, 0.7152, 0.0722)) + 0.001) * gltf_pbr_pdf(
+            const float brightness = dot(luminance.rgb, vec3(0.2126, 0.7152, 0.0722)) + 0.001;
+            const float pdf = gltf_pbr_pdf(
                 normalize(trace_result.V_hit_pos - V_pos),
                 V_pixel_to_eye,
                 lighting.roughness,
                 V_normal
             );
+            const float p_hat = brightness * mix(0.1, 1.0, pdf);
 
             update_reservoir(
                 reservoir,
