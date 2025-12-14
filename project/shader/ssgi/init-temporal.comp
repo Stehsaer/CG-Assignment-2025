@@ -431,16 +431,10 @@ void main()
         const vec3 W_hit_normal = octToNormal(unpackSnorm2x16(textureLod(light_info_tex, trace_result.uv, 0.0).r));
         const vec3 V_hit_normal = W_to_V_vec(W_hit_normal);
 
-        const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0) * dot(V_hit_normal, -V_march_dir);
+        const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0) * max(0.0, dot(V_hit_normal, -V_march_dir));
 
         const float brightness = dot(luminance.rgb, vec3(0.2126, 0.7152, 0.0722)) + 0.01;
-        const float pdf = gltf_pbr_pdf(
-                normalize(trace_result.V_hit_pos - V_pos),
-                V_pixel_to_eye,
-                lighting.roughness,
-                V_normal
-            );
-        const float p_hat = brightness * mix(0.1, 1.0, max(0.0, pdf));
+        const float p_hat = brightness;
 
         update_reservoir(
             reservoir,
