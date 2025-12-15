@@ -22,7 +22,7 @@ task("check-env")
 		end
 
 		function _check_tool_glslang()
-			return find_tool("glslc") ~= nil
+			return find_tool("glslc") ~= nil or find_tool("glslangValidator") ~= nil
 		end
 
 		function _check_tool_python()

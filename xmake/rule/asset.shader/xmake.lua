@@ -29,12 +29,14 @@ function _prepare(target, source_path, opt)
 	local paths = get_path(target)
 
 	local tools = {
-		python = find_tool("python3") or find_tool("python")
+		python = find_tool("python3") or find_tool("python"),
+		glslc = find_tool("glslc")
 	}
 
 	assert(tools.python, "Python not found")
+	assert(tools.glslc, "GLSL compiler not found")
 
-	-- Find directories
+	-- Compute paths
 
 	local source_name = path.filename(source_path) 								
 	local header_output_path = path.join(paths.header, source_name .. ".hpp") 	
@@ -43,12 +45,42 @@ function _prepare(target, source_path, opt)
 	local namespace = "shader_asset"
 	local varname = string.gsub(source_name, "[%.%-]", "_")
 
-	local depend_targets = {source_path}
-	local includedir_files = includedir and os.files(path.join(target:scriptdir(), includedir, "**")) or {}
-	for _, f in ipairs(includedir_files) do
-		table.insert(depend_targets, f)
+	-- Find directories
+
+	local function parse_dependencies(line)
+		local deps = {}
+
+		local colon_pos = string.find(line, ":")
+		if not colon_pos then
+			return deps
+		end
+
+		local deps_str = string.sub(line, colon_pos + 1)
+
+		deps_str = deps_str
+			:gsub(".*?:", "") 
+			:match("^%s*(.-)%s*$") or ""
+
+		for dep in deps_str:gmatch('"(.+)"') do
+			dep = dep:gsub('^"(.*)"$', '%1')
+			if dep ~= "" then
+				table.insert(deps, dep)
+			end
+		end
+
+		for dep in deps_str:gmatch("([^%s]+)") do
+			dep = dep:gsub('^"(.*)"$', '%1')
+			if dep ~= "" and dep:find("\"") == nil then
+				table.insert(deps, dep)
+			end
+		end
+
+		return deps
 	end
 
+	local stdout, _ = os.iorunv(tools.glslc.program, {"-M", source_path})
+	local dependencies = parse_dependencies(stdout)
+	
 	-- Generate header file
 
 	depend.on_changed(function ()
@@ -61,7 +93,7 @@ function _prepare(target, source_path, opt)
 			"--varname", varname
 		})
 	end,{
-		files = depend_targets,
+		files = table.join(dependencies, {header_output_path}),
 		dependfile = target:dependfile(source_path),
 		lastmtime = os.mtime(header_output_path),
 		changed = target:is_rebuilt() or not os.exists(header_output_path)
@@ -111,16 +143,29 @@ function _build(target, source_path, opt)
 
 		-- Compile shader into SPIR-V
 
-		os.vrunv(tools.glsl_compiler.program, 
-			{
-				"--target-env=" .. targetenv, 
-				"-g", 
-				includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
-				"-o", spv_temp_path,
-				"-O",
-				source_path
-			}
-		)
+		if debug then
+			os.vrunv(tools.glslangValidator.program, 
+				{
+					"--target-env", targetenv, 
+					"-gVS",
+					"--nan-clamp",
+					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
+					"-o", spv_temp_path, 
+					source_path
+				}
+			)
+		else
+			os.vrunv(tools.glslc.program, 
+				{
+					"--target-env=" .. targetenv, 
+					includedir and format("-I%s", path.join(target:scriptdir(), includedir)) or "-I.",
+					"-o", spv_temp_path,
+					"-O",
+					"-fnan-clamp",
+					source_path
+				}
+			)
+		end
 
 		-- Generate C++ source file
 
