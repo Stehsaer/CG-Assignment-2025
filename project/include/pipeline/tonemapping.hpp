@@ -6,7 +6,6 @@
 #include "target/auto-exposure.hpp"
 #include "target/bloom.hpp"
 #include "target/light.hpp"
-#include "target/ssgi.hpp"
 
 #include <glm/glm.hpp>
 
@@ -32,7 +31,6 @@ namespace pipeline
 			const target::Light_buffer& light_buffer,
 			const target::Auto_exposure& auto_exposure,
 			const target::Bloom& bloom,
-			const target::SSGI& ssgi,
 			SDL_GPUTexture* target_texture,
 			const Param& param
 		) const noexcept;

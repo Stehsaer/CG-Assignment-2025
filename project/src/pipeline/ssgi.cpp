@@ -1,11 +1,16 @@
 #include "pipeline/ssgi.hpp"
 #include "asset/graphic-asset.hpp"
 #include "asset/shader/init-temporal.comp.hpp"
+#include "asset/shader/radiance-add.frag.hpp"
+#include "asset/shader/radiance-composite.comp.hpp"
 #include "asset/shader/spatial-reuse.comp.hpp"
 #include "gpu/compute-pass.hpp"
 #include "gpu/compute-pipeline.hpp"
+#include "gpu/graphics-pipeline.hpp"
+#include "graphics/util/fullscreen-pass.hpp"
 #include "graphics/util/quick-create.hpp"
 #include "image/io.hpp"
+#include "target/light.hpp"
 #include "util/as-byte.hpp"
 #include "util/asset.hpp"
 #include "zip/zip.hpp"
@@ -15,7 +20,7 @@
 
 namespace pipeline
 {
-	SSGI::Initial_sample_param SSGI::Initial_sample_param::from_param(
+	SSGI::Initial_temporal_param SSGI::Initial_temporal_param::from_param(
 		const Param& param,
 		const glm::uvec2& resolution
 	) noexcept
@@ -39,7 +44,7 @@ namespace pipeline
 
 		const glm::ivec2 time_noise = {distribution(generator), distribution(generator)};
 
-		return Initial_sample_param{
+		return Initial_temporal_param{
 			.inv_proj_mat = inv_proj_mat,
 			.proj_mat = param.proj_mat,
 			.inv_view_mat = glm::inverse(param.view_mat),
@@ -93,6 +98,22 @@ namespace pipeline
 			.near_plane_span = near_plane_span,
 			.near_plane = -near_plane_center_view.z,
 			.time_noise = time_noise
+		};
+	}
+
+	SSGI::Radiance_composite_param SSGI::Radiance_composite_param::from_param(
+		const Param& param,
+		glm::u32vec2 resolution
+	) noexcept
+	{
+		return Radiance_composite_param{
+			.back_projection_mat = param.prev_view_proj_mat,
+			.inv_back_projection_mat = glm::inverse(param.prev_view_proj_mat),
+			.inv_view_proj_mat = glm::inverse(param.proj_mat * param.view_mat),
+			.inv_view_mat = glm::inverse(param.view_mat),
+			.comp_resolution = (resolution + 1u) / 2u,
+			.full_resolution = resolution,
+			.blend_factor = param.blend_factor
 		};
 	}
 
@@ -191,9 +212,53 @@ namespace pipeline
 		if (!spatial_reuse_pipeline)
 			return spatial_reuse_pipeline.error().forward("Create SSGI spatial reuse pipeline failed");
 
+		auto radiance_composite_pipeline = gpu::Compute_pipeline::create(
+			device,
+			gpu::Compute_pipeline::Create_info{
+				.shader_data = shader_asset::radiance_composite_comp,
+				.num_samplers = 9,
+				.num_readwrite_storage_textures = 1,
+				.num_uniform_buffers = 1,
+				.threadcount_x = 16,
+				.threadcount_y = 16,
+				.threadcount_z = 1
+			},
+			"SSGI Radiance Composite Pipeline"
+		);
+		if (!radiance_composite_pipeline)
+			return radiance_composite_pipeline.error().forward(
+				"Create SSGI radiance composite pipeline failed"
+			);
+
+		const auto radiance_add_shader = gpu::Graphics_shader::create(
+			device,
+			shader_asset::radiance_add_frag,
+			gpu::Graphics_shader::Stage::Fragment,
+			1,
+			0,
+			0,
+			0
+		);
+		if (!radiance_add_shader)
+			return radiance_add_shader.error().forward("Create SSGI radiance add shader failed");
+
+		auto radiance_add_pass = graphics::Fullscreen_pass<true>::create(
+			device,
+			*radiance_add_shader,
+			target::Light_buffer::light_buffer_format,
+			{.clear_before_render = false,
+			 .do_cycle = false,
+			 .blend_mode = graphics::Fullscreen_blend_mode::Add},
+			"SSGI Radiance Add Pipeline"
+		);
+		if (!radiance_add_pass)
+			return radiance_add_pass.error().forward("Create SSGI radiance add pass failed");
+
 		return SSGI(
 			std::move(*initial_pipeline),
 			std::move(*spatial_reuse_pipeline),
+			std::move(*radiance_composite_pipeline),
+			std::move(*radiance_add_pass),
 			std::move(*noise_sampler),
 			std::move(*nearest_sampler),
 			std::move(*linear_sampler),
@@ -210,6 +275,7 @@ namespace pipeline
 		glm::u32vec2 resolution
 	) const noexcept
 	{
+		command_buffer.push_debug_group("SSGI");
 
 		const auto initial_sample_result =
 			this->run_initial_sample(command_buffer, light_buffer, gbuffer, ssgi_target, param, resolution);
@@ -220,6 +286,17 @@ namespace pipeline
 			this->run_spatial_reuse(command_buffer, gbuffer, ssgi_target, param, resolution);
 		if (!spatial_reuse_result)
 			return spatial_reuse_result.error().forward("Run SSGI spatial reuse failed");
+
+		const auto radiance_composite_result =
+			this->run_radiance_composite(command_buffer, gbuffer, ssgi_target, param, resolution);
+		if (!radiance_composite_result)
+			return radiance_composite_result.error().forward("Run SSGI radiance composite failed");
+
+		const auto radiance_add_result =
+			this->render_radiance_add(command_buffer, light_buffer, ssgi_target, resolution);
+		if (!radiance_add_result) return radiance_add_result.error().forward("Run SSGI radiance add failed");
+
+		command_buffer.pop_debug_group();
 
 		return {};
 	}
@@ -236,7 +313,8 @@ namespace pipeline
 		const auto half_res = (resolution + 1u) / 2u;
 		const auto dispatch_size = (half_res + 7u) / 8u;
 
-		const Initial_sample_param initial_sample_param = Initial_sample_param::from_param(param, resolution);
+		const Initial_temporal_param initial_sample_param =
+			Initial_temporal_param::from_param(param, resolution);
 		command_buffer.push_uniform_to_compute(0, util::as_bytes(initial_sample_param));
 
 		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture1{
@@ -282,7 +360,7 @@ namespace pipeline
 		const std::array write_bindings =
 			{write_binding_texture1, write_binding_texture2, write_binding_texture3, write_binding_texture4};
 
-		command_buffer.push_debug_group("SSGI Pass");
+		command_buffer.push_debug_group("Initial Sample & Temporal Pass");
 		auto result = command_buffer.run_compute_pass(
 			write_bindings,
 			{},
@@ -308,7 +386,9 @@ namespace pipeline
 		);
 		command_buffer.pop_debug_group();
 
-		return std::move(result).transform_error(util::Error::forward_fn("SSGI pass failed"));
+		return std::move(result).transform_error(
+			util::Error::forward_fn("Initial Sample & Temporal Pass failed")
+		);
 	}
 
 	std::expected<void, util::Error> SSGI::run_spatial_reuse(
@@ -367,7 +447,7 @@ namespace pipeline
 		const std::array write_bindings =
 			{write_binding_texture1, write_binding_texture2, write_binding_texture3, write_binding_texture4};
 
-		command_buffer.push_debug_group("SSGI Spatial Reuse Pass");
+		command_buffer.push_debug_group("Spatial Reuse Pass");
 		auto result = command_buffer.run_compute_pass(
 			write_bindings,
 			{},
@@ -394,6 +474,75 @@ namespace pipeline
 		);
 		command_buffer.pop_debug_group();
 
-		return std::move(result).transform_error(util::Error::forward_fn("SSGI spatial reuse pass failed"));
+		return std::move(result).transform_error(util::Error::forward_fn("Spatial reuse pass failed"));
+	}
+
+	std::expected<void, util::Error> SSGI::run_radiance_composite(
+		const gpu::Command_buffer& command_buffer,
+		const target::Gbuffer& gbuffer,
+		const target::SSGI& ssgi_target,
+		const Param& param,
+		glm::u32vec2 resolution
+	) const noexcept
+	{
+		const Radiance_composite_param radiance_composite_param =
+			Radiance_composite_param::from_param(param, resolution);
+		command_buffer.push_uniform_to_compute(0, util::as_bytes(radiance_composite_param));
+
+		const auto dispatch_size = (radiance_composite_param.comp_resolution + 15u) / 16u;
+
+		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture{
+			.texture = ssgi_target.radiance_texture.current(),
+			.mip_level = 0,
+			.layer = 0,
+			.cycle = true,
+			.padding1 = 0,
+			.padding2 = 0,
+			.padding3 = 0
+		};
+
+		command_buffer.push_debug_group("Radiance Composite Pass");
+		auto result = command_buffer.run_compute_pass(
+			std::array{write_binding_texture},
+			{},
+			[this, &gbuffer, &ssgi_target, dispatch_size](const gpu::Compute_pass& compute_pass) {
+				compute_pass.bind_pipeline(radiance_composite_pipeline);
+				compute_pass.bind_samplers(
+					0,
+					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler),
+					ssgi_target.radiance_texture.prev().bind_with_sampler(nearest_sampler),
+					gbuffer.depth_value_texture.prev().bind_with_sampler(nearest_sampler),
+					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
+					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
+					ssgi_target.spatial_reservoir_texture1.current().bind_with_sampler(nearest_sampler),
+					ssgi_target.spatial_reservoir_texture2.current().bind_with_sampler(nearest_sampler),
+					ssgi_target.spatial_reservoir_texture3.prev().bind_with_sampler(nearest_sampler),
+					ssgi_target.spatial_reservoir_texture4.current().bind_with_sampler(nearest_sampler)
+				);
+				compute_pass.dispatch(dispatch_size.x, dispatch_size.y, 1);
+			}
+		);
+		command_buffer.pop_debug_group();
+
+		return std::move(result).transform_error(util::Error::forward_fn("Radiance composite pass failed"));
+	}
+
+	std::expected<void, util::Error> SSGI::render_radiance_add(
+		const gpu::Command_buffer& command_buffer,
+		const target::Light_buffer& light_buffer,
+		const target::SSGI& ssgi_target,
+		glm::u32vec2 resolution [[maybe_unused]]
+	) const noexcept
+	{
+		command_buffer.push_debug_group("Radiance Add Pass");
+		auto result = radiance_add_pass.render(
+			command_buffer,
+			light_buffer.light_texture.current(),
+			std::array{ssgi_target.radiance_texture.current().bind_with_sampler(linear_sampler)},
+			{},
+			{}
+		);
+		command_buffer.pop_debug_group();
+		return std::move(result).transform_error(util::Error::forward_fn("Radiance add pass failed"));
 	}
 }

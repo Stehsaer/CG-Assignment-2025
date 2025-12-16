@@ -429,7 +429,8 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 				.view_mat = logic_result.camera.view_matrix,
 				.prev_view_proj_mat = logic_result.camera.prev_camera_matrix,
 				.max_scene_distance = gbuffer_drawdata.get_max_distance(),
-				.distance_attenuation = 0.0
+				.distance_attenuation = 0.0,
+				.blend_factor = 0.025
 			},
 			swapchain_size
 		) | util::unwrap("SSGI pass failed");
@@ -467,7 +468,6 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 				render_resource.light_buffer_target,
 				render_resource.auto_exposure_target,
 				render_resource.bloom_target,
-				render_resource.ssgi_target,
 				*render_resource.composite_target.composite_texture,
 				{.bloom_strength = logic_result.bloom_strength}
 			) | util::unwrap();
@@ -506,7 +506,7 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 				render_resource.debug_pipeline.render_channels(
 					command_buffer,
 					swapchain_pass,
-					render_resource.ssgi_target.spatial_reservoir_texture4.current(),
+					render_resource.ssgi_target.radiance_texture.current(),
 					swapchain_size,
 					4
 				);

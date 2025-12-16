@@ -24,6 +24,9 @@ namespace target
 		if (const auto result = spatial_reservoir_texture4.resize_and_cycle(device, half_size); !result)
 			return result.error().forward("Resize SSGI spatial reservoir texture 4 failed");
 
+		if (const auto result = radiance_texture.resize_and_cycle(device, half_size); !result)
+			return result.error().forward("Resize SSGI radiance texture failed");
+
 		return {};
 	}
 }

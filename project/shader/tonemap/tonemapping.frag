@@ -12,10 +12,8 @@ layout(location = 0) out vec4 out_color;
 
 layout(set = 2, binding = 0) uniform sampler2D light_buffer_tex;
 layout(set = 2, binding = 1) uniform sampler2D bloom_tex;
-layout(set = 2, binding = 2) uniform sampler2D ssgi_test_tex;
-layout(set = 2, binding = 3) uniform sampler2D ssgi_test_tex2;
 
-layout(std430, set = 2, binding = 4) readonly buffer Auto_exposure
+layout(std430, set = 2, binding = 2) readonly buffer Auto_exposure
 {
     float avg_luminance;
     float exposure_mult;
@@ -33,11 +31,9 @@ void main()
 {
     float exposure_mult_adjusted = exposure_mult * exposure;
 
-    float W = textureLod(ssgi_test_tex2, uv, 0).z;
-
     vec3 hdr_color =
         (
-            (textureLod(light_buffer_tex, uv, 0).rgb + textureLod(ssgi_test_tex, uv, 0).rgb * W) * exposure_mult_adjusted 
+            textureLod(light_buffer_tex, uv, 0).rgb * exposure_mult_adjusted 
             + textureLod(bloom_tex, uv, 0).rgb * bloom_strength
             );
     vec3 srgb_color = pow(agx(hdr_color), vec3(2.2));

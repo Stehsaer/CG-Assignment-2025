@@ -39,7 +39,7 @@ namespace pipeline
 			device,
 			shader_asset::tonemapping_frag,
 			gpu::Graphics_shader::Stage::Fragment,
-			4,
+			2,
 			0,
 			1,
 			1
@@ -69,16 +69,13 @@ namespace pipeline
 		const target::Light_buffer& light_buffer,
 		const target::Auto_exposure& auto_exposure,
 		const target::Bloom& bloom,
-		const target::SSGI& ssgi,
 		SDL_GPUTexture* target_texture,
 		const Param& param
 	) const noexcept
 	{
 		const auto sampler_texture_arr = std::array{
 			light_buffer.light_texture.current().bind_with_sampler(nearest_sampler),
-			bloom.get_upsample_chain(0).bind_with_sampler(linear_sampler),
-			ssgi.spatial_reservoir_texture4.current().bind_with_sampler(nearest_sampler),
-			ssgi.spatial_reservoir_texture1.current().bind_with_sampler(nearest_sampler)
+			bloom.get_upsample_chain(0).bind_with_sampler(linear_sampler)
 		};
 
 		const auto auto_exposure_result_buffer = auto_exposure.get_current_frame().result_buffer;

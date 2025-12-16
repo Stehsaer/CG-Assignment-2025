@@ -50,6 +50,12 @@ namespace target
 			.usage = {.sampler = true, .compute_storage_read = true, .compute_storage_write = true}
 		};
 
+		static constexpr gpu::Texture::Format radiance_texture_format = {
+			.type = SDL_GPU_TEXTURETYPE_2D,
+			.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT,
+			.usage = {.sampler = true, .compute_storage_read = true, .compute_storage_write = true}
+		};
+
 		graphics::Cycle_texture temporal_reservoir_texture1{
 			reservoir_texture1_format,
 			"SSGI Temporal Reservoir Texture 1"
@@ -89,6 +95,8 @@ namespace target
 			reservoir_texture4_format,
 			"SSGI Spatial Reservoir Texture 4"
 		};
+
+		graphics::Cycle_texture radiance_texture{radiance_texture_format, "SSGI Radiance Texture"};
 
 		///
 		/// @brief Resize SSGI render targets
