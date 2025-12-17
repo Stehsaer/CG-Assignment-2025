@@ -12,6 +12,7 @@ This repository contains the source code for SYSU Computer Graphics course assig
 - AgX tonemapping, providing visuals like Blender's EEVEE
 - Frustum culling for camera and shadow views
 - BC3, BC5 and BC7 image compression formats
+- Screen space ReSTIR GI
 
 ## Current Stage
 This project is currently under "Render-Tech Dev" stage. No game/interaction logic is implemented yet.
