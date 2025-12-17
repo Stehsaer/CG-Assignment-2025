@@ -28,10 +28,16 @@ namespace graphics
 		return {};
 	}
 
-	SDL_GPUTexture* Auto_texture::operator*() const noexcept
+	const gpu::Texture& Auto_texture::operator*() const noexcept
 	{
 		assert(texture != nullptr && "Texture not initialized. Call resize() first.");
 		return *texture;
+	}
+
+	const gpu::Texture* Auto_texture::operator->() const noexcept
+	{
+		assert(texture != nullptr && "Texture not initialized. Call resize() first.");
+		return texture.get();
 	}
 
 	std::expected<void, util::Error> Cycle_texture::resize_and_cycle(
@@ -64,7 +70,9 @@ namespace graphics
 			if (!create_texture_result)
 				return create_texture_result.error().forward("Create new texture failed");
 
-			texture_pool.emplace_back(std::move(create_texture_result.value()));
+			texture_pool.emplace_back(
+				std::make_unique<gpu::Texture>(std::move(create_texture_result.value()))
+			);
 		}
 
 		return {};
@@ -75,15 +83,15 @@ namespace graphics
 		return size;
 	}
 
-	SDL_GPUTexture* Cycle_texture::current() const noexcept
+	const gpu::Texture& Cycle_texture::current() const noexcept
 	{
 		assert(!texture_pool.empty() && "Texture not initialized. Call resize_and_cycle() first.");
-		return texture_pool[0];
+		return *texture_pool[0];
 	}
 
-	SDL_GPUTexture* Cycle_texture::prev() const noexcept
+	const gpu::Texture& Cycle_texture::prev() const noexcept
 	{
 		assert(texture_pool.size() >= 2 && "Texture not initialized. Call resize_and_cycle() first.");
-		return texture_pool[1];
+		return *texture_pool[1];
 	}
 }

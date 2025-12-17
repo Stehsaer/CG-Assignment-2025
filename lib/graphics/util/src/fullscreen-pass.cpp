@@ -259,6 +259,14 @@ namespace graphics
 		return Fullscreen_pass<true>(std::move(*create_base_pass), config);
 	}
 
+	SDL_GPULoadOp Fullscreen_pass<true>::select_loadop() const noexcept
+	{
+		if (config.clear_before_render)
+			return SDL_GPU_LOADOP_CLEAR;
+		else
+			return config.do_cycle ? SDL_GPU_LOADOP_DONT_CARE : SDL_GPU_LOADOP_LOAD;
+	}
+
 	std::expected<void, util::Error> Fullscreen_pass<true>::render(
 		const gpu::Command_buffer& command_buffer,
 		SDL_GPUTexture* target_texture,
@@ -276,7 +284,7 @@ namespace graphics
 				  .g = config.clear_color.g,
 				  .b = config.clear_color.b,
 				  .a = config.clear_color.a},
-			 .load_op = config.clear_before_render ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_DONT_CARE,
+			 .load_op = select_loadop(),
 			 .store_op = SDL_GPU_STOREOP_STORE,
 			 .resolve_texture = nullptr,
 			 .resolve_mip_level = 0,

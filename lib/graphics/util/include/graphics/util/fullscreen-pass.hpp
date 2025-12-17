@@ -158,5 +158,7 @@ namespace graphics
 
 		Fullscreen_pass<false> base_pass;
 		Config config;
+
+		SDL_GPULoadOp select_loadop() const noexcept;
 	};
 }

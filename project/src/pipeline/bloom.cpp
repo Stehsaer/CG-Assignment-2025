@@ -194,8 +194,8 @@ namespace pipeline
 		glm::u32vec2 swapchain_size
 	) const noexcept
 	{
-		const SDL_GPUTextureSamplerBinding input_binding =
-			{.texture = bloom_target.get_downsample_chain(upsample_mip_level), .sampler = linear_sampler};
+		const auto input_binding =
+			bloom_target.get_downsample_chain(upsample_mip_level).bind_with_sampler(linear_sampler);
 
 		const SDL_GPUStorageTextureReadWriteBinding output_binding = {
 			.texture = bloom_target.get_upsample_chain(upsample_mip_level),
@@ -327,15 +327,13 @@ namespace pipeline
 		const Add_param add_param(param);
 		command_buffer.push_uniform_to_compute(0, util::as_bytes(add_param));
 
-		const SDL_GPUTextureSamplerBinding prev_upsample_binding = {
-			.texture = is_last_mip
-				? bloom_target.get_downsample_chain(target::Bloom::downsample_mip_count - 1)
-				: bloom_target.get_upsample_chain(upsample_mip_level + 1),
-			.sampler = linear_sampler
-		};
+		const auto prev_upsample_binding =
+			(is_last_mip ? bloom_target.get_downsample_chain(target::Bloom::downsample_mip_count - 1)
+						 : bloom_target.get_upsample_chain(upsample_mip_level + 1))
+				.bind_with_sampler(linear_sampler);
 
-		const SDL_GPUTextureSamplerBinding cur_downsample_binding =
-			{.texture = bloom_target.get_downsample_chain(upsample_mip_level), .sampler = linear_sampler};
+		const auto cur_downsample_binding =
+			bloom_target.get_downsample_chain(upsample_mip_level).bind_with_sampler(linear_sampler);
 
 		const SDL_GPUStorageTextureReadWriteBinding cur_upsample_binding = {
 			.texture = bloom_target.get_upsample_chain(upsample_mip_level),

@@ -48,5 +48,5 @@ void main()
     vec4 view_dir_h = camera_mat_inv * vec4(ndc.xy, 0.5, 1.0);
     vec3 view_dir = normalize(view_dir_h.xyz / view_dir_h.w - eye_position);
 
-    out_color = vec4(preetham_sky_rgb(view_dir, sun_dir) * sun_intensity, 0.0);
+    out_color = vec4(preetham_sky_rgb(view_dir, sun_dir) * sun_intensity, 1.0);
 }

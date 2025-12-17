@@ -73,28 +73,12 @@ namespace pipeline
 		const Params& params
 	) const noexcept
 	{
-		const auto depth_tex_binding = SDL_GPUTextureSamplerBinding{
-			.texture = gbuffer.depth_value_texture.current(),
-			.sampler = sampler_linear
+		const std::array texture_bindings = {
+			gbuffer.depth_value_texture.current().bind_with_sampler(sampler_linear),
+			gbuffer.lighting_info_texture->bind_with_sampler(sampler_nearest),
+			gbuffer.depth_value_texture.prev().bind_with_sampler(sampler_linear),
+			ao_target.halfres_ao_texture.prev().bind_with_sampler(sampler_linear)
 		};
-
-		const auto light_info_binding = SDL_GPUTextureSamplerBinding{
-			.texture = *gbuffer.lighting_info_texture,
-			.sampler = sampler_nearest
-		};
-
-		const auto prev_depth_tex_binding = SDL_GPUTextureSamplerBinding{
-			.texture = gbuffer.depth_value_texture.prev(),
-			.sampler = sampler_linear
-		};
-
-		const auto prev_ao_tex_binding = SDL_GPUTextureSamplerBinding{
-			.texture = ao_target.halfres_ao_texture.prev(),
-			.sampler = sampler_linear
-		};
-
-		const std::array texture_bindings =
-			{depth_tex_binding, light_info_binding, prev_depth_tex_binding, prev_ao_tex_binding};
 
 		const auto uniform_params = Uniform_params::from(params);
 		command_buffer.push_uniform_to_fragment(0, util::as_bytes(uniform_params));

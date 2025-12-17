@@ -24,7 +24,9 @@
 #include "pipeline/bloom.hpp"
 #include "pipeline/debug.hpp"
 #include "pipeline/directional-light.hpp"
+#include "pipeline/hiz-generator.hpp"
 #include "pipeline/sky-preetham.hpp"
+#include "pipeline/ssgi.hpp"
 #include "pipeline/tonemapping.hpp"
 #include "renderer/aa.hpp"
 #include "renderer/gbuffer-gltf.hpp"
@@ -37,6 +39,7 @@
 #include "target/gbuffer.hpp"
 #include "target/light.hpp"
 #include "target/shadow.hpp"
+#include "target/ssgi.hpp"
 #include "tiny_gltf.h"
 #include "util/unwrap.hpp"
 
@@ -51,6 +54,7 @@ struct Render_resource
 	target::AO ao_target;
 	target::Auto_exposure auto_exposure_target;
 	target::Bloom bloom_target;
+	target::SSGI ssgi_target;
 
 	renderer::Gbuffer_gltf gbuffer_renderer;
 	renderer::Shadow_gltf shadow_renderer;
@@ -63,6 +67,8 @@ struct Render_resource
 	pipeline::Sky_preetham sky_pipeline;
 	pipeline::Auto_exposure auto_exposure_pipeline;
 	pipeline::Bloom bloom_pipeline;
+	pipeline::Hiz_generator hiz_generator;
+	pipeline::SSGI ssgi_pipeline;
 
 	graphics::Renderpass_copy depth_to_color_copier;
 
@@ -123,6 +129,12 @@ static std::expected<Render_resource, util::Error> create_render_resource(
 	auto bloom_pipeline = pipeline::Bloom::create(context.device);
 	if (!bloom_pipeline) return bloom_pipeline.error().forward("Create bloom pipeline failed");
 
+	auto hiz_pipeline = pipeline::Hiz_generator::create(context.device);
+	if (!hiz_pipeline) return hiz_pipeline.error().forward("Create HiZ pipeline failed");
+
+	auto ssgi_pipeline = pipeline::SSGI::create(context.device);
+	if (!ssgi_pipeline) return ssgi_pipeline.error().forward("Create SSGI pipeline failed");
+
 	auto depth_to_color_copier =
 		graphics::Renderpass_copy::create(context.device, 1, target::Gbuffer::depth_value_format);
 	if (!depth_to_color_copier)
@@ -137,6 +149,7 @@ static std::expected<Render_resource, util::Error> create_render_resource(
 		.ao_target = {},
 		.auto_exposure_target = std::move(*auto_exposure_target),
 		.bloom_target = {},
+		.ssgi_target = {},
 
 		.gbuffer_renderer = std::move(*gbuffer_renderer),
 		.shadow_renderer = std::move(*shadow_renderer),
@@ -149,6 +162,8 @@ static std::expected<Render_resource, util::Error> create_render_resource(
 		.sky_pipeline = std::move(*sky_pipeline),
 		.auto_exposure_pipeline = std::move(*auto_exposure_pipeline),
 		.bloom_pipeline = std::move(*bloom_pipeline),
+		.hiz_generator = std::move(*hiz_pipeline),
+		.ssgi_pipeline = std::move(*ssgi_pipeline),
 
 		.depth_to_color_copier = std::move(*depth_to_color_copier),
 
@@ -305,6 +320,7 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		render_resource.ao_target.cycle(gpu_device, swapchain_size) | util::unwrap();
 		render_resource.auto_exposure_target.cycle();
 		render_resource.bloom_target.resize(gpu_device, swapchain_size) | util::unwrap();
+		render_resource.ssgi_target.resize(gpu_device, swapchain_size) | util::unwrap();
 
 		backend::imgui_upload_data(command_buffer);
 
@@ -328,6 +344,9 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 			*render_resource.gbuffer_target.depth_texture,
 			render_resource.gbuffer_target.depth_value_texture.current()
 		) | util::unwrap("Copy depth to color failed");
+
+		render_resource.hiz_generator.generate(command_buffer, render_resource.gbuffer_target, swapchain_size)
+			| util::unwrap("Generate Hi-Z failed");
 
 		render_resource.shadow_renderer.render(command_buffer, render_resource.shadow_target, shadow_drawdata)
 			| util::unwrap("渲染阴影失败");
@@ -400,6 +419,22 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		}
 		lighting_pass.end();
 
+		render_resource.ssgi_pipeline.render(
+			command_buffer,
+			render_resource.light_buffer_target,
+			render_resource.gbuffer_target,
+			render_resource.ssgi_target,
+			pipeline::SSGI::Param{
+				.proj_mat = logic_result.camera.proj_matrix,
+				.view_mat = logic_result.camera.view_matrix,
+				.prev_view_proj_mat = logic_result.camera.prev_camera_matrix,
+				.max_scene_distance = gbuffer_drawdata.get_max_distance(),
+				.distance_attenuation = 0.0,
+				.blend_factor = 0.025
+			},
+			swapchain_size
+		) | util::unwrap("SSGI pass failed");
+
 		render_resource.auto_exposure_pipeline.compute(
 			command_buffer,
 			render_resource.auto_exposure_target,
@@ -458,11 +493,22 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 
 			if (logic_result.debug_mode == Logic::Debug_mode::Show_AO)
 			{
-				render_resource.debug_pipeline.render_single_channel(
+				render_resource.debug_pipeline.render_channels(
 					command_buffer,
 					swapchain_pass,
 					render_resource.ao_target.halfres_ao_texture.current(),
-					{swapchain_width, swapchain_height}
+					swapchain_size,
+					1
+				);
+			}
+			else if (logic_result.debug_mode == Logic::Debug_mode::Show_SSGI_trace)
+			{
+				render_resource.debug_pipeline.render_channels(
+					command_buffer,
+					swapchain_pass,
+					*render_resource.ssgi_target.fullres_radiance_texture,
+					swapchain_size,
+					4
 				);
 			}
 

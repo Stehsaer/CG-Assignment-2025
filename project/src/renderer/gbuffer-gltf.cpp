@@ -89,6 +89,12 @@ namespace renderer
 		return glm::clamp(min_z, 0.0f, 0.9999f);
 	}
 
+	float Gbuffer_gltf::Drawdata::get_max_distance() const noexcept
+	{
+		glm::vec4 max_distance_point_h = glm::inverse(camera_matrix) * glm::vec4(1.0, 1.0, get_min_z(), 1.0);
+		return -max_distance_point_h.z / max_distance_point_h.w;
+	}
+
 	std::expected<Gbuffer_gltf, util::Error> Gbuffer_gltf::create(SDL_GPUDevice* device) noexcept
 	{
 		return pipeline::Gbuffer_gltf::create(device)

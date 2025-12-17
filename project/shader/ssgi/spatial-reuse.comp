@@ -1,0 +1,267 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : enable
+#include "reservoir.glsl"
+#include "../common/ndc-uv-conv.glsl"
+#include "../common/constant.glsl"
+#include "screen-trace.glsl"
+#include "../common/gbuffer-storage.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D temporal_reservoir_tex1;
+layout(set = 0, binding = 1) uniform usampler2D temporal_reservoir_tex2;
+layout(set = 0, binding = 2) uniform usampler2D temporal_reservoir_tex3;
+layout(set = 0, binding = 3) uniform sampler2D temporal_reservoir_tex4;
+
+layout(set = 0, binding = 4) uniform sampler2D spatial_reservoir_tex1;
+layout(set = 0, binding = 5) uniform usampler2D spatial_reservoir_tex2;
+layout(set = 0, binding = 6) uniform usampler2D spatial_reservoir_tex3;
+layout(set = 0, binding = 7) uniform sampler2D spatial_reservoir_tex4;
+
+layout(set = 0, binding = 8) uniform sampler2D depth_tex;
+layout(set = 0, binding = 9) uniform sampler2D prev_depth_tex;
+layout(set = 0, binding = 10) uniform usampler2D light_info_tex;
+layout(set = 0, binding = 11) uniform sampler2D blue_noise_tex;
+
+layout(set = 0, binding = 12) uniform usampler2D prev_temporal_reservoir_tex3;
+
+layout(set = 1, binding = 0, rgba32f) uniform writeonly image2D out_reservoir_tex1;
+layout(set = 1, binding = 1, rgba32ui) uniform writeonly uimage2D out_reservoir_tex2;
+layout(set = 1, binding = 2, rgba32ui) uniform writeonly uimage2D out_reservoir_tex3;
+layout(set = 1, binding = 3, rgba16f) uniform writeonly image2D out_reservoir_tex4;
+
+layout(std140, set = 2, binding = 0) uniform Params
+{
+    mat4 inv_view_proj_mat;
+    mat4 prev_view_proj_mat;
+    mat4 proj_mat;
+    mat4 view_mat;
+    mat4 inv_view_mat;
+    vec4 inv_proj_mat_col3;
+    vec4 inv_proj_mat_col4;
+
+    uvec2 comp_resolution;
+    uvec2 full_resolution;
+    vec2 near_plane_span;
+    float near_plane;
+    ivec2 time_noise;
+};
+
+ivec2 offsets[9] = ivec2[](
+        ivec2(0, 0), ivec2(-1, 0), ivec2(1, 0),
+        ivec2(-1, -1), ivec2(0, -1), ivec2(1, -1),
+        ivec2(-1, 1), ivec2(0, 1), ivec2(1, 1)
+    );
+
+Reservoir acquire_previous_reservoir(ivec2 comp_coord, ivec2 full_coord, vec3 W_curr_pos)
+{
+    const vec4 P_prev_ndc_h = prev_view_proj_mat * vec4(W_curr_pos, 1.0);
+    const vec3 P_prev_ndc = P_prev_ndc_h.xyz / P_prev_ndc_h.w;
+
+    Reservoir reservoir = empty_reservoir();
+
+    if (any(greaterThan(abs(P_prev_ndc.xy), vec2(1.0))) || P_prev_ndc_h.w < 0.0)
+        return reservoir;
+
+    const vec2 UV_prev = ndc_to_uv(P_prev_ndc.xy);
+    const float prev_depth = textureLod(prev_depth_tex, UV_prev, 0).r;
+
+    if (distance(P_prev_ndc.z, prev_depth) / P_prev_ndc.z > 0.001)
+        return reservoir;
+
+    int candidate_index;
+    float min_distance = FLT_HIGHEST;
+
+    const vec2 UV_pixel_unit = vec2(1.0) / vec2(comp_resolution);
+
+    for (int i = 0; i < 9; i++)
+    {
+        const vec2 UV_neighbor = UV_prev + vec2(offsets[i]) * UV_pixel_unit;
+        const uvec4 neighbor_tex3 = textureLod(prev_temporal_reservoir_tex3, UV_neighbor, 0);
+        const vec3 W_prev_pos = vec3(
+                uintBitsToFloat(neighbor_tex3.x),
+                uintBitsToFloat(neighbor_tex3.y),
+                uintBitsToFloat(neighbor_tex3.z)
+            );
+        const float distance = length(W_prev_pos - W_curr_pos);
+
+        if (distance < min_distance)
+        {
+            min_distance = distance;
+            candidate_index = i;
+        }
+    }
+
+    const vec2 UV_candidate = UV_prev + vec2(offsets[candidate_index]) * UV_pixel_unit;
+
+    reservoir = decode_reservoir(
+            textureLod(spatial_reservoir_tex1, UV_candidate, 0),
+            textureLod(spatial_reservoir_tex2, UV_candidate, 0),
+            textureLod(spatial_reservoir_tex3, UV_candidate, 0),
+            textureLod(spatial_reservoir_tex4, UV_candidate, 0)
+        );
+
+    return reservoir;
+}
+
+const float sigma = 4; 
+const int maxOffset = 15; 
+
+void main()
+{
+    const ivec2 comp_coord = ivec2(gl_GlobalInvocationID.xy);
+
+    if (any(greaterThanEqual(comp_coord, ivec2(comp_resolution))))
+        return;
+
+    const ivec2 full_coord = comp_coord << 1;
+    const vec2 noise_coord = (vec2(comp_coord + time_noise) + 0.5) / 128;
+    const vec4 noise_unorm = textureLod(blue_noise_tex, noise_coord, 0);
+
+    const vec2 uv = (vec2(full_coord) + 0.5) / vec2(full_resolution);
+    const vec2 ndc = uv_to_ndc(uv);
+
+    const float curr_depth = texelFetch(depth_tex, full_coord, 0).r;
+    if (curr_depth == 0.0)
+    {
+        imageStore(out_reservoir_tex1, comp_coord, vec4(0.0));
+        imageStore(out_reservoir_tex2, comp_coord, uvec4(0));
+        imageStore(out_reservoir_tex3, comp_coord, uvec4(0));
+        imageStore(out_reservoir_tex4, comp_coord, vec4(0.0));
+        return;
+    }
+
+    const vec4 W_curr_pos_h = inv_view_proj_mat * vec4(ndc, curr_depth, 1.0);
+    const vec4 V_curr_pos_h = view_mat * W_curr_pos_h;
+    const vec3 W_curr_pos = W_curr_pos_h.xyz / W_curr_pos_h.w;
+    const vec3 V_curr_pos = V_curr_pos_h.xyz / V_curr_pos_h.w;
+    const GBufferLighting lighting = unpack_gbuffer_lighting(texelFetch(light_info_tex, full_coord, 0).rg);
+    const vec3 W_curr_normal = lighting.normal;
+    const vec3 W_view_dir = normalize(W_curr_pos - inv_view_mat[3].xyz);
+
+    Reservoir reservoir = acquire_previous_reservoir(comp_coord, full_coord, W_curr_pos);
+
+    for (int i = 0; i < 16; i++)
+    {
+        const vec4 noise = textureLod(blue_noise_tex, noise_unorm.xy + vec2(i) / 128.0, 0).xyzw;
+
+        const float u1 = max(noise.x, 1e-6);
+        const float u2 = noise.y;
+        const float r = sqrt(-2.0 * log(u1));
+        const float theta = 2.0 * PI * u2;
+        const vec2 gauss = r * vec2(cos(theta), sin(theta));
+
+        ivec2 offset = ivec2(round(gauss * sigma));
+        offset = clamp(offset, ivec2(-maxOffset), ivec2(maxOffset));
+        const ivec2 neighbor_coord = comp_coord + offset;
+
+        if (any(lessThan(neighbor_coord, ivec2(0))) || any(greaterThanEqual(neighbor_coord, ivec2(comp_resolution))))
+            continue;
+
+        const float neighbor_depth = texelFetch(depth_tex, neighbor_coord << 1, 0).r;
+
+        const vec4 neighbor_reservoir_tex1 = texelFetch(temporal_reservoir_tex1, neighbor_coord, 0);
+        const uvec4 neighbor_reservoir_tex2 = texelFetch(temporal_reservoir_tex2, neighbor_coord, 0);
+        const uvec4 neighbor_reservoir_tex3 = texelFetch(temporal_reservoir_tex3, neighbor_coord, 0);
+        const vec4 neighbor_reservoir_tex4 = texelFetch(temporal_reservoir_tex4, neighbor_coord, 0);
+        if (neighbor_depth == 0.0)
+            continue;
+
+        Reservoir neighbor_reservoir = decode_reservoir(
+                neighbor_reservoir_tex1,
+                neighbor_reservoir_tex2,
+                neighbor_reservoir_tex3,
+                neighbor_reservoir_tex4
+            );
+
+        const vec2 UV_neighbor = (vec2(neighbor_coord << 1) + 0.5) / vec2(full_resolution);
+        const vec4 W_neighbor_pos_h = inv_view_proj_mat * vec4(uv_to_ndc(UV_neighbor), neighbor_depth, 1.0);
+        const vec3 W_neighbor_pos = W_neighbor_pos_h.xyz / W_neighbor_pos_h.w;
+
+        const float normal_similarity = dot(
+                normalize(neighbor_reservoir.z.start_normal),
+                W_curr_normal
+            );
+
+        const float W_distance = length(W_neighbor_pos - W_curr_pos);
+        const float distance_tolerance = 0.05 - 0.05 * V_curr_pos.z;
+        const float hemisphere_visibility = dot(
+                normalize(neighbor_reservoir.z.hit_position - W_curr_pos),
+                W_curr_normal
+            );
+
+        if (normal_similarity < 0.8 || W_distance > distance_tolerance || hemisphere_visibility < 0.0)
+            continue;
+
+        const float jacobian = jacobian_determinant(
+                neighbor_reservoir.z.hit_normal,
+                neighbor_reservoir.z.hit_position,
+                neighbor_reservoir.z.start_position,
+                W_curr_pos
+            );
+
+        const float p_hat_q = p_hat_at(
+            neighbor_reservoir.z, 
+            W_curr_pos, 
+            W_curr_normal,
+            W_view_dir,
+            lighting.roughness
+        ) / clamp(jacobian, 0.5, 10.0);
+
+        neighbor_reservoir.z.start_position = W_curr_pos;
+        neighbor_reservoir.z.start_normal = W_curr_normal;
+
+        merge_reservoir(
+            reservoir,
+            neighbor_reservoir,
+            p_hat_q,
+            noise.z,
+            lighting.roughness,
+            W_curr_pos,
+            W_curr_normal,
+            W_view_dir
+        );
+    }
+
+    vec3 V_curr = (view_mat * vec4(W_curr_pos, 1.0)).xyz;
+    vec3 V_hit = (view_mat * vec4(reservoir.z.hit_position, 1.0)).xyz;
+
+    bool valid = coarse_screen_trace_visibility(
+        V_curr,
+        V_hit,
+        full_coord,
+        ivec2(full_resolution),
+        proj_mat,
+        inv_proj_mat_col3,
+        inv_proj_mat_col4,
+        near_plane_span,
+        near_plane,
+        depth_tex
+    );
+
+    if (!valid)
+    {
+        // fallback to temporal reservoir at this pixel
+        const vec4 temp_tex1 = texelFetch(temporal_reservoir_tex1, comp_coord, 0);
+        const uvec4 temp_tex2 = texelFetch(temporal_reservoir_tex2, comp_coord, 0);
+        const uvec4 temp_tex3 = texelFetch(temporal_reservoir_tex3, comp_coord, 0);
+        const vec4 temp_tex4 = texelFetch(temporal_reservoir_tex4, comp_coord, 0);
+
+        reservoir = decode_reservoir(temp_tex1, temp_tex2, temp_tex3, temp_tex4);
+    }
+
+    clamp_reservoir(reservoir, 500);
+
+    vec4 tex1;
+    uvec4 tex2;
+    uvec4 tex3;
+    vec4 tex4;
+
+    encode_reservoir(reservoir, tex1, tex2, tex3, tex4);
+
+    imageStore(out_reservoir_tex1, comp_coord, tex1);
+    imageStore(out_reservoir_tex2, comp_coord, tex2);
+    imageStore(out_reservoir_tex3, comp_coord, tex3);
+    imageStore(out_reservoir_tex4, comp_coord, tex4);
+}

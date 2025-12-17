@@ -114,11 +114,13 @@ function _build(target, source_path, opt)
 	local paths = get_path(target)
 
 	local tools = {
-		glsl_compiler = find_tool("glslc"),
+		glslc = find_tool("glslc"),
+		glslangValidator = find_tool("glslangValidator"),
 		python = find_tool("python3") or find_tool("python")
 	}
 
-	assert(tools.glsl_compiler, "GLSL compiler not found")
+	assert(tools.glslc, "GLSL compiler not found")
+	assert(tools.glslangValidator, "glslangValidator not found")
 	assert(tools.python, "Python not found")
 
 	-- Find directories
@@ -134,6 +136,7 @@ function _build(target, source_path, opt)
 	local varname = string.gsub(source_name, "[%.%-]", "_")
 
 	local targetenv = target:extraconf("rules", "asset.shader", "targetenv") or "vulkan1.3"
+	local debug = target:extraconf("rules", "asset.shader", "debug") or false
 	local includedir = target:extraconf("rules", "asset.shader", "includedir") or nil
 
 	-- Compile shader to SPIR-V and generate C++ source file

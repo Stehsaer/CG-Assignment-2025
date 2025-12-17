@@ -10,24 +10,6 @@ namespace target
 	///
 	/// @brief Gbuffer Render Target
 	///
-	/// @details
-	/// #### Depth Texture
-	/// Format: `D32@FLOAT + S@UINT8`
-	/// - `D32`: 32-bit Floating Point Depth
-	/// - `S8`: 8-bit Stencil, for multiple light sources
-	///
-	/// #### Albedo Texture
-	/// Format: `RGBA@UNORM8_SRGB`
-	/// - `RGB`: Albedo Color
-	/// - `A`: Temporary coverage value (`0.0`=None, `1.0`=Fully covered), may later be replace with stencil
-	///
-	/// #### Lighting Info Texture
-	/// Format: `RG@UINT32`
-	/// - `R[15:0], R[31:16]`: Octahedral-encoded Normal
-	/// - `G[7:0]`: Metallic
-	/// - `G[15:8]`: Roughness
-	/// - `G[23:16]`: None
-	/// - `G[31:24]`: AO
 	///
 	struct Gbuffer
 	{
@@ -44,7 +26,12 @@ namespace target
 		static constexpr gpu::Texture::Format depth_value_format{
 			.type = SDL_GPU_TEXTURETYPE_2D,
 			.format = SDL_GPU_TEXTUREFORMAT_R32_FLOAT,
-			.usage = {.sampler = true, .color_target = true}
+			.usage = {
+					  .sampler = true,
+					  .color_target = true,
+					  .compute_storage_read = true,
+					  .compute_storage_write = true
+			}
 		};
 
 		// Albedo Texture Format

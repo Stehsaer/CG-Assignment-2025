@@ -1,0 +1,54 @@
+#version 460
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 1, binding = 0, r32f) uniform readonly image2D src;
+layout(set = 1, binding = 1, r32f) uniform writeonly image2D dest;
+
+layout(std140, set = 2, binding = 0) uniform Params
+{
+    ivec2 src_size;
+    ivec2 dst_size;
+};
+
+void main()
+{
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(coord, dst_size)))
+        return;
+
+    bvec2 on_edge = equal(coord, dst_size - ivec2(1));
+    bvec2 non_even = notEqual(dst_size * 2, src_size);
+    bvec2 edge_case = bvec2(on_edge.x && non_even.x, on_edge.y && non_even.y);
+
+    ivec2 src_coord = coord * 2;
+
+    float d0 = imageLoad(src, src_coord + ivec2(0, 0)).r;
+    float d1 = imageLoad(src, src_coord + ivec2(1, 0)).r;
+    float d2 = imageLoad(src, src_coord + ivec2(0, 1)).r;
+    float d3 = imageLoad(src, src_coord + ivec2(1, 1)).r;
+
+    float max_d = max(max(d0, d1), max(d2, d3));
+
+    if (edge_case.x)
+    {
+        float d5 = imageLoad(src, src_coord + ivec2(2, 1)).r;
+        float d4 = imageLoad(src, src_coord + ivec2(2, 0)).r;
+        max_d = max(max_d, max(d4, d5));
+    }
+
+    if (edge_case.y)
+    {
+        float d6 = imageLoad(src, src_coord + ivec2(0, 2)).r;
+        float d7 = imageLoad(src, src_coord + ivec2(1, 2)).r;
+        max_d = max(max_d, max(d6, d7));
+    }
+
+    if (all(edge_case))
+    {
+        float d8 = imageLoad(src, src_coord + ivec2(2, 2)).r;
+        max_d = max(max_d, d8);
+    }
+
+    imageStore(dest, coord, vec4(max_d));
+}

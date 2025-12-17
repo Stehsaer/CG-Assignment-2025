@@ -1,3 +1,6 @@
+#ifndef _OCT_GLSL_
+#define _OCT_GLSL_
+
 precision highp float;
 
 vec2 normalToOct(vec3 n)
@@ -26,3 +29,5 @@ vec3 octToNormal(vec2 e)
     }
     return normalize(n);
 }
+
+#endif

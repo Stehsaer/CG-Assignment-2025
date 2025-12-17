@@ -77,18 +77,11 @@ namespace pipeline
 	{
 		command_buffer.push_uniform_to_fragment(0, util::as_bytes(param));
 
-		const auto albedo_binding =
-			SDL_GPUTextureSamplerBinding{.texture = *gbuffer.albedo_texture, .sampler = sampler_nearest};
-		const auto lighting_info_binding = SDL_GPUTextureSamplerBinding{
-			.texture = *gbuffer.lighting_info_texture,
-			.sampler = sampler_nearest
+		const std::array bindings = {
+			gbuffer.albedo_texture->bind_with_sampler(sampler_nearest),
+			gbuffer.lighting_info_texture->bind_with_sampler(sampler_nearest),
+			ao.halfres_ao_texture.current().bind_with_sampler(sampler_nearest)
 		};
-		const auto ao_binding = SDL_GPUTextureSamplerBinding{
-			.texture = ao.halfres_ao_texture.current(),
-			.sampler = sampler_linear
-		};
-
-		const std::array bindings = {albedo_binding, lighting_info_binding, ao_binding};
 
 		command_buffer.push_debug_group("Ambient Light Pass");
 		fullscreen_pass.render_to_renderpass(render_pass, bindings, std::nullopt, std::nullopt);

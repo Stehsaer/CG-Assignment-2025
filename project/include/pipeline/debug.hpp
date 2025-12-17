@@ -16,20 +16,21 @@ namespace pipeline
 			gpu::Texture::Format format
 		) noexcept;
 
-		void render_single_channel(
+		void render_channels(
 			const gpu::Command_buffer& command_buffer,
 			const gpu::Render_pass& render_pass,
 			SDL_GPUTexture* input_texture,
-			glm::u32vec2 size
+			glm::u32vec2 size,
+			uint8_t channel_count
 		) const noexcept;
 
 	  private:
 
-		graphics::Fullscreen_pass<false> fullscreen_pass_single_channel;
+		graphics::Fullscreen_pass<false> fullscreen_pass;
 		gpu::Sampler sampler;
 
 		Debug_pipeline(graphics::Fullscreen_pass<false> fullscreen_pass, gpu::Sampler sampler) noexcept :
-			fullscreen_pass_single_channel(std::move(fullscreen_pass)),
+			fullscreen_pass(std::move(fullscreen_pass)),
 			sampler(std::move(sampler))
 		{}
 

@@ -78,33 +78,13 @@ namespace pipeline
 		const Params& params
 	) const noexcept
 	{
-		const auto gbuffer_albedo_sampler_binding =
-			SDL_GPUTextureSamplerBinding{.texture = *gbuffer.albedo_texture, .sampler = sampler};
-
-		const auto gbuffer_lighting_info_sampler_binding =
-			SDL_GPUTextureSamplerBinding{.texture = *gbuffer.lighting_info_texture, .sampler = sampler};
-
-		const auto depth_sampler_binding = SDL_GPUTextureSamplerBinding{
-			.texture = gbuffer.depth_value_texture.current(),
-			.sampler = sampler
-		};
-
-		const auto shadow_sampler_binding_level0 =
-			SDL_GPUTextureSamplerBinding{.texture = *shadow.depth_texture_level0, .sampler = shadow_sampler};
-
-		const auto shadow_sampler_binding_level1 =
-			SDL_GPUTextureSamplerBinding{.texture = *shadow.depth_texture_level1, .sampler = shadow_sampler};
-
-		const auto shadow_sampler_binding_level2 =
-			SDL_GPUTextureSamplerBinding{.texture = *shadow.depth_texture_level2, .sampler = shadow_sampler};
-
 		const auto sampler_bindings = std::array{
-			gbuffer_albedo_sampler_binding,
-			gbuffer_lighting_info_sampler_binding,
-			depth_sampler_binding,
-			shadow_sampler_binding_level0,
-			shadow_sampler_binding_level1,
-			shadow_sampler_binding_level2
+			gbuffer.albedo_texture->bind_with_sampler(sampler),
+			gbuffer.lighting_info_texture->bind_with_sampler(sampler),
+			gbuffer.depth_value_texture.current().bind_with_sampler(sampler),
+			shadow.depth_texture_level0->bind_with_sampler(shadow_sampler),
+			shadow.depth_texture_level1->bind_with_sampler(shadow_sampler),
+			shadow.depth_texture_level2->bind_with_sampler(shadow_sampler)
 		};
 
 		command_buffer.push_uniform_to_fragment(0, util::as_bytes(params));

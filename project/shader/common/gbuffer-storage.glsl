@@ -1,3 +1,6 @@
+#ifndef _GBUFFER_STORAGE_GLSL_
+#define _GBUFFER_STORAGE_GLSL_
+
 precision highp float;
 
 #extension GL_GOOGLE_include_directive : enable
@@ -25,6 +28,12 @@ vec3 unpack_normal(uint packed)
     return octToNormal(oct_encoded_normal);
 }
 
+vec2 unpack_roughness_metalness(uint packed)
+{
+    vec4 material = unpackUnorm4x8(packed);
+    return material.gr;
+}
+
 GBufferLighting unpack_gbuffer_lighting(uvec2 packed)
 {
     vec3 normal = unpack_normal(packed.x);
@@ -39,3 +48,5 @@ GBufferLighting unpack_gbuffer_lighting(uvec2 packed)
 
     return lighting;
 }
+
+#endif

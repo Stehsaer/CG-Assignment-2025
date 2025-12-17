@@ -13,7 +13,7 @@ namespace graphics
 	/// @details #### Usage:
 	/// - Assigns a format at construction
 	/// - Resize using `resize` when needed, eg. after acquiring the swapchain
-	/// - Use `operator*` to get the underlying SDL_GPUTexture pointer, valid until the next resize
+	/// - Use `operator*` to get the underlying image reference, valid until the next resize
 	/// @note 2D, single-layer mipmap textures only
 	///
 	class Auto_texture
@@ -35,7 +35,6 @@ namespace graphics
 
 		///
 		/// @brief Resize the texture
-		/// @note This invalidates any previously obtained texture pointers
 		///
 		/// @param size New size
 		///
@@ -48,13 +47,9 @@ namespace graphics
 		///
 		glm::u32vec2 get_size() const noexcept;
 
-		///
-		/// @brief Get the texture pointer
-		/// @note
-		/// - The acquired pointer will be invalidated upon the next resize
-		/// - `resize` must be called at least once before getting the pointer
-		///
-		SDL_GPUTexture* operator*() const noexcept;
+		const gpu::Texture& operator*() const noexcept;
+
+		const gpu::Texture* operator->() const noexcept;
 
 	  private:
 
@@ -120,14 +115,14 @@ namespace graphics
 		///
 		/// @return Current frame texture pointer
 		///
-		SDL_GPUTexture* current() const noexcept;
+		const gpu::Texture& current() const noexcept;
 
 		///
 		/// @brief Get the previous frame texture
 		///
 		/// @return Previous frame texture pointer
 		///
-		SDL_GPUTexture* prev() const noexcept;
+		const gpu::Texture& prev() const noexcept;
 
 	  private:
 
@@ -138,6 +133,6 @@ namespace graphics
 		size_t extra_pool_size = 1;
 		uint32_t mip_levels = 1;
 
-		std::vector<gpu::Texture> texture_pool;
+		std::vector<std::unique_ptr<gpu::Texture>> texture_pool;
 	};
 }

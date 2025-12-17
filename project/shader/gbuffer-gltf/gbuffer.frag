@@ -75,5 +75,5 @@ void main()
     /* Emissive */
 
     vec3 emissive = emissive_tex_sample * emissive_factor;
-    out_light_buffer = vec4(emissive, 0.0);
+    out_light_buffer = vec4(emissive, smoothstep(0.0, 1.0, dot(emissive, vec3(0.2, 0.7, 0.1)) * 3));
 }

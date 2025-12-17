@@ -1,9 +1,10 @@
+#ifndef _PBR_GLSL_
+#define _PBR_GLSL_
+
 precision highp float;
 
-#ifndef PI_DEFINED
-const float PI = 3.1415926;
-#define PI_DEFINED
-#endif
+#extension GL_GOOGLE_include_directive : enable
+#include "constant.glsl"
 
 float gltf_microfacet_distribution(float n_dot_h, float alpha)
 {
@@ -52,3 +53,13 @@ vec3 gltf_calculate_pbr(vec3 light_dir, vec3 light_intensity, vec3 view_dir, vec
 
     return (f_diffuse + f_specular) * n_dot_l * light_intensity;
 }
+
+float gltf_pbr_pdf(vec3 out_ray, vec3 in_ray, float roughness, vec3 normal)
+{
+    vec3 halfway_dir = normalize(out_ray + in_ray);
+    float cos_theta = max(0.0, dot(normal, halfway_dir));
+    float pdf = (gltf_microfacet_distribution(cos_theta, roughness * roughness) * cos_theta) / (4.0 * dot(in_ray, halfway_dir) + 0.0001);
+    return pdf;
+}
+
+#endif

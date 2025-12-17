@@ -1,5 +1,6 @@
 #include "pipeline/debug.hpp"
 #include "asset/shader/debug-single.frag.hpp"
+#include "util/as-byte.hpp"
 
 #include <SDL3/SDL_gpu.h>
 
@@ -17,9 +18,9 @@ namespace pipeline
 			1,
 			0,
 			0,
-			0
+			1
 		);
-		if (!shader) return shader.error().forward("Create debug single channel shader failed");
+		if (!shader) return shader.error().forward("Create debug shader failed");
 
 		auto fullscreen_pass =
 			graphics::Fullscreen_pass<false>::create(device, *shader, format, "Debug Pipeline");
@@ -37,15 +38,21 @@ namespace pipeline
 		return Debug_pipeline(std::move(*fullscreen_pass), std::move(*sampler));
 	}
 
-	void Debug_pipeline::render_single_channel(
+	void Debug_pipeline::render_channels(
 		const gpu::Command_buffer& command_buffer [[maybe_unused]],
 		const gpu::Render_pass& render_pass,
 		SDL_GPUTexture* input_texture,
-		glm::u32vec2 size [[maybe_unused]]
+		glm::u32vec2 size [[maybe_unused]],
+		uint8_t channel_count
 	) const noexcept
 	{
+		if (channel_count == 0 || channel_count > 4) return;
+
+		const auto channel_count_u32 = static_cast<uint32_t>(channel_count);
+		command_buffer.push_uniform_to_fragment(0, util::as_bytes(channel_count_u32));
+
 		const auto bind = SDL_GPUTextureSamplerBinding{.texture = input_texture, .sampler = sampler};
 		const std::array bindings = {bind};
-		fullscreen_pass_single_channel.render_to_renderpass(render_pass, bindings, {}, {});
+		fullscreen_pass.render_to_renderpass(render_pass, bindings, {}, {});
 	}
 }

@@ -6,6 +6,7 @@ namespace target
 	{
 		if (auto result = light_texture.resize_and_cycle(device, size); !result)
 			return result.error().forward("Resize light buffer texture failed");
+
 		return {};
 	}
 }

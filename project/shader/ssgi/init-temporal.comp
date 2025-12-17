@@ -1,0 +1,285 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "../common/constant.glsl"
+#include "../common/gbuffer-storage.glsl"
+#include "../common/ndc-uv-conv.glsl"
+#include "reservoir.glsl"
+#include "../common/pbr.glsl"
+#include "screen-trace.glsl"
+
+//============================================================
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D luminance_tex;
+layout(set = 0, binding = 1) uniform sampler2D depth_tex;
+layout(set = 0, binding = 2) uniform usampler2D light_info_tex;
+layout(set = 0, binding = 3) uniform sampler2D blue_noise_tex;
+layout(set = 0, binding = 4) uniform sampler2D prev_depth_tex;
+
+layout(set = 0, binding = 5) uniform sampler2D prev_temporal_reservoir_tex1;
+layout(set = 0, binding = 6) uniform usampler2D prev_temporal_reservoir_tex2;
+layout(set = 0, binding = 7) uniform usampler2D prev_temporal_reservoir_tex3;
+layout(set = 0, binding = 8) uniform sampler2D prev_temporal_reservoir_tex4;
+
+layout(set = 1, binding = 0, rgba32f) uniform writeonly image2D temporal_reservoir_tex1;
+layout(set = 1, binding = 1, rgba32ui) uniform writeonly uimage2D temporal_reservoir_tex2;
+layout(set = 1, binding = 2, rgba32ui) uniform writeonly uimage2D temporal_reservoir_tex3;
+layout(set = 1, binding = 3, rgba16f) uniform writeonly image2D temporal_reservoir_tex4;
+
+layout(std140, set = 2, binding = 0) uniform Params
+{
+    mat4 inv_proj_mat;
+    mat4 proj_mat;
+    mat4 inv_view_mat;
+    mat4 view_mat;
+    mat4 back_proj_mat; // prev_camera_view_proj_mat * inv_view, (Current View) -> (World) -> (Prev Clip)
+
+    vec4 inv_proj_mat_col3;
+    vec4 inv_proj_mat_col4;
+
+    uvec2 resolution;
+    ivec2 time_noise;
+
+    vec2 near_plane_span; // Near plane span in view space, calculated by (right - middle, top - middle)
+    float near_plane;
+    float max_scene_distance;
+    float distance_attenuation;
+};
+
+//============================================================
+
+// Reconstruct view space position from pixel UV coordinate and depth
+vec3 P_to_V_pos(vec2 PUV_coord, float depth)
+{
+    const vec2 uv = PUV_coord / vec2(resolution);
+    const vec4 ndc_pos = vec4(uv_to_ndc(uv), depth, 1.0);
+    const vec4 V_pos_h = inv_proj_mat * ndc_pos;
+    return V_pos_h.xyz / V_pos_h.w;
+}
+
+// Transform a world space vector to view space
+vec3 W_to_V_vec(vec3 W_vec)
+{
+    const vec4 W_vec_h = vec4(W_vec, 0.0);
+    const vec4 V_vec_h = view_mat * W_vec_h;
+    return normalize(V_vec_h.xyz);
+}
+
+mat3 build_local_space(vec3 normal)
+{
+    float sign = normal.z >= 0.0 ? 1.0 : -1.0;
+    float a = -1.0 / (sign + normal.z);
+    float b = normal.x * normal.y * a;
+    vec3 T = vec3(1.0 + sign * normal.x * normal.x * a, sign * b, -sign * normal.x);
+    vec3 B = vec3(b, sign + normal.y * normal.y * a, -normal.y);
+    return mat3(normalize(T), normalize(B), normal); // T and B are already orthogonal to normal
+}
+
+vec3 select_march_direction(
+    vec3 normal,
+    vec3 view_dir,
+    vec4 noise_unorm
+)
+{
+    float u1 = noise_unorm.x;
+    float u2 = noise_unorm.y;
+    float r = sqrt(u1);
+    float phi = 2.0 * PI * u2;
+    vec3 local = vec3(r * sin(phi), r * cos(phi), sqrt(max(0.0, 1.0 - u1)));
+
+    mat3 TBN = build_local_space(normal);
+
+    return normalize(TBN * local);
+}
+
+void store_empty_reservoir(ivec2 PUV_coord_half)
+{
+    imageStore(temporal_reservoir_tex1, PUV_coord_half, vec4(0.0));
+    imageStore(temporal_reservoir_tex2, PUV_coord_half, uvec4(0));
+    imageStore(temporal_reservoir_tex3, PUV_coord_half, uvec4(0));
+    imageStore(temporal_reservoir_tex4, PUV_coord_half, vec4(0.0));
+}
+
+//============================================================
+
+ivec2 offsets[9] = ivec2[](
+        ivec2(0, 0), ivec2(-1, 0), ivec2(1, 0),
+        ivec2(-1, -1), ivec2(0, -1), ivec2(1, -1),
+        ivec2(-1, 1), ivec2(0, 1), ivec2(1, 1)
+    );
+
+void main()
+{
+    /* Early Out */
+
+    const ivec2 resolution_ivec = ivec2(resolution);
+    const ivec2 PUV_coord_half = ivec2(gl_GlobalInvocationID.xy);
+    const ivec2 PUV_coord = PUV_coord_half << 1;
+
+    if (any(greaterThanEqual(PUV_coord, resolution))) return;
+
+    /* Depth Detection */
+
+    const float depth = texelFetch(depth_tex, PUV_coord, 0).r;
+    if (depth == 0.0)
+    {
+        store_empty_reservoir(PUV_coord_half);
+        return;
+    }
+
+    /* Sample Noise */
+
+    const vec4 noise_unorm = texture(
+            blue_noise_tex,
+            vec2(PUV_coord_half + time_noise + 0.5) / 128
+        );
+
+    /* Fetch GBuffer */
+
+    const uvec2 light_info = texelFetch(light_info_tex, PUV_coord, 0).rg;
+    const GBufferLighting lighting = unpack_gbuffer_lighting(light_info);
+
+    const vec3 V_pos = P_to_V_pos(vec2(PUV_coord) + 0.5, depth); // Pixel position at view space
+    const vec3 W_start_pos = (inv_view_mat * vec4(V_pos, 1.0)).xyz;
+    const vec3 W_start_normal = lighting.normal;
+    const vec3 V_normal = W_to_V_vec(lighting.normal); // Pixel Normal at view space
+    const vec3 V_eye_to_pixel = normalize(V_pos); // View direction at view space
+    const vec3 V_pixel_to_eye = -V_eye_to_pixel;
+    const vec3 W_view_dir = normalize(W_start_pos - inv_view_mat[3].xyz);
+
+    /* Fetch Previous Reservoir */
+
+    Reservoir reservoir = empty_reservoir();
+
+    const vec4 P_prev_pos_h = back_proj_mat * vec4(V_pos, 1.0);
+    const vec3 P_prev_ndc = P_prev_pos_h.xyz / P_prev_pos_h.w;
+    const vec2 UV_prev = ndc_to_uv(P_prev_ndc.xy);
+    const vec2 UV_pixel_unit = vec2(1.0) / vec2(resolution >> 1);
+
+    if (all(lessThanEqual(abs(P_prev_ndc.xy), vec2(1.0))) && P_prev_pos_h.w > 0.0)
+    {
+        float prev_depth = textureLod(prev_depth_tex, UV_prev, 0).r;
+
+        if (distance(P_prev_ndc.z, prev_depth) / P_prev_ndc.z < 0.001)
+        {
+            uvec4 candidate;
+            int candidate_index;
+            float min_distance = FLT_HIGHEST;
+
+            for (int i = 0; i < 9; i++)
+            {
+                vec2 UV_neighbor = UV_prev + vec2(offsets[i]) * UV_pixel_unit;
+                uvec4 neighbor_tex3 = textureLod(prev_temporal_reservoir_tex3, UV_neighbor, 0);
+                vec3 neighbor_start_pos = vec3(
+                        uintBitsToFloat(neighbor_tex3.x),
+                        uintBitsToFloat(neighbor_tex3.y),
+                        uintBitsToFloat(neighbor_tex3.z)
+                    );
+
+                float distance = length(neighbor_start_pos - W_start_pos);
+                if (distance < min_distance)
+                {
+                    min_distance = distance;
+                    candidate = neighbor_tex3;
+                    candidate_index = i;
+                }
+            }
+
+            const vec2 UV_candidate = UV_prev + vec2(offsets[candidate_index]) * UV_pixel_unit;
+
+            reservoir = decode_reservoir(
+                    textureLod(prev_temporal_reservoir_tex1, UV_candidate, 0),
+                    textureLod(prev_temporal_reservoir_tex2, UV_candidate, 0),
+                    candidate,
+                    textureLod(prev_temporal_reservoir_tex4, UV_candidate, 0)
+                );
+        }
+    }
+
+    /* Ray Marching */
+
+    vec3 V_march_dir = select_march_direction(
+            V_normal,
+            V_eye_to_pixel,
+            noise_unorm
+        );
+
+    const Hit_result trace_result = raytrace(
+        V_pos, 
+        normalize(V_march_dir), 
+        PUV_coord, 
+        resolution_ivec, 
+        proj_mat,
+        inv_proj_mat_col3,
+        inv_proj_mat_col4,
+        near_plane_span,
+        near_plane,
+        depth_tex
+    );
+
+    const float p = 1.0 / (2.0 * PI);
+    Sample hit_sample;
+
+    if (trace_result.hit)
+    {
+        const vec3 W_hit_pos = (inv_view_mat * vec4(trace_result.V_hit_pos, 1.0)).xyz;
+        const vec3 W_hit_normal = octToNormal(unpackSnorm2x16(textureLod(light_info_tex, trace_result.uv, 0.0).r));
+        const vec3 V_hit_normal = W_to_V_vec(W_hit_normal);
+
+        const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0) * max(0.0, dot(V_hit_normal, -V_march_dir));
+
+        hit_sample = Sample(
+            W_hit_pos,
+            W_hit_normal,
+            luminance.rgb,
+            W_start_pos,
+            W_start_normal
+        );
+    }
+    else
+    {
+        hit_sample = Sample(
+            W_start_pos,
+            -W_start_normal,
+            vec3(0.0),
+            W_start_pos,
+            W_start_normal
+        );
+    }
+
+    const float p_hat = p_hat_at(
+        hit_sample, 
+        W_start_pos, 
+        W_start_normal, 
+        W_view_dir, 
+        lighting.roughness
+    ) + 1e-2;
+    const float w_new = p_hat / p;
+
+    const bool updated = update_reservoir(
+            reservoir,
+            hit_sample,
+            w_new,
+            noise_unorm.z
+        );
+
+    if (updated)
+        reservoir.W = reservoir.w / (reservoir.M * p_hat);
+
+    clamp_reservoir(reservoir, 40);
+
+    vec4 tex1_out;
+    uvec4 tex2_out;
+    uvec4 tex3_out;
+    vec4 tex4_out;
+
+    encode_reservoir(reservoir, tex1_out, tex2_out, tex3_out, tex4_out);
+
+    imageStore(temporal_reservoir_tex1, PUV_coord_half, tex1_out);
+    imageStore(temporal_reservoir_tex2, PUV_coord_half, tex2_out);
+    imageStore(temporal_reservoir_tex3, PUV_coord_half, tex3_out);
+    imageStore(temporal_reservoir_tex4, PUV_coord_half, tex4_out);
+}

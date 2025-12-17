@@ -42,8 +42,8 @@ namespace renderer
 			glm::vec3 eye_to_nearplane;
 
 			std::array<glm::vec4, 6> frustum_planes;
-			float min_z = 1;
-			float near_distance;
+			float min_z = 1;      // Minimum Z value
+			float near_distance;  // Distance from eye to near plane
 
 			friend Gbuffer_gltf;
 
@@ -69,6 +69,13 @@ namespace renderer
 			/// @return Maximum z depth
 			///
 			float get_min_z() const noexcept;
+
+			///
+			/// @brief Get absolute maximum distance of all drawcalls
+			/// @note Calculated from camera position to the farthest visible point at min-z plane
+			/// @return Maximum distance
+			///
+			float get_max_distance() const noexcept;
 
 			///
 			/// @brief Sort drawcalls for optimal rendering

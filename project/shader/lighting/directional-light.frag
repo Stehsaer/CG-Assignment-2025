@@ -103,5 +103,5 @@ void main()
         );
 
     /* Output */
-    out_light_buffer = vec4(pbr_color * shadow_mult, 0.0);
+    out_light_buffer = vec4(pbr_color * shadow_mult, shadow_mult);
 }

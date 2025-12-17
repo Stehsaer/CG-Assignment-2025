@@ -40,7 +40,13 @@ namespace logic
 		using Rotate_controller = graphics::camera::view::Orbit::Rotate_controller;
 
 		Perspective camera_projection = Perspective(glm::radians(45.0), 0.5, std::nullopt);
-		Orbit camera_orbit = Orbit(3, 0, glm::radians(45.0), glm::vec3(0.0), glm::vec3(0.0, 1.0, 0.0));
+		Orbit camera_orbit = Orbit(
+			3,
+			glm::radians(90.0),
+			glm::radians(20.0),
+			glm::vec3(0.0, 0.5, 0.0),
+			glm::vec3(0.0, 1.0, 0.0)
+		);
 		Pan_controller pan_controller = Orbit::Pan_controller{0.5f};
 		Rotate_controller rotate_controller = Rotate_controller{
 			.azimuth_per_width = glm::radians(360.0f),
