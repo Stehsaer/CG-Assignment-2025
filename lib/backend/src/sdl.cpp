@@ -4,7 +4,6 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_video.h>
-#include <boost/any/unique_any.hpp>
 #include <format>
 #include <glm/ext/vector_int2.hpp>
 #include <vulkan/vulkan.h>

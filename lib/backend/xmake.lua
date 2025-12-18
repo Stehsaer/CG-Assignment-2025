@@ -3,7 +3,7 @@ target("backend")
 	set_languages("c++23", {public=true})
 
 	add_packages("libsdl3", "glm", "imgui", {public=true})
-	add_packages("boost", "vulkan-headers")
+	add_packages("vulkan-headers")
 
 	add_files("src/*.cpp")
 	add_includedirs("include", {public=true})
