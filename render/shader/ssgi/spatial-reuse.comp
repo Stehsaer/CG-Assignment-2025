@@ -105,7 +105,7 @@ Reservoir acquire_previous_reservoir(ivec2 comp_coord, ivec2 full_coord, vec3 W_
     return reservoir;
 }
 
-const float sigma = 4; 
+const float sigma = 6; 
 const int maxOffset = 15; 
 
 void main()
@@ -143,7 +143,9 @@ void main()
 
     Reservoir reservoir = acquire_previous_reservoir(comp_coord, full_coord, W_curr_pos);
 
-    for (int i = 0; i < 16; i++)
+    int iters = int(mix(24.0, 8.0, reservoir.M / 500.0));
+
+    for (int i = 0; i < iters; i++)
     {
         const vec4 noise = textureLod(blue_noise_tex, noise_unorm.xy + vec2(i) / 128.0, 0).xyzw;
 
@@ -186,8 +188,9 @@ void main()
             );
 
         const float W_distance = length(W_neighbor_pos - W_curr_pos);
+        const vec3 W_curr_to_neighbor_hit = normalize(neighbor_reservoir.z.hit_position - W_curr_pos);
         const float hemisphere_visibility = dot(
-                normalize(neighbor_reservoir.z.hit_position - W_curr_pos),
+                W_curr_to_neighbor_hit,
                 W_curr_normal
             );
 

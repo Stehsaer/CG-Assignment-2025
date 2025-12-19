@@ -78,21 +78,54 @@ mat3 build_local_space(vec3 normal)
     return mat3(normalize(T), normalize(B), normal); // T and B are already orthogonal to normal
 }
 
-vec3 select_march_direction(
+// Returns: XYZ=(March Direction), W=(PDF of the direction)
+vec4 select_march_direction(
     vec3 normal,
     vec3 view_dir,
-    vec4 noise_unorm
+    vec4 noise_unorm,
+    float roughness,
+    float metalness
 )
 {
-    float u1 = noise_unorm.x;
-    float u2 = noise_unorm.y;
-    float r = sqrt(u1);
-    float phi = 2.0 * PI * u2;
-    vec3 local = vec3(r * sin(phi), r * cos(phi), sqrt(max(0.0, 1.0 - u1)));
+    const float u1 = noise_unorm.x;
+    const float u2 = noise_unorm.y;
+    const mat3 TBN = build_local_space(normal);
 
-    mat3 TBN = build_local_space(normal);
+    if(noise_unorm.w < sqrt(roughness))
+    {
+        const float alpha = roughness * roughness;
+        const float cos_theta = sqrt((1.0 - u1) / (1.0 + (alpha * alpha - 1.0) * u1));
+        const float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+        const float theta = acos(cos_theta);
+        const float phi = 2.0 * PI * u2;
 
-    return normalize(TBN * local);
+        const float pdf_nomi = (2.0 * alpha * alpha * cos_theta, sin_theta);
+        const float pdf_denom_sqrt = (alpha * alpha - 1.0) * cos_theta * cos_theta + 1.0;
+        const float pdf = pdf_nomi / (pdf_denom_sqrt * pdf_denom_sqrt);
+
+        const vec3 local = vec3(
+                sin(theta) * cos(phi),
+                sin(theta) * sin(phi),
+                cos(theta)
+            );
+
+        const vec3 half_dir = TBN * local;
+        vec3 out_dir = reflect(-view_dir, half_dir);
+        if (dot(out_dir, normal) < 0.0)
+            out_dir = reflect(out_dir, normal);
+
+        const float pdf_correction = 4.0 * dot(-view_dir, half_dir) + 0.001;
+
+        return vec4(out_dir, pdf * pdf_correction / (2.0 * PI));
+    }
+    else
+    {
+        float r = sqrt(u1);
+        float phi = 2.0 * PI * u2;
+        vec3 local = vec3(r * sin(phi), r * cos(phi), sqrt(max(0.0, 1.0 - u1)));
+        vec3 out_dir = TBN * local;
+        return vec4(out_dir, 1.0 / (2.0 * PI));
+    }
 }
 
 void store_empty_reservoir(ivec2 PUV_coord_half)
@@ -201,13 +234,18 @@ void main()
 
     /* Ray Marching */
 
-    vec3 V_march_dir = select_march_direction(
+    const vec4 select_result = select_march_direction(
             V_normal,
             V_eye_to_pixel,
-            noise_unorm
+            noise_unorm,
+            mix(0.15, 1.0, lighting.roughness),
+            lighting.metalness
         );
 
-    const Hit_result trace_result = raytrace(
+    const vec3 V_march_dir = select_result.xyz;
+    const float pdf = select_result.w < 0.01 ? 1 : select_result.w;
+
+    const Hit_result trace_result = pdf > 0.0 ? raytrace(
         V_pos, 
         normalize(V_march_dir), 
         PUV_coord, 
@@ -218,9 +256,8 @@ void main()
         near_plane_span,
         near_plane,
         depth_tex
-    );
+    ) : Hit_result(false, vec2(0.0), vec3(0.0));
 
-    const float p = 1.0 / (2.0 * PI);
     Sample hit_sample;
 
     if (trace_result.hit)
@@ -257,7 +294,7 @@ void main()
         W_view_dir, 
         lighting.roughness
     ) + 1e-2;
-    const float w_new = p_hat / p;
+    const float w_new = p_hat / pdf;
 
     const bool updated = update_reservoir(
             reservoir,

@@ -19,8 +19,6 @@ layout(set = 2, binding = 0) uniform Params
     float end_threshold;
 };
 
-const float brightness_clamp = 100;
-
 void main()
 {
     if (any(greaterThanEqual(gl_GlobalInvocationID.xy, imageSize(filtered_out))))
@@ -35,7 +33,7 @@ void main()
             brightness
         );
     const float normalized_brightness = brightness * mult;
-    const float brightness_clamped = min(normalized_brightness, end_threshold * 3);
+    const float brightness_clamped = min(normalized_brightness, end_threshold * 8);
     vec3 filtered_value = luminance * mult * (brightness_clamped / max(normalized_brightness, 0.0001));
 
     if (any(isnan(filtered_value)) || any(isinf(filtered_value)))

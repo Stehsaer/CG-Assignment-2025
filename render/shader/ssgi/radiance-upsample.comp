@@ -21,13 +21,15 @@ layout(std140, set = 2, binding = 0) uniform Params
 };
 
 const float NORMAL_SIGMA = 5;
+const float NORMAL_THRES = 0.7;
 const float DEPTH_SIGMA = 10;
 const float ALBEDO_SIGMA = 5;
 const float ROUGHNESS_METALNESS_SIGMA = 5;
 
 float normal_similarity(vec3 n1, vec3 n2)
 {
-    return pow(max(dot(n1, n2), 0.0), NORMAL_SIGMA);
+    const float dot_product = max(dot(n1, n2), 0.0);
+    return pow(dot_product * step(NORMAL_THRES, dot_product), NORMAL_SIGMA);
 }
 
 float depth_similarity(float d1, float d2)

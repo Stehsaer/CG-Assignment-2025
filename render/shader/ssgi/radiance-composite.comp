@@ -88,7 +88,7 @@ void main()
             -view_dir,
             W_curr_normal,
             albedo,
-            mix(0.04, 1.0, roughness_metalness.x),
+            mix(0.1, 1.0, roughness_metalness.x),
             roughness_metalness.y
         ) * PI;
     radiance = clamp(radiance, vec3(0.0), vec3(65504.0));
