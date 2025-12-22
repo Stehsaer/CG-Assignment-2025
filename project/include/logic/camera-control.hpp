@@ -34,18 +34,23 @@ namespace logic
 
 		Perspective camera_projection =
 			{.fov_y = glm::radians(45.0f), .near_plane = 0.5, .far_plane = std::nullopt};
-		Orbit camera_orbit = {
+
+		Orbit target_camera_orbit = {
 			.distance = 3,
 			.azimuth = glm::radians(90.0f),
 			.pitch = glm::radians(20.0f),
 			.center = glm::vec3(0.0, 0.5, 0.0),
 			.up = glm::vec3(0.0, 1.0, 0.0)
 		};
+		Orbit lerped_camera_orbit = target_camera_orbit;
+
 		Pan_controller pan_controller = {.conversion_factor = 0.5f};
 		Rotate_controller rotate_controller = Rotate_controller{
 			.azimuth_per_width = glm::radians(360.0f),
 			.pitch_per_height = glm::radians(180.0f),
 		};
+
+		const float mix_factor = 16.0f;
 
 		std::optional<glm::dmat4> prev_frame_camera_matrix;
 	};

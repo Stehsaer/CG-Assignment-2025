@@ -1,4 +1,5 @@
 #include "graphics/camera/view/orbit.hpp"
+#include "graphics/slerp.hpp"
 
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,6 +18,23 @@ namespace graphics::camera::view
 			center.x + distance * glm::cos(pitch) * glm::sin(azimuth),
 			center.y + distance * glm::sin(pitch),
 			center.z + distance * glm::cos(pitch) * glm::cos(azimuth)
+		};
+	}
+
+	Orbit Orbit::lerp(const Orbit& a, const Orbit& b, double t) noexcept
+	{
+		const auto new_distance = glm::mix(a.distance, b.distance, t);
+		const auto new_azimuth = glm::mix(a.azimuth, b.azimuth, t);
+		const auto new_pitch = glm::mix(a.pitch, b.pitch, t);
+		const auto new_center = glm::mix(a.center, b.center, static_cast<float>(t));
+		const auto new_up = graphics::slerp(a.up, b.up, static_cast<float>(t));
+
+		return Orbit{
+			.distance = new_distance,
+			.azimuth = new_azimuth,
+			.pitch = new_pitch,
+			.center = new_center,
+			.up = new_up
 		};
 	}
 

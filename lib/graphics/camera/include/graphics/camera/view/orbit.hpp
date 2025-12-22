@@ -19,6 +19,8 @@ namespace graphics::camera::view
 		glm::dmat4 matrix() const noexcept;
 		glm::vec3 eye_position() const noexcept;
 
+		static Orbit lerp(const Orbit& a, const Orbit& b, double t) noexcept;
+
 		///
 		/// @brief Panning controller for Orbit views
 		///
