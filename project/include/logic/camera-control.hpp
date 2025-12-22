@@ -32,15 +32,16 @@ namespace logic
 		using Pan_controller = graphics::camera::view::Orbit::Pan_controller;
 		using Rotate_controller = graphics::camera::view::Orbit::Rotate_controller;
 
-		Perspective camera_projection = Perspective(glm::radians(45.0), 0.5, std::nullopt);
-		Orbit camera_orbit = Orbit(
-			3,
-			glm::radians(90.0),
-			glm::radians(20.0),
-			glm::vec3(0.0, 0.5, 0.0),
-			glm::vec3(0.0, 1.0, 0.0)
-		);
-		Pan_controller pan_controller = Orbit::Pan_controller{0.5f};
+		Perspective camera_projection =
+			{.fov_y = glm::radians(45.0f), .near_plane = 0.5, .far_plane = std::nullopt};
+		Orbit camera_orbit = {
+			.distance = 3,
+			.azimuth = glm::radians(90.0f),
+			.pitch = glm::radians(20.0f),
+			.center = glm::vec3(0.0, 0.5, 0.0),
+			.up = glm::vec3(0.0, 1.0, 0.0)
+		};
+		Pan_controller pan_controller = {.conversion_factor = 0.5f};
 		Rotate_controller rotate_controller = Rotate_controller{
 			.azimuth_per_width = glm::radians(360.0f),
 			.pitch_per_height = glm::radians(180.0f),

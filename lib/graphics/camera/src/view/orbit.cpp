@@ -5,14 +5,6 @@
 
 namespace graphics::camera::view
 {
-	Orbit::Orbit(float distance, float azimuth, float pitch, glm::vec3 center, glm::vec3 up) noexcept :
-		distance(distance),
-		azimuth(azimuth),
-		pitch(pitch),
-		center(center),
-		up(up)
-	{}
-
 	glm::dmat4 Orbit::matrix() const noexcept
 	{
 		const glm::vec3 eye = this->eye_position();

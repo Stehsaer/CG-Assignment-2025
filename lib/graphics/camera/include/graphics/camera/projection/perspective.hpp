@@ -1,7 +1,6 @@
 #pragma once
 
-#include "graphics/camera/projection.hpp"
-
+#include <glm/glm.hpp>
 #include <optional>
 
 namespace graphics::camera::projection
@@ -10,29 +9,26 @@ namespace graphics::camera::projection
 	/// @brief Perspective Projection
 	///
 	///
-	struct Perspective : public Projection
+	struct Perspective
 	{
-		Perspective(const Perspective&) = default;
-		Perspective(Perspective&&) = default;
-		Perspective& operator=(const Perspective&) = default;
-		Perspective& operator=(Perspective&&) = default;
-
-		///
-		/// @brief Create a perspective projection
-		///
-		/// @param fov_y Vertical field of view in radians
-		/// @param near_plane Distance to near plane
-		/// @param far_plane Distance to far plane if given a number, infinite if given `std::nullopt` (the
-		/// default)
-		///
-		Perspective(float fov_y, float near_plane, std::optional<float> far_plane) noexcept;
-
-		virtual ~Perspective() = default;
-
-		glm::dmat4 matrix(float aspect_ratio) noexcept override;
-
 		float fov_y;
 		float near_plane;
-		std::optional<float> far_plane;  // See class constructor for details
+		std::optional<float> far_plane;  // if not set, use infinite projection
+
+		///
+		/// @brief Get perspective projection matrix
+		///
+		/// @param aspect_ratio Aspect ratio of the viewport (width / height)
+		/// @return Projection matrix
+		///
+		glm::dmat4 matrix(float aspect_ratio) const noexcept;
+
+		///
+		/// @brief Get perspective projection matrix with reversed Z
+		///
+		/// @param aspect_ratio Aspect ratio of the viewport (width / height)
+		/// @return Projection matrix with reversed Z
+		///
+		glm::dmat4 matrix_reverse_z(float aspect_ratio) const noexcept;
 	};
 }

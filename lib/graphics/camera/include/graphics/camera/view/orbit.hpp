@@ -1,8 +1,6 @@
 #pragma once
 
-#include "graphics/camera/view.hpp"
-
-#include <glm/vec3.hpp>
+#include <glm/glm.hpp>
 
 namespace graphics::camera::view
 {
@@ -10,34 +8,16 @@ namespace graphics::camera::view
 	/// @brief Orbiting View
 	///
 	///
-	struct Orbit : public View
+	struct Orbit
 	{
-		Orbit(const Orbit&) = default;
-		Orbit(Orbit&&) = default;
-		Orbit& operator=(const Orbit&) = default;
-		Orbit& operator=(Orbit&&) = default;
-
-		///
-		/// @brief Create an orbiting view
-		///
-		/// @param distance Distance from eye to target
-		/// @param azimuth (Horizonal) Azimuth angle from target to eye
-		/// @param pitch (Vertical) Pitch angle from target to eye
-		/// @param center Target position
-		/// @param up Up direction
-		///
-		Orbit(float distance, float azimuth, float pitch, glm::vec3 center, glm::vec3 up) noexcept;
-
-		virtual ~Orbit() = default;
-
-		glm::dmat4 matrix() const noexcept override;
-		glm::vec3 eye_position() const noexcept override;
-
 		float distance;
 		float azimuth;
 		float pitch;
 		glm::vec3 center;
 		glm::vec3 up;
+
+		glm::dmat4 matrix() const noexcept;
+		glm::vec3 eye_position() const noexcept;
 
 		///
 		/// @brief Panning controller for Orbit views
