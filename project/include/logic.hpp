@@ -52,5 +52,8 @@ class Logic
 
   public:
 
-	std::tuple<render::Params, std::vector<gltf::Drawdata>> logic(const gltf::Model& model) noexcept;
+	std::tuple<render::Params, std::vector<gltf::Drawdata>> logic(
+		const backend::SDL_context& context,
+		const gltf::Model& model
+	) noexcept;
 };

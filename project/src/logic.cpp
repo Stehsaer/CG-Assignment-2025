@@ -1,4 +1,5 @@
 #include "logic.hpp"
+#include "backend/sdl.hpp"
 #include "render/param.hpp"
 
 #include <imgui.h>
@@ -64,9 +65,12 @@ void Logic::debug_control_ui() noexcept
 	if (time_run) time += ImGui::GetIO().DeltaTime;
 }
 
-std::tuple<render::Params, std::vector<gltf::Drawdata>> Logic::logic(const gltf::Model& model) noexcept
+std::tuple<render::Params, std::vector<gltf::Drawdata>> Logic::logic(
+	const backend::SDL_context& context,
+	const gltf::Model& model
+) noexcept
 {
-	camera_control.update();
+	camera_control.update(context);
 
 	if (ImGui::Begin("设置", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 	{

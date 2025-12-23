@@ -8,3 +8,5 @@ target("graphics.camera")
 	add_files("src/**.cpp")
 	
 	add_packages("glm", {public=true})
+
+	add_deps("graphics.geometry")

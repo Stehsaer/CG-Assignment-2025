@@ -1,6 +1,8 @@
 #pragma once
 
+#include "backend/sdl.hpp"
 #include "graphics/camera/projection/perspective.hpp"
+#include "graphics/camera/view/flying.hpp"
 #include "graphics/camera/view/orbit.hpp"
 #include "render/param.hpp"
 
@@ -16,7 +18,7 @@ namespace logic
 		/// @brief Update camera control based on user input.
 		///
 		///
-		void update() noexcept;
+		void update(const backend::SDL_context& context) noexcept;
 
 		///
 		/// @brief Get camera matrices and eye position. Must be called exactly once per frame.
@@ -29,22 +31,21 @@ namespace logic
 
 		using Perspective = graphics::camera::projection::Perspective;
 		using Orbit = graphics::camera::view::Orbit;
-		using Pan_controller = graphics::camera::view::Orbit::Pan_controller;
-		using Rotate_controller = graphics::camera::view::Orbit::Rotate_controller;
+		using Flying = graphics::camera::view::Flying;
 
-		Perspective camera_projection = Perspective(glm::radians(45.0), 0.5, std::nullopt);
-		Orbit camera_orbit = Orbit(
-			3,
-			glm::radians(90.0),
-			glm::radians(20.0),
-			glm::vec3(0.0, 0.5, 0.0),
-			glm::vec3(0.0, 1.0, 0.0)
-		);
-		Pan_controller pan_controller = Orbit::Pan_controller{0.5f};
-		Rotate_controller rotate_controller = Rotate_controller{
-			.azimuth_per_width = glm::radians(360.0f),
-			.pitch_per_height = glm::radians(180.0f),
+		Perspective camera_projection =
+			{.fov_y = glm::radians(45.0f), .near_plane = 0.5, .far_plane = std::nullopt};
+
+		Flying target_camera = {
+			.position = glm::dvec3(0.0, 1.5, 0.0),
+			.angles = {.azimuth = glm::radians(90.0f), .pitch = glm::radians(-20.0f)},
+			.up = glm::dvec3(0.0, 1.0, 0.0)
 		};
+		Flying lerp_camera = target_camera;
+
+		const float azimuth_per_width = glm::radians(180.0f);
+		const float pitch_per_height = glm::radians(90.0f);
+		const float mix_factor = 16.0f;
 
 		std::optional<glm::dmat4> prev_frame_camera_matrix;
 	};

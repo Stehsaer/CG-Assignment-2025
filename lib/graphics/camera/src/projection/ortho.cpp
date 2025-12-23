@@ -8,13 +8,7 @@
 
 namespace graphics::camera::projection
 {
-	Ortho::Ortho(float viewport_height, float near_plane, float far_plane) noexcept :
-		viewport_height(viewport_height),
-		near_plane(near_plane),
-		far_plane(far_plane)
-	{}
-
-	glm::dmat4 Ortho::matrix(float aspect_ratio) noexcept
+	glm::dmat4 Ortho::matrix(float aspect_ratio) const noexcept
 	{
 		const auto viewport_width = viewport_height * aspect_ratio;
 		return glm::ortho<double>(
@@ -27,13 +21,7 @@ namespace graphics::camera::projection
 		);
 	}
 
-	Ortho_fixed::Ortho_fixed(glm::vec2 viewport_size, float near_plane, float far_plane) noexcept :
-		viewport_size(viewport_size),
-		near_plane(near_plane),
-		far_plane(far_plane)
-	{}
-
-	glm::dmat4 Ortho_fixed::matrix(float aspect_ratio [[maybe_unused]]) noexcept
+	glm::dmat4 Ortho_fixed::matrix(float aspect_ratio [[maybe_unused]]) const noexcept
 	{
 		return glm::ortho<double>(
 			-viewport_size.x / 2,
