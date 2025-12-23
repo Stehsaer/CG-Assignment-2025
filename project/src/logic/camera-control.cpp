@@ -1,24 +1,33 @@
 #include "logic/camera-control.hpp"
 #include "render/param.hpp"
 
+#include <SDL3/SDL_mouse.h>
 #include <imgui.h>
 
 namespace logic
 {
-	void Camera::update() noexcept
+	void Camera::update(const backend::SDL_context& context) noexcept
 	{
-		const auto [width, height] = ImGui::GetIO().DisplaySize;
+		auto& io = ImGui::GetIO();
+		const auto [width, height] = io.DisplaySize;
 
-		if (!ImGui::GetIO().WantCaptureMouse)
+		SDL_SetWindowRelativeMouseMode(
+			context.window,
+			!io.WantCaptureMouse && ImGui::IsMouseDown(ImGuiMouseButton_Right)
+		);
+
+		if (!io.WantCaptureMouse)
 		{
-			const auto mouse_delta = ImGui::GetIO().MouseDelta;
+			glm::vec2 mouse_delta;
+			SDL_GetRelativeMouseState(&mouse_delta.x, &mouse_delta.y);
+
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			{
 				target_camera.angles = target_camera.angles.rotate(
 					azimuth_per_width,
 					pitch_per_height,
 					{float(width), float(height)},
-					glm::vec2{mouse_delta.x, -mouse_delta.y}
+					mouse_delta * glm::vec2{1.0f, -1.0f}
 				);
 			}
 
@@ -35,12 +44,11 @@ namespace logic
 
 			if (glm::length(position_delta) > 0.0)
 			{
-
 				target_camera = target_camera.move(position_delta * distance);
 			}
 		}
 
-		const float dt = ImGui::GetIO().DeltaTime;
+		const float dt = io.DeltaTime;
 
 		lerp_camera = Flying::lerp(lerp_camera, target_camera, glm::clamp(mix_factor * dt, 0.0f, 1.0f));
 	}

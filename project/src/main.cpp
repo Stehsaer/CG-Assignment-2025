@@ -110,7 +110,7 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		/*===== Logic =====*/
 
 		backend::imgui_new_frame();
-		const auto [params, drawdata] = logic.logic(model);
+		const auto [params, drawdata] = logic.logic(sdl_context, model);
 
 		/*===== Render =====*/
 

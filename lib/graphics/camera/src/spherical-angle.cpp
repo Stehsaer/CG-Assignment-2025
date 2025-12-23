@@ -1,6 +1,7 @@
 #include "graphics/camera/spherical-angle.hpp"
 
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/gtc/constants.hpp>
 
 namespace graphics::camera
 {
@@ -38,7 +39,7 @@ namespace graphics::camera
 		const auto pitch_delta = pixel_delta.y * pitch_per_pixel;
 
 		return {
-			.azimuth = self.azimuth + azimuth_delta,
+			.azimuth = fmod(self.azimuth + azimuth_delta, glm::two_pi<double>()),
 			.pitch = glm::clamp(
 				self.pitch + pitch_delta,
 				-glm::pi<double>() / 2 + 0.001,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "backend/sdl.hpp"
 #include "graphics/camera/projection/perspective.hpp"
 #include "graphics/camera/view/flying.hpp"
 #include "graphics/camera/view/orbit.hpp"
@@ -17,7 +18,7 @@ namespace logic
 		/// @brief Update camera control based on user input.
 		///
 		///
-		void update() noexcept;
+		void update(const backend::SDL_context& context) noexcept;
 
 		///
 		/// @brief Get camera matrices and eye position. Must be called exactly once per frame.
