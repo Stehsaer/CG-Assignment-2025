@@ -11,26 +11,38 @@ namespace logic
 
 		if (!ImGui::GetIO().WantCaptureMouse)
 		{
-			const auto delta = ImGui::GetIO().MouseDelta;
+			const auto mouse_delta = ImGui::GetIO().MouseDelta;
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			{
-				rotate_controller
-					.rotate(target_camera_orbit, {float(width), float(height)}, {delta.x, delta.y});
+				target_camera.angles = target_camera.angles.rotate(
+					azimuth_per_width,
+					pitch_per_height,
+					{float(width), float(height)},
+					glm::vec2{mouse_delta.x, -mouse_delta.y}
+				);
 			}
 
-			if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+			glm::dvec3 position_delta{0.0};
+			double distance = ImGui::GetIO().DeltaTime * 2.0;
+
+			if (ImGui::IsKeyDown(ImGuiKey_W)) position_delta += glm::dvec3(0.0, 0.0, -1.0);
+			if (ImGui::IsKeyDown(ImGuiKey_S)) position_delta += glm::dvec3(0.0, 0.0, 1.0);
+			if (ImGui::IsKeyDown(ImGuiKey_A)) position_delta += glm::dvec3(-1.0, 0.0, 0.0);
+			if (ImGui::IsKeyDown(ImGuiKey_D)) position_delta += glm::dvec3(1.0, 0.0, 0.0);
+
+			if (ImGui::IsKeyDown(ImGuiKey_LeftShift)) distance *= 0.1;
+			if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) distance *= 5.0;
+
+			if (glm::length(position_delta) > 0.0)
 			{
-				pan_controller.pan(target_camera_orbit, {float(width), float(height)}, {delta.x, delta.y});
-			}
 
-			const auto mouse_wheel = ImGui::GetIO().MouseWheel;
-			if (mouse_wheel != 0.0f) target_camera_orbit.distance *= glm::pow(0.8f, mouse_wheel);
+				target_camera = target_camera.move(position_delta * distance);
+			}
 		}
 
 		const float dt = ImGui::GetIO().DeltaTime;
 
-		lerped_camera_orbit =
-			Orbit::lerp(lerped_camera_orbit, target_camera_orbit, glm::clamp(mix_factor * dt, 0.0f, 1.0f));
+		lerp_camera = Flying::lerp(lerp_camera, target_camera, glm::clamp(mix_factor * dt, 0.0f, 1.0f));
 	}
 
 	render::Camera_matrices Camera::get_matrices() noexcept
@@ -38,7 +50,7 @@ namespace logic
 		const auto [width, height] = ImGui::GetIO().DisplaySize;
 		const auto aspect_ratio = width / height;
 
-		const auto view_matrix = lerped_camera_orbit.matrix();
+		const auto view_matrix = lerp_camera.matrix();
 		const auto proj_matrix = camera_projection.matrix_reverse_z(aspect_ratio);
 		const auto camera_matrix = proj_matrix * view_matrix;
 		const auto prev_matrix = prev_frame_camera_matrix.value_or(camera_matrix);
@@ -48,7 +60,7 @@ namespace logic
 			.view_matrix = view_matrix,
 			.proj_matrix = proj_matrix,
 			.prev_view_proj_matrix = prev_matrix,
-			.eye_position = lerped_camera_orbit.eye_position(),
+			.eye_position = lerp_camera.eye_position(),
 		};
 	}
 }
