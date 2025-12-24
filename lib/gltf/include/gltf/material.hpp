@@ -198,9 +198,7 @@ namespace gltf
 		std::vector<Texture> textures;
 		std::vector<Material_indexed> materials;
 
-		std::unique_ptr<gpu::Texture> default_base_color;
-		std::unique_ptr<gpu::Texture> default_occlusion_metalness_roughness;
-		std::unique_ptr<gpu::Texture> default_emissive;
+		std::unique_ptr<gpu::Texture> default_white;
 		std::unique_ptr<gpu::Texture> default_normal;
 
 		std::unique_ptr<gpu::Sampler> default_sampler;

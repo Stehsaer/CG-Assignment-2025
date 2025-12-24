@@ -203,30 +203,15 @@ namespace gltf
 
 	std::expected<void, util::Error> Material_list::create_default_textures(SDL_GPUDevice* device) noexcept
 	{
-		auto default_base_color_tex =
+		auto default_white_tex =
 			gltf::create_placeholder_image(device, glm::vec4(1.0f), "GLTF Default Base Color");
-		if (!default_base_color_tex) return default_base_color_tex.error();
-
-		auto default_occlusion_metalness_roughness_tex = gltf::create_placeholder_image(
-			device,
-			glm::vec4(/*Occlusion*/ 1.0f, /*Roughness*/ 1.0f, /*Metalness*/ 0.0f, 1.0f),
-			"GLTF Default Occlusion-Metalness-Roughness"
-		);
-		if (!default_occlusion_metalness_roughness_tex)
-			return default_occlusion_metalness_roughness_tex.error();
-
-		auto default_emissive_tex =
-			gltf::create_placeholder_image(device, glm::vec4(1.0f), "GLTF Default Emissive");
-		if (!default_emissive_tex) return default_emissive_tex.error();
+		if (!default_white_tex) return default_white_tex.error();
 
 		auto default_normal_tex =
 			gltf::create_placeholder_image(device, glm::vec4(0.5f, 0.5f, 1.0f, 1.0f), "GLTF Default Normal");
 		if (!default_normal_tex) return default_normal_tex.error();
 
-		default_base_color = std::make_unique<gpu::Texture>(std::move(*default_base_color_tex));
-		default_occlusion_metalness_roughness =
-			std::make_unique<gpu::Texture>(std::move(*default_occlusion_metalness_roughness_tex));
-		default_emissive = std::make_unique<gpu::Texture>(std::move(*default_emissive_tex));
+		default_white = std::make_unique<gpu::Texture>(std::move(*default_white_tex));
 		default_normal = std::make_unique<gpu::Texture>(std::move(*default_normal_tex));
 
 		return {};
@@ -491,12 +476,12 @@ namespace gltf
 		}
 
 		auto base_color_binding =
-			get_texture_sampler_binding(default_base_color, base_color_index, &Image_entry::color_texture);
+			get_texture_sampler_binding(default_white, base_color_index, &Image_entry::color_texture);
 		if (!base_color_binding) return std::nullopt;
 		bind.base_color = *base_color_binding;
 
 		auto metallic_roughness_binding = get_texture_sampler_binding(
-			default_occlusion_metalness_roughness,
+			default_white,
 			metallic_roughness_index,
 			&Image_entry::linear_texture
 		);
@@ -508,16 +493,13 @@ namespace gltf
 		if (!normal_binding) return std::nullopt;
 		bind.normal = *normal_binding;
 
-		auto occlusion_binding = get_texture_sampler_binding(
-			default_occlusion_metalness_roughness,
-			occlusion_index,
-			&Image_entry::linear_texture
-		);
+		auto occlusion_binding =
+			get_texture_sampler_binding(default_white, occlusion_index, &Image_entry::linear_texture);
 		if (!occlusion_binding) return std::nullopt;
 		bind.occlusion = *occlusion_binding;
 
 		auto emissive_binding =
-			get_texture_sampler_binding(default_emissive, emissive_index, &Image_entry::color_texture);
+			get_texture_sampler_binding(default_white, emissive_index, &Image_entry::color_texture);
 		if (!emissive_binding) return std::nullopt;
 		bind.emissive = *emissive_binding;
 
