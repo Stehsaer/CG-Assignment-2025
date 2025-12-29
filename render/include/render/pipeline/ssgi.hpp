@@ -100,6 +100,15 @@ namespace render::pipeline
 			static Radiance_composite_param from_param(const Param& param, glm::u32vec2 resolution) noexcept;
 		};
 
+		struct Radiance_blur_param
+		{
+			glm::vec4 inv_view_proj_mat_col3;
+			glm::vec4 inv_view_proj_mat_col4;
+			glm::uvec2 comp_resolution;
+
+			static Radiance_blur_param from_param(const Param& param, glm::u32vec2 resolution) noexcept;
+		};
+
 		struct Radiance_upsample_param
 		{
 			glm::vec4 inv_view_proj_mat_col3;
@@ -113,6 +122,7 @@ namespace render::pipeline
 		gpu::Compute_pipeline initial_pipeline;
 		gpu::Compute_pipeline spatial_reuse_pipeline;
 		gpu::Compute_pipeline radiance_composite_pipeline;
+		gpu::Compute_pipeline radiance_blur_pipeline;
 		gpu::Compute_pipeline radiance_upsample_pipeline;
 		graphics::Fullscreen_pass<true> radiance_add_pass;
 		gpu::Sampler noise_sampler, nearest_sampler, linear_sampler;
@@ -143,6 +153,14 @@ namespace render::pipeline
 			glm::u32vec2 resolution
 		) const noexcept;
 
+		std::expected<void, util::Error> run_radiance_blur(
+			const gpu::Command_buffer& command_buffer,
+			const target::Gbuffer& gbuffer,
+			const target::SSGI& ssgi_target,
+			const Param& param,
+			glm::u32vec2 resolution
+		) const noexcept;
+
 		std::expected<void, util::Error> run_radiance_upsample(
 			const gpu::Command_buffer& command_buffer,
 			const target::Gbuffer& gbuffer,
@@ -162,6 +180,7 @@ namespace render::pipeline
 			gpu::Compute_pipeline ssgi_pipeline,
 			gpu::Compute_pipeline spatial_reuse_pipeline,
 			gpu::Compute_pipeline radiance_composite_pipeline,
+			gpu::Compute_pipeline radiance_blur_pipeline,
 			gpu::Compute_pipeline radiance_upsample_pipeline,
 			graphics::Fullscreen_pass<true> radiance_add_pass,
 			gpu::Sampler noise_sampler,
@@ -172,6 +191,7 @@ namespace render::pipeline
 			initial_pipeline(std::move(ssgi_pipeline)),
 			spatial_reuse_pipeline(std::move(spatial_reuse_pipeline)),
 			radiance_composite_pipeline(std::move(radiance_composite_pipeline)),
+			radiance_blur_pipeline(std::move(radiance_blur_pipeline)),
 			radiance_upsample_pipeline(std::move(radiance_upsample_pipeline)),
 			radiance_add_pass(std::move(radiance_add_pass)),
 			noise_sampler(std::move(noise_sampler)),

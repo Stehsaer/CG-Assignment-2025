@@ -26,6 +26,8 @@ namespace render::target
 
 		if (const auto result = radiance_texture.resize_and_cycle(device, half_size); !result)
 			return result.error().forward("Resize SSGI radiance texture failed");
+		if (const auto result = blurred_radiance_texture.resize(device, half_size); !result)
+			return result.error().forward("Resize SSGI blurred radiance texture failed");
 
 		if (const auto result = fullres_radiance_texture.resize(device, size); !result)
 			return result.error().forward("Resize SSGI fullres radiance texture failed");

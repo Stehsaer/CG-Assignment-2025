@@ -146,7 +146,7 @@ void main()
     vec3 total_weighted_radiance = vec3(0.0);
     float total_weight = 0.0;
 
-    for (int i = 0; i < 25; i++)
+    for (int i = 0; i < 9; i++)
     {
         const ivec2 offset = offsets[i];
         const ivec2 neighbor_half_coord = half_coord + offset;
