@@ -37,7 +37,7 @@ namespace render
 	struct Bloom_params
 	{
 		float bloom_attenuation = 1.2;
-		float bloom_strength = 0.05;
+		float bloom_strength = 0.025;
 	};
 
 	struct Shadow_params

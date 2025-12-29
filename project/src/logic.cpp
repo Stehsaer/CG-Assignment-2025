@@ -267,7 +267,7 @@ std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::draw
 	{
 		day_night_cycle.control_ui();
 		light_control_ui();
-		// antialias_control_ui();
+		camera_control.camera_control_ui();
 		section_view.control_ui();
 		statistic_display_ui();
 		animation_control_ui();
@@ -376,7 +376,7 @@ std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::draw
 		label_at_node(door5_node_index, "客厅");
 	}
 
-	for (const auto [_, animation_state] : animation_targets) animation_state.update(dt);
+	for (const auto& [_, animation_state] : animation_targets) animation_state.update(dt);
 	for (const auto& animation_state : curtain_targets) animation_state.get().update(dt);
 
 	auto animation_metrics =

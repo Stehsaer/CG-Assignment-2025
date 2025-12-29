@@ -64,7 +64,7 @@ namespace logic
 
 	  private:
 
-		bool enable_cycle = false;       // 是否启用昼夜循环
+		bool enable_cycle = true;        // 是否启用昼夜循环
 		float time_of_day = 8.0f;        // 当前时间 (0-24小时)
 		float time_speed = 1.0f;         // 时间流速倍率
 		bool auto_light_control = true;  // 是否自动控制光照

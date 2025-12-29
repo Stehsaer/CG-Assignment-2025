@@ -43,6 +43,8 @@ namespace logic
 		///
 		std::tuple<glm::dvec3, double, double> get_camera_state() const noexcept;
 
+		void camera_control_ui() noexcept;
+
 	  private:
 
 		using Perspective = graphics::camera::projection::Perspective;
@@ -62,6 +64,7 @@ namespace logic
 		const float azimuth_per_width = glm::radians(180.0f);
 		const float pitch_per_height = glm::radians(90.0f);
 		const float mix_factor = 16.0f;
+		bool free_camera_mode = false;
 
 		std::optional<glm::dmat4> prev_frame_camera_matrix;
 	};

@@ -48,6 +48,8 @@ namespace logic
 			}
 		}
 
+		if (!free_camera_mode) target_camera.position.y = 1.5;
+
 		const float dt = io.DeltaTime;
 
 		lerp_camera = Flying::lerp(lerp_camera, target_camera, glm::clamp(mix_factor * dt, 0.0f, 1.0f));
@@ -83,5 +85,11 @@ namespace logic
 	std::tuple<glm::dvec3, double, double> Camera::get_camera_state() const noexcept
 	{
 		return {target_camera.position, target_camera.angles.azimuth, target_camera.angles.pitch};
+	}
+
+	void Camera::camera_control_ui() noexcept
+	{
+		ImGui::Separator();
+		ImGui::Checkbox("相机自由视角", &free_camera_mode);
 	}
 }
