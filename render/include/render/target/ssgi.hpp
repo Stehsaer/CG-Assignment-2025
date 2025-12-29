@@ -96,11 +96,12 @@ namespace render::target
 			"SSGI Spatial Reservoir Texture 4"
 		};
 
-		graphics::Cycle_texture radiance_texture{radiance_texture_format, "SSGI Radiance Texture"};
+		graphics::Cycle_texture diffuse_texture{radiance_texture_format, "SSGI Diffuse Texture"};
+		graphics::Cycle_texture specular_texture{radiance_texture_format, "SSGI Specular Texture"};
 
-		graphics::Auto_texture blurred_radiance_texture{
+		graphics::Auto_texture blurred_diffuse_texture{
 			radiance_texture_format,
-			"SSGI Blurred Radiance Texture"
+			"SSGI Blurred Diffuse Texture"
 		};
 
 		graphics::Auto_texture fullres_radiance_texture{

@@ -73,24 +73,25 @@ void main()
     const float W = reservoir_tex1_sample.z;
     const GBufferLighting lighting = unpack_gbuffer_lighting(texelFetch(lighting_info_tex, full_coord, 0).xy);
     const vec3 W_curr_normal = lighting.normal;
-    const vec2 roughness_metalness = vec2(lighting.roughness, lighting.metalness);
 
     const vec4 P_prev_h = back_projection_mat * vec4(W_curr_pos, 1.0);
     const vec3 NDC_prev = P_prev_h.xyz / P_prev_h.w;
     const vec2 UV_pixel_unit = 2.0 / vec2(full_resolution);
 
     const vec3 curr_luminance = hit_luminance * W;
+
     const vec3 W_light_dir = normalize(W_hit_position - W_curr_pos);
-    const vec3 view_dir = normalize(W_curr_pos - inv_view_mat[3].xyz);
-    vec3 radiance = gltf_calculate_pbr(
-            W_light_dir,
-            curr_luminance,
-            -view_dir,
-            W_curr_normal,
-            albedo,
-            mix(0.1, 1.0, roughness_metalness.x),
-            roughness_metalness.y
-        ) * PI;
+    const vec3 W_view_dir = normalize(inv_view_mat[3].xyz - W_curr_pos);
+    const vec3 W_halfway_dir = normalize(W_light_dir + W_view_dir);
+
+    const float v_dot_h = max(0.0, dot(W_view_dir, W_halfway_dir));
+    const float n_dot_l = max(0.0, dot(W_curr_normal, W_light_dir));
+
+    vec3 c_diff = mix(albedo, vec3(0.0), lighting.metalness);
+    vec3 f0 = mix(vec3(0.04), albedo, lighting.metalness);
+    vec3 F = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
+
+    vec3 radiance = curr_luminance * (1.0 - F) * PI * c_diff * n_dot_l;
     radiance = clamp(radiance, vec3(0.0), vec3(65504.0));
 
     vec3 prev_radiance = vec3(0.0);

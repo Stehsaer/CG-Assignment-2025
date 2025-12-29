@@ -1,9 +1,9 @@
 #include "render/pipeline/ssgi.hpp"
 #include "asset/graphic-asset.hpp"
+#include "asset/shader/diffuse-blur.comp.hpp"
+#include "asset/shader/diffuse-composite.comp.hpp"
 #include "asset/shader/init-temporal.comp.hpp"
 #include "asset/shader/radiance-add.frag.hpp"
-#include "asset/shader/radiance-blur.comp.hpp"
-#include "asset/shader/radiance-composite.comp.hpp"
 #include "asset/shader/radiance-upsample.comp.hpp"
 #include "asset/shader/spatial-reuse.comp.hpp"
 #include "gpu/compute-pass.hpp"
@@ -242,7 +242,7 @@ namespace render::pipeline
 		auto radiance_composite_pipeline = gpu::Compute_pipeline::create(
 			device,
 			gpu::Compute_pipeline::Create_info{
-				.shader_data = shader_asset::radiance_composite_comp,
+				.shader_data = shader_asset::diffuse_composite_comp,
 				.num_samplers = 9,
 				.num_readwrite_storage_textures = 1,
 				.num_uniform_buffers = 1,
@@ -260,7 +260,7 @@ namespace render::pipeline
 		auto radiance_blur_pipeline = gpu::Compute_pipeline::create(
 			device,
 			gpu::Compute_pipeline::Create_info{
-				.shader_data = shader_asset::radiance_blur_comp,
+				.shader_data = shader_asset::diffuse_blur_comp,
 				.num_samplers = 4,
 				.num_readwrite_storage_textures = 1,
 				.num_uniform_buffers = 1,
@@ -565,7 +565,7 @@ namespace render::pipeline
 		const auto dispatch_size = (radiance_composite_param.comp_resolution + 15u) / 16u;
 
 		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture{
-			.texture = ssgi_target.radiance_texture.current(),
+			.texture = ssgi_target.diffuse_texture.current(),
 			.mip_level = 0,
 			.layer = 0,
 			.cycle = true,
@@ -583,7 +583,7 @@ namespace render::pipeline
 				compute_pass.bind_samplers(
 					0,
 					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler),
-					ssgi_target.radiance_texture.prev().bind_with_sampler(nearest_sampler),
+					ssgi_target.diffuse_texture.prev().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.prev().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
@@ -614,7 +614,7 @@ namespace render::pipeline
 		const auto dispatch_size = (radiance_blur_param.comp_resolution + 15u) / 16u;
 
 		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture{
-			.texture = *ssgi_target.blurred_radiance_texture,
+			.texture = *ssgi_target.blurred_diffuse_texture,
 			.mip_level = 0,
 			.layer = 0,
 			.cycle = true,
@@ -631,7 +631,7 @@ namespace render::pipeline
 				compute_pass.bind_pipeline(radiance_blur_pipeline);
 				compute_pass.bind_samplers(
 					0,
-					ssgi_target.radiance_texture.current().bind_with_sampler(nearest_sampler),
+					ssgi_target.diffuse_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
 					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler)
@@ -676,7 +676,7 @@ namespace render::pipeline
 				compute_pass.bind_pipeline(radiance_upsample_pipeline);
 				compute_pass.bind_samplers(
 					0,
-					ssgi_target.blurred_radiance_texture->bind_with_sampler(nearest_sampler),
+					ssgi_target.blurred_diffuse_texture->bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
 					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler)
