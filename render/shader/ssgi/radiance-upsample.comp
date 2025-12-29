@@ -9,6 +9,7 @@ layout(set = 0, binding = 0) uniform sampler2D low_res_radiance_tex;
 layout(set = 0, binding = 1) uniform sampler2D depth_tex;
 layout(set = 0, binding = 2) uniform sampler2D albedo_tex;
 layout(set = 0, binding = 3) uniform usampler2D lighting_info_tex;
+layout(set = 0, binding = 4) uniform sampler2D low_res_specular_tex;
 
 layout(set = 1, binding = 0, rgba16f) uniform writeonly image2D out_fullres_radiance_tex;
 
@@ -21,13 +22,16 @@ layout(std140, set = 2, binding = 0) uniform Params
 };
 
 const float NORMAL_SIGMA = 5;
+const float NORMAL_THRES = 0.8;
 const float DEPTH_SIGMA = 10;
-const float ALBEDO_SIGMA = 5;
+const float ALBEDO_SIGMA = 7;
 const float ROUGHNESS_METALNESS_SIGMA = 5;
+const float BLUR_SIGMA = 2;
 
 float normal_similarity(vec3 n1, vec3 n2)
 {
-    return pow(max(dot(n1, n2), 0.0), NORMAL_SIGMA);
+    const float dot_product = max(dot(n1, n2), 0.0);
+    return pow(dot_product * step(NORMAL_THRES, dot_product), NORMAL_SIGMA);
 }
 
 float depth_similarity(float d1, float d2)
@@ -48,37 +52,38 @@ float roughness_metalness_similarity(float r1, float r2, float m1, float m2)
     return exp((-distance(r1, r2) - distance(m1, m2)) * ROUGHNESS_METALNESS_SIGMA);
 }
 
-const vec3 offsets_and_weights[25] = {
-        vec3(0, 0, 0.16210282163712664),
-        vec3(0, -1, 0.09832033134884575),
-        vec3(0, 1, 0.09832033134884575),
-        vec3(-1, 1, 0.05963429543618014),
-        vec3(-1, 0, 0.09832033134884575),
-        vec3(-1, -1, 0.05963429543618014),
-        vec3(1, -1, 0.05963429543618014),
-        vec3(1, 0, 0.09832033134884575),
-        vec3(1, 1, 0.05963429543618014),
-        vec3(-2, -2, 0.002969016743950497),
-        vec3(-2, -1, 0.013306209891013651),
-        vec3(-2, 0, 0.021938231279714643),
-        vec3(-2, 1, 0.013306209891013651),
-        vec3(-2, 2, 0.002969016743950497),
-        vec3(-1, -2, 0.013306209891013651),
-        vec3(-1, 2, 0.013306209891013651),
-        vec3(0, -2, 0.021938231279714643),
-        vec3(0, 2, 0.021938231279714643),
-        vec3(1, -2, 0.013306209891013651),
-        vec3(1, 2, 0.013306209891013651),
-        vec3(2, -2, 0.002969016743950497),
-        vec3(2, -1, 0.013306209891013651),
-        vec3(2, 0, 0.021938231279714643),
-        vec3(2, 1, 0.013306209891013651),
-        vec3(2, 2, 0.002969016743950497),
+const ivec2 offsets[25] = {
+        ivec2(0, 0),
+        ivec2(0, -1),
+        ivec2(0, 1),
+        ivec2(-1, 1),
+        ivec2(-1, 0),
+        ivec2(-1, -1),
+        ivec2(1, -1),
+        ivec2(1, 0),
+        ivec2(1, 1),
+        ivec2(-2, -2),
+        ivec2(-2, -1),
+        ivec2(-2, 0),
+        ivec2(-2, 1),
+        ivec2(-2, 2),
+        ivec2(-1, -2),
+        ivec2(-1, 2),
+        ivec2(0, -2),
+        ivec2(0, 2),
+        ivec2(1, -2),
+        ivec2(1, 2),
+        ivec2(2, -2),
+        ivec2(2, -1),
+        ivec2(2, 0),
+        ivec2(2, 1),
+        ivec2(2, 2),
     };
 
 shared vec4 shared_normals_roughness[12][12]; // RGB: normals, A: roughness
 shared vec4 shared_metalness_radiance[12][12]; // R: metalness, GBA: Radiance
 shared vec4 shared_albedo_depth[12][12]; // RGB: albedo, A: depth
+shared vec3 shared_specular_radiance[12][12]; // RGB: specular radiance
 
 void main()
 {
@@ -96,6 +101,7 @@ void main()
         const vec4 prefetch_albedo = texelFetch(albedo_tex, prefetch_full_coord, 0);
         const vec4 prefetch_depth = texelFetch(depth_tex, prefetch_full_coord, 0);
         const vec4 prefetch_radiance = texelFetch(low_res_radiance_tex, prefetch_half_coord, 0);
+        const vec4 prefetch_specular = texelFetch(low_res_specular_tex, prefetch_half_coord, 0);
 
         const GBufferLighting prefetch_lighting = unpack_gbuffer_lighting(
             prefetch_lighting_info.xy
@@ -117,6 +123,7 @@ void main()
             prefetch_albedo.rgb,
             prefetch_depth.r
         );
+        shared_specular_radiance[local_coord.y][local_coord.x] = prefetch_specular.rgb;
     }
 
     barrier();
@@ -145,9 +152,9 @@ void main()
 
     for (int i = 0; i < 25; i++)
     {
-        const vec3 offset_and_weight = offsets_and_weights[i];
-        const ivec2 neighbor_half_coord = half_coord + ivec2(offset_and_weight.xy);
-        const ivec2 prefetch_full_coord = (local_coord >> 1) + ivec2(offset_and_weight.xy) + 2;
+        const ivec2 offset = offsets[i];
+        const ivec2 neighbor_half_coord = half_coord + offset;
+        const ivec2 prefetch_full_coord = (local_coord >> 1) + offset + 2;
 
         bool out_of_bound = any(lessThan(neighbor_half_coord, ivec2(0))) ||
                 any(greaterThanEqual(neighbor_half_coord, ivec2(half_resolution)));
@@ -156,6 +163,7 @@ void main()
         const vec4 neighbor_normal_roughness = shared_normals_roughness[prefetch_full_coord.y][prefetch_full_coord.x];
         const vec4 neighbor_metalness_radiance = shared_metalness_radiance[prefetch_full_coord.y][prefetch_full_coord.x];
         const vec4 neighbor_albedo_depth = shared_albedo_depth[prefetch_full_coord.y][prefetch_full_coord.x];
+        const vec3 neighbor_specular_radiance = shared_specular_radiance[prefetch_full_coord.y][prefetch_full_coord.x];
 
         const float n_sim = normal_similarity(curr_lighting.normal, neighbor_normal_roughness.xyz);
         const float d_sim = depth_similarity(depth, neighbor_albedo_depth.w);
@@ -167,12 +175,14 @@ void main()
                 neighbor_metalness_radiance.x
             );
 
-        float weight = (offset_and_weight.z * n_sim) * (d_sim * a_sim) * (rm_sim * out_of_bound_mult);
+        const vec2 real_offset = vec2((offset << 1) - (local_coord & 1));
+        const float positional_weight = exp(-dot(real_offset, real_offset) / (2 * BLUR_SIGMA * BLUR_SIGMA));
+        float weight = (positional_weight * n_sim) * (d_sim * a_sim) * (rm_sim * out_of_bound_mult);
 
         if (isnan(weight) || isinf(weight))
             weight = 0;
 
-        total_weighted_radiance += neighbor_metalness_radiance.gba * weight;
+        total_weighted_radiance += (neighbor_metalness_radiance.gba + neighbor_specular_radiance) * weight;
         total_weight += weight;
     }
 

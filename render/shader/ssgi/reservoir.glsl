@@ -88,6 +88,8 @@ void encode_reservoir(Reservoir reservoir, out vec4 tex1, out uvec4 tex2, out uv
     tex4 = vec4(reservoir.z.hit_luminance, 0.0);
 }
 
+const float min_roughness = 0.25;
+
 float p_hat_at(Sample z, vec3 W_pos, vec3 W_normal, vec3 W_view_dir, float roughness)
 {
     return dot(z.hit_luminance.rgb, vec3(0.2126, 0.7152, 0.0722));

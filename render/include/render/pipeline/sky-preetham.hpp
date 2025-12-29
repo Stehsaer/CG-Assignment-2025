@@ -53,6 +53,7 @@ namespace render::pipeline
 			glm::vec2 screen_size;
 			alignas(16) glm::vec3 eye_position;
 			alignas(16) glm::vec3 sun_direction;
+			alignas(16) glm::vec3 sun_intensity;
 			float intensity;
 
 			Preetham_params preetham;

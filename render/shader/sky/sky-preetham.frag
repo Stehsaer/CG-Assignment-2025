@@ -16,6 +16,7 @@ layout(std140, set = 3, binding = 0) uniform Params
     vec2 screen_size;
     vec3 eye_position;
     vec3 sun_dir;
+    vec3 sun_intensity;
     float intensity;
     vec3 p_A, p_B, p_C, p_D, p_E, p_Z;
 };
@@ -43,10 +44,14 @@ vec3 preetham_sky_rgb(vec3 v, vec3 sun_dir)
     return vec3(r, g, b);
 }
 
+const float sun_dot = 0.9999619231;
+
 void main()
 {
     vec4 view_dir_h = camera_mat_inv * vec4(ndc.xy, 0.5, 1.0);
     vec3 view_dir = normalize(view_dir_h.xyz / view_dir_h.w - eye_position);
+    float sun_mult = mix(1.0, 100.0, step(sun_dot, dot(view_dir, sun_dir)));
+    vec3 highlight_sun_color = sun_intensity * sun_mult;
 
-    out_color = vec4(preetham_sky_rgb(view_dir, sun_dir) * intensity, 1.0);
+    out_color = vec4(preetham_sky_rgb(view_dir, sun_dir) * intensity + highlight_sun_color, 1.0);
 }

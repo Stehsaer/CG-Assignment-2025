@@ -9,11 +9,11 @@ namespace render::target
 	/// @brief SSGI render targets
 	/// @details ### Contents
 	/// #### Temporal Reservoir
-	/// - Texture 1: R32G32B32A32_FLOAT
+	/// - Texture 1: R16G16B16A16_FLOAT
 	///   - R: w
 	///   - G: M
 	///   - B: W
-	///   - A: p^(z)
+	///   - A: Unused
 	/// - Texture 2: R32G32B32A32_UINT
 	///   - RGB: Ray hit position (x, y, z)
 	///   - A: Ray hit normal (octahedral encoded)
@@ -22,13 +22,13 @@ namespace render::target
 	///   - A: Ray start normal (octahedral encoded)
 	/// - Texture 4: R16G16B16A16_FLOAT
 	///   - RGB: Radiance (r, g, b)
-	///   - A: Direct light (1 for yes, 0 for no)
+	///   - A: Unused
 	///
 	struct SSGI
 	{
 		static constexpr gpu::Texture::Format reservoir_texture1_format = {
 			.type = SDL_GPU_TEXTURETYPE_2D,
-			.format = SDL_GPU_TEXTUREFORMAT_R32G32B32A32_FLOAT,
+			.format = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT,
 			.usage = {.sampler = true, .compute_storage_read = true, .compute_storage_write = true}
 		};
 
@@ -96,7 +96,13 @@ namespace render::target
 			"SSGI Spatial Reservoir Texture 4"
 		};
 
-		graphics::Cycle_texture radiance_texture{radiance_texture_format, "SSGI Radiance Texture"};
+		graphics::Cycle_texture diffuse_texture{radiance_texture_format, "SSGI Diffuse Texture"};
+		graphics::Cycle_texture specular_texture{radiance_texture_format, "SSGI Specular Texture"};
+
+		graphics::Auto_texture blurred_diffuse_texture{
+			radiance_texture_format,
+			"SSGI Blurred Diffuse Texture"
+		};
 
 		graphics::Auto_texture fullres_radiance_texture{
 			radiance_texture_format,

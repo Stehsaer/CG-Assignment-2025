@@ -23,11 +23,15 @@ layout(set = 0, binding = 5) uniform sampler2D prev_temporal_reservoir_tex1;
 layout(set = 0, binding = 6) uniform usampler2D prev_temporal_reservoir_tex2;
 layout(set = 0, binding = 7) uniform usampler2D prev_temporal_reservoir_tex3;
 layout(set = 0, binding = 8) uniform sampler2D prev_temporal_reservoir_tex4;
+layout(set = 0, binding = 9) uniform sampler2D prev_specular_radiance_tex;
 
-layout(set = 1, binding = 0, rgba32f) uniform writeonly image2D temporal_reservoir_tex1;
+layout(set = 0, binding = 10) uniform sampler2D albedo_tex;
+
+layout(set = 1, binding = 0, rgba16f) uniform writeonly image2D temporal_reservoir_tex1;
 layout(set = 1, binding = 1, rgba32ui) uniform writeonly uimage2D temporal_reservoir_tex2;
 layout(set = 1, binding = 2, rgba32ui) uniform writeonly uimage2D temporal_reservoir_tex3;
 layout(set = 1, binding = 3, rgba16f) uniform writeonly image2D temporal_reservoir_tex4;
+layout(set = 1, binding = 4, rgba16f) uniform writeonly image2D specular_radiance_tex;
 
 layout(std140, set = 2, binding = 0) uniform Params
 {
@@ -78,21 +82,57 @@ mat3 build_local_space(vec3 normal)
     return mat3(normalize(T), normalize(B), normal); // T and B are already orthogonal to normal
 }
 
-vec3 select_march_direction(
+vec3 select_march_direction_specular(
     vec3 normal,
     vec3 view_dir,
-    vec4 noise_unorm
+    vec4 noise_unorm,
+    float roughness,
+    float metalness
 )
 {
-    float u1 = noise_unorm.x;
-    float u2 = noise_unorm.y;
+    const float u1 = noise_unorm.z;
+    const float u2 = noise_unorm.w;
+    const mat3 TBN = build_local_space(normal);
+
+    const float alpha = roughness * roughness;
+    const float cos_theta = sqrt((1.0 - u1) / (1.0 + (alpha * alpha - 1.0) * u1));
+    const float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+    const float theta = acos(cos_theta);
+    const float phi = 2.0 * PI * u2;
+
+    const vec3 local = vec3(
+            sin(theta) * cos(phi),
+            sin(theta) * sin(phi),
+            cos(theta)
+        );
+
+    const vec3 half_dir = TBN * local;
+
+    vec3 out_dir = reflect(view_dir, half_dir);
+    if (dot(out_dir, normal) < 0.0)
+        out_dir = reflect(out_dir, normal);
+
+    return out_dir;
+}
+
+// Returns: XYZ=(March Direction), W=(PDF of the direction)
+vec4 select_march_direction_diffuse(
+    vec3 normal,
+    vec3 view_dir,
+    vec4 noise_unorm,
+    float roughness,
+    float metalness
+)
+{
+    const float u1 = noise_unorm.x;
+    const float u2 = noise_unorm.y;
+    const mat3 TBN = build_local_space(normal);
+
     float r = sqrt(u1);
     float phi = 2.0 * PI * u2;
     vec3 local = vec3(r * sin(phi), r * cos(phi), sqrt(max(0.0, 1.0 - u1)));
-
-    mat3 TBN = build_local_space(normal);
-
-    return normalize(TBN * local);
+    vec3 out_dir = TBN * local;
+    return vec4(out_dir, 1.0 / (2.0 * PI));
 }
 
 void store_empty_reservoir(ivec2 PUV_coord_half)
@@ -127,6 +167,7 @@ void main()
     if (depth == 0.0)
     {
         store_empty_reservoir(PUV_coord_half);
+        imageStore(specular_radiance_tex, PUV_coord_half, vec4(0.0));
         return;
     }
 
@@ -140,6 +181,7 @@ void main()
     /* Fetch GBuffer */
 
     const uvec2 light_info = texelFetch(light_info_tex, PUV_coord, 0).rg;
+    const vec3 albedo = texelFetch(albedo_tex, PUV_coord, 0).rgb;
     const GBufferLighting lighting = unpack_gbuffer_lighting(light_info);
 
     const vec3 V_pos = P_to_V_pos(vec2(PUV_coord) + 0.5, depth); // Pixel position at view space
@@ -153,6 +195,7 @@ void main()
     /* Fetch Previous Reservoir */
 
     Reservoir reservoir = empty_reservoir();
+    vec3 specular_radiance = vec3(0.0);
 
     const vec4 P_prev_pos_h = back_proj_mat * vec4(V_pos, 1.0);
     const vec3 P_prev_ndc = P_prev_pos_h.xyz / P_prev_pos_h.w;
@@ -196,90 +239,136 @@ void main()
                     candidate,
                     textureLod(prev_temporal_reservoir_tex4, UV_candidate, 0)
                 );
+            specular_radiance = textureLod(prev_specular_radiance_tex, UV_candidate, 0).rgb;
         }
     }
 
-    /* Ray Marching */
-
-    vec3 V_march_dir = select_march_direction(
+    /* Diffuse Ray Marching */
+    {
+        const vec4 select_result = select_march_direction_diffuse(
             V_normal,
             V_eye_to_pixel,
-            noise_unorm
+            noise_unorm,
+            mix(0.15, 1.0, lighting.roughness),
+            lighting.metalness
         );
 
-    const Hit_result trace_result = raytrace(
-        V_pos, 
-        normalize(V_march_dir), 
-        PUV_coord, 
-        resolution_ivec, 
-        proj_mat,
-        inv_proj_mat_col3,
-        inv_proj_mat_col4,
-        near_plane_span,
-        near_plane,
-        depth_tex
-    );
+        const vec3 V_march_dir = select_result.xyz;
+        const float pdf = select_result.w < 0.01 ? 1 : select_result.w;
 
-    const float p = 1.0 / (2.0 * PI);
-    Sample hit_sample;
+        const Hit_result trace_result = pdf > 0.0 ? raytrace(
+            V_pos,
+            normalize(V_march_dir),
+            PUV_coord,
+            resolution_ivec,
+            proj_mat,
+            inv_proj_mat_col3,
+            inv_proj_mat_col4,
+            near_plane_span,
+            near_plane,
+            depth_tex,
+            80
+        ) : Hit_result(false, 0, vec2(0.0), vec3(0.0));
 
-    if (trace_result.hit)
-    {
-        const vec3 W_hit_pos = (inv_view_mat * vec4(trace_result.V_hit_pos, 1.0)).xyz;
-        const vec3 W_hit_normal = octToNormal(unpackSnorm2x16(textureLod(light_info_tex, trace_result.uv, 0.0).r));
-        const vec3 V_hit_normal = W_to_V_vec(W_hit_normal);
+        Sample hit_sample;
 
-        const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0) * max(0.0, dot(V_hit_normal, -V_march_dir));
+        if (trace_result.hit)
+        {
+            const vec3 W_hit_pos = (inv_view_mat * vec4(trace_result.V_hit_pos, 1.0)).xyz;
+            const vec3 W_hit_normal = octToNormal(unpackSnorm2x16(textureLod(light_info_tex, trace_result.uv, 0.0).r));
+            const vec3 V_hit_normal = W_to_V_vec(W_hit_normal);
 
-        hit_sample = Sample(
-            W_hit_pos,
-            W_hit_normal,
-            luminance.rgb,
-            W_start_pos,
-            W_start_normal
-        );
-    }
-    else
-    {
-        hit_sample = Sample(
-            W_start_pos,
-            -W_start_normal,
-            vec3(0.0),
-            W_start_pos,
-            W_start_normal
-        );
-    }
+            const vec4 luminance = textureLod(luminance_tex, trace_result.uv, 0) * max(0.0, dot(V_hit_normal, -V_march_dir));
 
-    const float p_hat = p_hat_at(
-        hit_sample, 
-        W_start_pos, 
-        W_start_normal, 
-        W_view_dir, 
-        lighting.roughness
-    ) + 1e-2;
-    const float w_new = p_hat / p;
+            hit_sample = Sample(
+                W_hit_pos,
+                W_hit_normal,
+                luminance.rgb,
+                W_start_pos,
+                W_start_normal
+            );
+        }
+        else
+        {
+            hit_sample = Sample(
+                W_start_pos,
+                -W_start_normal,
+                vec3(0.0),
+                W_start_pos,
+                W_start_normal
+            );
+        }
 
-    const bool updated = update_reservoir(
-            reservoir,
+        const float p_hat = p_hat_at(
             hit_sample,
-            w_new,
-            noise_unorm.z
+            W_start_pos,
+            W_start_normal,
+            W_view_dir,
+            lighting.roughness
+        ) + 1e-2;
+        const float w_new = p_hat / pdf;
+
+        const bool updated = update_reservoir(
+                reservoir,
+                hit_sample,
+                w_new,
+                noise_unorm.z
+            );
+
+        if (updated)
+            reservoir.W = reservoir.w / (reservoir.M * p_hat);
+
+        clamp_reservoir(reservoir, 40);
+
+        vec4 tex1_out;
+        uvec4 tex2_out;
+        uvec4 tex3_out;
+        vec4 tex4_out;
+
+        encode_reservoir(reservoir, tex1_out, tex2_out, tex3_out, tex4_out);
+
+        imageStore(temporal_reservoir_tex1, PUV_coord_half, tex1_out);
+        imageStore(temporal_reservoir_tex2, PUV_coord_half, tex2_out);
+        imageStore(temporal_reservoir_tex3, PUV_coord_half, tex3_out);
+        imageStore(temporal_reservoir_tex4, PUV_coord_half, tex4_out);
+    }
+
+    /* Specular Ray Marching */
+    {
+        const vec3 V_march_dir = select_march_direction_specular(
+            V_normal,
+            V_eye_to_pixel,
+            noise_unorm,
+            lighting.roughness,
+            lighting.metalness
         );
 
-    if (updated)
-        reservoir.W = reservoir.w / (reservoir.M * p_hat);
+        const Hit_result trace_result = raytrace(
+            V_pos,
+            normalize(V_march_dir),
+            PUV_coord,
+            resolution_ivec,
+            proj_mat,
+            inv_proj_mat_col3,
+            inv_proj_mat_col4,
+            near_plane_span,
+            near_plane,
+            depth_tex,
+            96
+        );
 
-    clamp_reservoir(reservoir, 40);
+        if (trace_result.hit)
+        {
+            const vec4 hit_luminance = textureLod(luminance_tex, trace_result.uv, 0);
+            vec3 c_diff = mix(albedo, vec3(0.0), lighting.metalness);
+            vec3 f0 = mix(vec3(0.04), albedo, lighting.metalness);
+            specular_radiance = mix(specular_radiance, f0 * hit_luminance.rgb * albedo, 0.02);
+        }
+        else
+        {
+            specular_radiance = mix(specular_radiance, vec3(0.0), 0.02);
+        }
 
-    vec4 tex1_out;
-    uvec4 tex2_out;
-    uvec4 tex3_out;
-    vec4 tex4_out;
-
-    encode_reservoir(reservoir, tex1_out, tex2_out, tex3_out, tex4_out);
-
-    imageStore(temporal_reservoir_tex1, PUV_coord_half, tex1_out);
-    imageStore(temporal_reservoir_tex2, PUV_coord_half, tex2_out);
-    imageStore(temporal_reservoir_tex3, PUV_coord_half, tex3_out);
-    imageStore(temporal_reservoir_tex4, PUV_coord_half, tex4_out);
+        imageStore(specular_radiance_tex, PUV_coord_half, vec4(specular_radiance, 1.0));
+    }
 }

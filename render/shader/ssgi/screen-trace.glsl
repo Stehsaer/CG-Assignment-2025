@@ -8,24 +8,23 @@ precision highp float;
 #include "../common/constant.glsl"
 
 const int MAX_HIZ_LEVEL = 8;
-const int MAX_ITER = 96;
-const int MAX_SKIP_STEPS = 8;
 
 struct Hit_result
 {
     bool hit;
+    int iter;
     vec2 uv;
     vec3 V_hit_pos;
 };
 
-Hit_result no_hit()
+Hit_result no_hit(int iter)
 {
-    return Hit_result(false, vec2(0.0), vec3(0.0));
+    return Hit_result(false, iter, vec2(0.0), vec3(0.0));
 }
 
-Hit_result make_hit(vec2 uv, vec3 V_hit_pos)
+Hit_result make_hit(int iter, vec2 uv, vec3 V_hit_pos)
 {
-    return Hit_result(true, uv, V_hit_pos);
+    return Hit_result(true, iter, uv, V_hit_pos);
 }
 
 // Calculate the intersection point of ray1 (origin at (0,0,0)) and ray2 (origin at ray2_origin)
@@ -88,7 +87,7 @@ vec4 get_hiz_pixelcoord_boundary(int hiz_level, ivec2 hiz_resolution, ivec2 hiz_
 {
     int hiz_size = 1 << hiz_level;
     bvec2 coord_at_edge = equal(hiz_coord + 1, hiz_resolution);
-    vec2 size = mix(vec2(hiz_size.xx), vec2(hiz_size.xx << 1), vec2(coord_at_edge));
+    vec2 size = mix(vec2(hiz_size), vec2(hiz_size << 1), vec2(coord_at_edge));
     return vec4(
         vec2(hiz_coord * hiz_size),
         vec2(hiz_coord * hiz_size) + size
@@ -105,7 +104,8 @@ Hit_result raytrace(
     vec4 inv_proj_mat_col4,
     vec2 near_plane_span,
     float near_plane,
-    sampler2D depth_tex
+    sampler2D depth_tex,
+    int max_iter
 )
 {
     const vec2 PUV_delta = uv_space_march_dir(V_march_dir, V_start, proj_mat, resolution_ivec);
@@ -116,12 +116,37 @@ Hit_result raytrace(
     PUV_traverse += PUV_unit_step;
 
     int hiz_level = 0;
-    int hit_penalty = 0;
-    int hit_skips = 0;
 
     const vec2 resolution_vec = vec2(resolution_ivec);
+    const vec2 resolution_vec_inv = 1.0 / resolution_vec;
 
-    for (int iter = 0; iter < MAX_ITER; iter++)
+    float V_traverse_enter_depth;
+
+    {
+        const int hiz_level_size = 1 << hiz_level;
+        const float curr_step = hiz_level_size;
+        const ivec2 hiz_level_res = resolution_ivec >> hiz_level;
+
+        /* Fetch Hi-Z Depth */
+
+        const ivec2 UV_hiz_texel_coord = ivec2(floor(PUV_traverse)) >> hiz_level;
+        const float P_hiz_depth = texelFetch(depth_tex, UV_hiz_texel_coord, hiz_level).r;
+
+        /* Compute Intersection with Hi-Z Pixel Boundary */
+
+        const vec4 hiz_boundary = get_hiz_pixelcoord_boundary(hiz_level, hiz_level_res, UV_hiz_texel_coord);
+        const vec2 t_bounds = ray_rect_intersect(PUV_initial, PUV_unit_step, hiz_boundary);
+
+        const float t_enter = t_bounds.x;
+
+        const vec2 PUV_traverse_enter = PUV_unit_step * t_enter + PUV_initial;
+        const vec2 UV_traverse_enter = PUV_traverse_enter * resolution_vec_inv;
+        const vec3 V_traverse_enter_nearplane = vec3(uv_to_ndc(UV_traverse_enter) * near_plane_span, -near_plane);
+        const vec3 V_traverse_enter = ray_intersection(V_traverse_enter_nearplane, V_start, V_march_dir);
+        V_traverse_enter_depth = -V_traverse_enter.z;
+    }
+
+    for (int iter = 0; iter < max_iter; iter++)
     {
         /* Calculate Hi-Z Level Data */
 
@@ -134,9 +159,6 @@ Hit_result raytrace(
         const ivec2 UV_hiz_texel_coord = ivec2(floor(PUV_traverse)) >> hiz_level;
         const float P_hiz_depth = texelFetch(depth_tex, UV_hiz_texel_coord, hiz_level).r;
 
-        const vec4 V_hiz_depth = fma(P_hiz_depth.xxxx, inv_proj_mat_col3, inv_proj_mat_col4);
-        const float V_hiz_depth_z = -V_hiz_depth.z / V_hiz_depth.w;
-
         /* Compute Intersection with Hi-Z Pixel Boundary */
 
         const vec4 hiz_boundary = get_hiz_pixelcoord_boundary(hiz_level, hiz_level_res, UV_hiz_texel_coord);
@@ -145,31 +167,26 @@ Hit_result raytrace(
         const float t_enter = t_bounds.x;
         const float t_exit = t_bounds.y;
 
-        const vec2 PUV_traverse_enter = fma(PUV_unit_step, t_bounds.xx, PUV_initial);
-        const vec2 PUV_traverse_exit = fma(PUV_unit_step, t_bounds.yy, PUV_initial);
-
-        const vec2 UV_traverse_enter = PUV_traverse_enter / resolution_vec;
-        const vec2 UV_traverse_exit = PUV_traverse_exit / resolution_vec;
-
-        const vec3 V_traverse_enter_nearplane = vec3(uv_to_ndc(UV_traverse_enter) * near_plane_span, -near_plane);
+        const vec2 PUV_traverse_exit = PUV_unit_step * t_exit + PUV_initial;
+        const vec2 UV_traverse_exit = PUV_traverse_exit * resolution_vec_inv;
         const vec3 V_traverse_exit_nearplane = vec3(uv_to_ndc(UV_traverse_exit) * near_plane_span, -near_plane);
-
-        const vec3 V_traverse_enter = ray_intersection(V_traverse_enter_nearplane, V_start, V_march_dir);
         const vec3 V_traverse_exit = ray_intersection(V_traverse_exit_nearplane, V_start, V_march_dir);
-
-        const float V_traverse_enter_depth = -V_traverse_enter.z;
         const float V_traverse_exit_depth = -V_traverse_exit.z;
 
-        const vec2 UV_traverse = PUV_traverse / resolution_vec;
+        const vec4 V_hiz_depth = inv_proj_mat_col3 * P_hiz_depth + inv_proj_mat_col4;
+
+        const vec2 UV_traverse = PUV_traverse * resolution_vec_inv;
 
         /* Precompute conditions */
 
         const int next_level = min(hiz_level + 1, MAX_HIZ_LEVEL);
-        const int prev_level = max(hiz_level - 1, 0);
+        const int prev_level = max(hiz_level - 2, 0);
         const vec2 PUV_next_traverse = fma(t_bounds.yy + 0.05, PUV_unit_step, PUV_initial);
 
         const bool next_pixcoord_out_of_bounds = any(greaterThanEqual(PUV_next_traverse, resolution_vec))
                 || any(lessThan(PUV_next_traverse, vec2(0.0)));
+
+        const float V_hiz_depth_z = -V_hiz_depth.z / V_hiz_depth.w;
 
         const bool hiz_empty = P_hiz_depth == 0.0;
         const bool t_outofbounds = any(lessThan(t_bounds, vec2(0.0)));
@@ -179,19 +196,19 @@ Hit_result raytrace(
         if (hiz_empty)
         {
             if (next_pixcoord_out_of_bounds)
-                return no_hit();
+                return no_hit(iter);
 
             hiz_level = next_level;
             PUV_traverse = PUV_next_traverse;
+            V_traverse_enter_depth = V_traverse_exit_depth;
 
             continue;
         }
 
         if (t_outofbounds)
         {
-            if (hiz_level == 0) return no_hit();
+            if (hiz_level == 0) return no_hit(iter);
             hiz_level = prev_level;
-            hit_penalty = 2;
             continue;
         }
 
@@ -200,27 +217,23 @@ Hit_result raytrace(
             if (hiz_level == 0)
             {
                 if (abs(V_traverse_enter_depth - V_hiz_depth_z) / V_traverse_enter_depth < 0.01)
-                    return make_hit(UV_traverse, V_traverse_enter);
+                    return make_hit(iter, UV_traverse, V_traverse_exit);
                 else
-                    return no_hit();
+                    return no_hit(iter);
             }
 
             hiz_level = prev_level;
-            hit_penalty = 4;
             continue;
         }
 
-        if (next_pixcoord_out_of_bounds) return no_hit();
-
+        if (next_pixcoord_out_of_bounds) return no_hit(iter);
+        
         PUV_traverse = PUV_next_traverse;
-
-        if (hit_penalty > 0)
-            hit_penalty--;
-        else
-            hiz_level = next_level;
+        hiz_level = next_level;
+        V_traverse_enter_depth = V_traverse_exit_depth;
     }
 
-    return no_hit();
+    return no_hit(max_iter);
 }
 
 // Coarse screen-space visibility test between V_start and V_target (both in view space).
@@ -249,9 +262,13 @@ bool coarse_screen_trace_visibility(
         inv_proj_mat_col4,
         near_plane_span,
         near_plane,
-        depth_tex
+        depth_tex,
+        24
     );
 
+    if (result.iter >= 24)
+        return true;
+        
     if (!result.hit)
         return false;
 

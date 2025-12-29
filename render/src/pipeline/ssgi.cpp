@@ -1,8 +1,9 @@
 #include "render/pipeline/ssgi.hpp"
 #include "asset/graphic-asset.hpp"
+#include "asset/shader/diffuse-blur.comp.hpp"
+#include "asset/shader/diffuse-composite.comp.hpp"
 #include "asset/shader/init-temporal.comp.hpp"
 #include "asset/shader/radiance-add.frag.hpp"
-#include "asset/shader/radiance-composite.comp.hpp"
 #include "asset/shader/radiance-upsample.comp.hpp"
 #include "asset/shader/spatial-reuse.comp.hpp"
 #include "gpu/compute-pass.hpp"
@@ -118,6 +119,18 @@ namespace render::pipeline
 		};
 	}
 
+	SSGI::Radiance_blur_param SSGI::Radiance_blur_param::from_param(
+		const Param& param,
+		glm::u32vec2 resolution
+	) noexcept
+	{
+		return Radiance_blur_param{
+			.inv_view_proj_mat_col3 = glm::inverse(param.proj_mat * param.view_mat)[2],
+			.inv_view_proj_mat_col4 = glm::inverse(param.proj_mat * param.view_mat)[3],
+			.comp_resolution = (resolution + 1u) / 2u
+		};
+	}
+
 	SSGI::Radiance_upsample_param SSGI::Radiance_upsample_param::from_param(
 		const Param& param,
 		glm::u32vec2 resolution
@@ -196,8 +209,8 @@ namespace render::pipeline
 
 		const gpu::Compute_pipeline::Create_info initial_pipeline_create_info{
 			.shader_data = shader_asset::init_temporal_comp,
-			.num_samplers = 9,
-			.num_readwrite_storage_textures = 4,
+			.num_samplers = 11,
+			.num_readwrite_storage_textures = 5,
 			.num_uniform_buffers = 1,
 			.threadcount_x = 8,
 			.threadcount_y = 8,
@@ -229,7 +242,7 @@ namespace render::pipeline
 		auto radiance_composite_pipeline = gpu::Compute_pipeline::create(
 			device,
 			gpu::Compute_pipeline::Create_info{
-				.shader_data = shader_asset::radiance_composite_comp,
+				.shader_data = shader_asset::diffuse_composite_comp,
 				.num_samplers = 9,
 				.num_readwrite_storage_textures = 1,
 				.num_uniform_buffers = 1,
@@ -244,11 +257,27 @@ namespace render::pipeline
 				"Create SSGI radiance composite pipeline failed"
 			);
 
+		auto radiance_blur_pipeline = gpu::Compute_pipeline::create(
+			device,
+			gpu::Compute_pipeline::Create_info{
+				.shader_data = shader_asset::diffuse_blur_comp,
+				.num_samplers = 4,
+				.num_readwrite_storage_textures = 1,
+				.num_uniform_buffers = 1,
+				.threadcount_x = 16,
+				.threadcount_y = 16,
+				.threadcount_z = 1
+			},
+			"SSGI Radiance Blur Pipeline"
+		);
+		if (!radiance_blur_pipeline)
+			return radiance_blur_pipeline.error().forward("Create SSGI radiance blur pipeline failed");
+
 		auto radiance_upsample_pipeline = gpu::Compute_pipeline::create(
 			device,
 			gpu::Compute_pipeline::Create_info{
 				.shader_data = shader_asset::radiance_upsample_comp,
-				.num_samplers = 4,
+				.num_samplers = 5,
 				.num_readwrite_storage_textures = 1,
 				.num_uniform_buffers = 1,
 				.threadcount_x = 16,
@@ -290,6 +319,7 @@ namespace render::pipeline
 			std::move(*initial_pipeline),
 			std::move(*spatial_reuse_pipeline),
 			std::move(*radiance_composite_pipeline),
+			std::move(*radiance_blur_pipeline),
 			std::move(*radiance_upsample_pipeline),
 			std::move(*radiance_add_pass),
 			std::move(*noise_sampler),
@@ -324,6 +354,11 @@ namespace render::pipeline
 			this->run_radiance_composite(command_buffer, gbuffer, ssgi_target, param, resolution);
 		if (!radiance_composite_result)
 			return radiance_composite_result.error().forward("Run SSGI radiance composite failed");
+
+		const auto radiance_blur_result =
+			this->run_radiance_blur(command_buffer, gbuffer, ssgi_target, param, resolution);
+		if (!radiance_blur_result)
+			return radiance_blur_result.error().forward("Run SSGI radiance blur failed");
 
 		const auto radiance_upsample_result =
 			this->run_radiance_upsample(command_buffer, gbuffer, ssgi_target, param, resolution);
@@ -395,8 +430,23 @@ namespace render::pipeline
 			.padding3 = 0
 		};
 
-		const std::array write_bindings =
-			{write_binding_texture1, write_binding_texture2, write_binding_texture3, write_binding_texture4};
+		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture5{
+			.texture = ssgi_target.specular_texture.current(),
+			.mip_level = 0,
+			.layer = 0,
+			.cycle = true,
+			.padding1 = 0,
+			.padding2 = 0,
+			.padding3 = 0
+		};
+
+		const std::array write_bindings = {
+			write_binding_texture1,
+			write_binding_texture2,
+			write_binding_texture3,
+			write_binding_texture4,
+			write_binding_texture5
+		};
 
 		command_buffer.push_debug_group("Initial Sample & Temporal Pass");
 		auto result = command_buffer.run_compute_pass(
@@ -417,7 +467,9 @@ namespace render::pipeline
 					ssgi_target.temporal_reservoir_texture1.prev().bind_with_sampler(nearest_sampler),
 					ssgi_target.temporal_reservoir_texture2.prev().bind_with_sampler(nearest_sampler),
 					ssgi_target.temporal_reservoir_texture3.prev().bind_with_sampler(nearest_sampler),
-					ssgi_target.temporal_reservoir_texture4.prev().bind_with_sampler(nearest_sampler)
+					ssgi_target.temporal_reservoir_texture4.prev().bind_with_sampler(nearest_sampler),
+					ssgi_target.specular_texture.prev().bind_with_sampler(nearest_sampler),
+					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler)
 				);
 				compute_pass.dispatch(dispatch_size.x, dispatch_size.y, 1);
 			}
@@ -530,7 +582,7 @@ namespace render::pipeline
 		const auto dispatch_size = (radiance_composite_param.comp_resolution + 15u) / 16u;
 
 		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture{
-			.texture = ssgi_target.radiance_texture.current(),
+			.texture = ssgi_target.diffuse_texture.current(),
 			.mip_level = 0,
 			.layer = 0,
 			.cycle = true,
@@ -548,7 +600,7 @@ namespace render::pipeline
 				compute_pass.bind_samplers(
 					0,
 					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler),
-					ssgi_target.radiance_texture.prev().bind_with_sampler(nearest_sampler),
+					ssgi_target.diffuse_texture.prev().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.prev().bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
@@ -563,6 +615,50 @@ namespace render::pipeline
 		command_buffer.pop_debug_group();
 
 		return std::move(result).transform_error(util::Error::forward_fn("Radiance composite pass failed"));
+	}
+
+	std::expected<void, util::Error> SSGI::run_radiance_blur(
+		const gpu::Command_buffer& command_buffer,
+		const target::Gbuffer& gbuffer,
+		const target::SSGI& ssgi_target,
+		const Param& param,
+		glm::u32vec2 resolution
+	) const noexcept
+	{
+		const Radiance_blur_param radiance_blur_param = Radiance_blur_param::from_param(param, resolution);
+		command_buffer.push_uniform_to_compute(0, util::as_bytes(radiance_blur_param));
+
+		const auto dispatch_size = (radiance_blur_param.comp_resolution + 15u) / 16u;
+
+		const SDL_GPUStorageTextureReadWriteBinding write_binding_texture{
+			.texture = *ssgi_target.blurred_diffuse_texture,
+			.mip_level = 0,
+			.layer = 0,
+			.cycle = true,
+			.padding1 = 0,
+			.padding2 = 0,
+			.padding3 = 0
+		};
+
+		command_buffer.push_debug_group("Radiance Blur Pass");
+		auto result = command_buffer.run_compute_pass(
+			std::array{write_binding_texture},
+			{},
+			[this, &ssgi_target, &gbuffer, dispatch_size](const gpu::Compute_pass& compute_pass) {
+				compute_pass.bind_pipeline(radiance_blur_pipeline);
+				compute_pass.bind_samplers(
+					0,
+					ssgi_target.diffuse_texture.current().bind_with_sampler(nearest_sampler),
+					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
+					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
+					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler)
+				);
+				compute_pass.dispatch(dispatch_size.x, dispatch_size.y, 1);
+			}
+		);
+		command_buffer.pop_debug_group();
+
+		return std::move(result).transform_error(util::Error::forward_fn("Radiance blur pass failed"));
 	}
 
 	std::expected<void, util::Error> SSGI::run_radiance_upsample(
@@ -597,10 +693,11 @@ namespace render::pipeline
 				compute_pass.bind_pipeline(radiance_upsample_pipeline);
 				compute_pass.bind_samplers(
 					0,
-					ssgi_target.radiance_texture.current().bind_with_sampler(nearest_sampler),
+					ssgi_target.blurred_diffuse_texture->bind_with_sampler(nearest_sampler),
 					gbuffer.depth_value_texture.current().bind_with_sampler(nearest_sampler),
 					gbuffer.albedo_texture->bind_with_sampler(nearest_sampler),
-					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler)
+					gbuffer.lighting_info_texture->bind_with_sampler(nearest_sampler),
+					ssgi_target.specular_texture.current().bind_with_sampler(nearest_sampler)
 				);
 				compute_pass.dispatch(dispatch_size.x, dispatch_size.y, 1);
 			}

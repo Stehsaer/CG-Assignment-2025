@@ -122,6 +122,7 @@ namespace render::pipeline
 		screen_size(glm::vec2(params.screen_size)),
 		eye_position(params.eye_position),
 		sun_direction(glm::normalize(params.sun_direction)),
+		sun_intensity(params.sun_intensity),
 		intensity(glm::dot(params.sun_intensity, glm::vec3(0.2126f, 0.7152f, 0.0722f))),
 		preetham(params.turbidity, glm::normalize(params.sun_direction))
 	{}

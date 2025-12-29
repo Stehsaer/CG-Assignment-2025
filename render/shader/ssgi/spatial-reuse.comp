@@ -26,7 +26,7 @@ layout(set = 0, binding = 11) uniform sampler2D blue_noise_tex;
 
 layout(set = 0, binding = 12) uniform usampler2D prev_temporal_reservoir_tex3;
 
-layout(set = 1, binding = 0, rgba32f) uniform writeonly image2D out_reservoir_tex1;
+layout(set = 1, binding = 0, rgba16f) uniform writeonly image2D out_reservoir_tex1;
 layout(set = 1, binding = 1, rgba32ui) uniform writeonly uimage2D out_reservoir_tex2;
 layout(set = 1, binding = 2, rgba32ui) uniform writeonly uimage2D out_reservoir_tex3;
 layout(set = 1, binding = 3, rgba16f) uniform writeonly image2D out_reservoir_tex4;
@@ -105,8 +105,8 @@ Reservoir acquire_previous_reservoir(ivec2 comp_coord, ivec2 full_coord, vec3 W_
     return reservoir;
 }
 
-const float sigma = 10; 
-const int maxOffset = 30; 
+const float sigma = 6;
+const int maxOffset = 18;
 
 void main()
 {
@@ -143,7 +143,9 @@ void main()
 
     Reservoir reservoir = acquire_previous_reservoir(comp_coord, full_coord, W_curr_pos);
 
-    for (int i = 0; i < 16; i++)
+    int iters = int(mix(24.0, 8.0, reservoir.M / 500.0));
+
+    for (int i = 0; i < iters; i++)
     {
         const vec4 noise = textureLod(blue_noise_tex, noise_unorm.xy + vec2(i) / 128.0, 0).xyzw;
 
@@ -186,8 +188,9 @@ void main()
             );
 
         const float W_distance = length(W_neighbor_pos - W_curr_pos);
+        const vec3 W_curr_to_neighbor_hit = normalize(neighbor_reservoir.z.hit_position - W_curr_pos);
         const float hemisphere_visibility = dot(
-                normalize(neighbor_reservoir.z.hit_position - W_curr_pos),
+                W_curr_to_neighbor_hit,
                 W_curr_normal
             );
 
@@ -202,12 +205,12 @@ void main()
             );
 
         const float p_hat_q = p_hat_at(
-            neighbor_reservoir.z, 
-            W_curr_pos, 
-            W_curr_normal,
-            W_view_dir,
-            lighting.roughness
-        ) / clamp(jacobian, 1.0, 5.0);
+                neighbor_reservoir.z,
+                W_curr_pos,
+                W_curr_normal,
+                W_view_dir,
+                lighting.roughness
+            ) / clamp(jacobian, 1.0, 5.0);
 
         neighbor_reservoir.z.start_position = W_curr_pos;
         neighbor_reservoir.z.start_normal = W_curr_normal;
@@ -228,17 +231,17 @@ void main()
     vec3 V_hit = (view_mat * vec4(reservoir.z.hit_position, 1.0)).xyz;
 
     bool valid = coarse_screen_trace_visibility(
-        V_curr,
-        V_hit,
-        full_coord,
-        ivec2(full_resolution),
-        proj_mat,
-        inv_proj_mat_col3,
-        inv_proj_mat_col4,
-        near_plane_span,
-        near_plane,
-        depth_tex
-    );
+            V_curr,
+            V_hit,
+            full_coord,
+            ivec2(full_resolution),
+            proj_mat,
+            inv_proj_mat_col3,
+            inv_proj_mat_col4,
+            near_plane_span,
+            near_plane,
+            depth_tex
+        );
 
     if (!valid)
     {

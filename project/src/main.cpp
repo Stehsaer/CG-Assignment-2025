@@ -15,12 +15,6 @@
 #include "tiny_gltf.h"
 #include "util/unwrap.hpp"
 
-#include "asset/my-asset.hpp"
-#include "graphics/util/quick-create.hpp"
-#include "image/io.hpp"
-#include "util/asset.hpp"
-#include "zip/zip.hpp"
-
 static std::expected<gltf::Model, util::Error> create_scene_from_model(
 	const backend::SDL_context& context,
 	const std::string& path
