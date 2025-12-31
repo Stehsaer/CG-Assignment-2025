@@ -21,17 +21,17 @@ layout(std140, set = 3, binding = 0) uniform Param
 
 void main()
 {
-    vec4 albedo_tex_sample = textureLod(albedo_tex, uv, 0);
+    const vec4 albedo_tex_sample = textureLod(albedo_tex, uv, 0);
+    const uvec2 lighting_info_tex_sample = textureLod(lighting_info_tex, uv, 0).rg;
+    const float ao_tex_sample = textureLod(ao_tex, uv, 0.0).r;
 
-    uvec2 lighting_info_tex_sample = textureLod(lighting_info_tex, uv, 0).rg;
-    float ao_tex_sample = textureLod(ao_tex, uv, 0.0).r;
+    const GBufferLighting lighting = unpack_gbuffer_lighting(lighting_info_tex_sample);
 
-    GBufferLighting lighting = unpack_gbuffer_lighting(lighting_info_tex_sample);
-
-    float ao_factor = clamp(mix(1.0, lighting.occlusion * (1.0 - ao_tex_sample), ao_intensity), 0.0, 1.0);
+    const float ao_factor = clamp(mix(1.0, lighting.occlusion * (1.0 - ao_tex_sample), ao_intensity), 0.0, 1.0);
+    const vec3 f0 = mix(vec3(0.04), albedo_tex_sample.rgb, lighting.metalness);
 
     out_light_buffer = vec4(
-            albedo_tex_sample.rgb * ambient_intensity * ao_factor,
+            albedo_tex_sample.rgb * ambient_intensity * ao_factor * (1.0 - f0),
             0.0
         );
 }

@@ -34,7 +34,7 @@ void main()
 
     vec3 base_brightness = textureLod(light_buffer_tex, uv, 0).rgb * exposure_mult_adjusted;
     vec3 bloom_brightness = textureLod(bloom_tex, uv, 0).rgb 
-        * mix(vec3(0.8), vec3(2), textureLod(bloom_mask_tex, uv, 0).rgb) 
+        * mix(vec3(1.0), vec3(1.5), textureLod(bloom_mask_tex, uv, 0).rgb) 
         * bloom_strength;
 
     vec3 hdr_color = base_brightness + bloom_brightness;

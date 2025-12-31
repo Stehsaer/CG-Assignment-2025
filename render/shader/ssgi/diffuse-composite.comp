@@ -87,11 +87,7 @@ void main()
     const float v_dot_h = max(0.0, dot(W_view_dir, W_halfway_dir));
     const float n_dot_l = max(0.0, dot(W_curr_normal, W_light_dir));
 
-    vec3 c_diff = mix(albedo, vec3(0.0), lighting.metalness);
-    vec3 f0 = mix(vec3(0.04), albedo, lighting.metalness);
-    vec3 F = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
-
-    vec3 radiance = curr_luminance * (1.0 - F) * c_diff * n_dot_l;
+    vec3 radiance = curr_luminance * n_dot_l / 2;
     radiance = clamp(radiance, vec3(0.0), vec3(65504.0));
 
     vec3 prev_radiance = vec3(0.0);

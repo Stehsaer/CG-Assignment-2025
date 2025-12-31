@@ -360,13 +360,17 @@ void main()
         if (trace_result.hit)
         {
             const vec4 hit_luminance = textureLod(luminance_tex, trace_result.uv, 0);
+            const vec3 h = normalize(V_march_dir + V_pixel_to_eye);
+            const float v_dot_h = max(0.0, dot(V_pixel_to_eye, h));
+
             vec3 c_diff = mix(albedo, vec3(0.0), lighting.metalness);
             vec3 f0 = mix(vec3(0.04), albedo, lighting.metalness);
-            specular_radiance = mix(specular_radiance, f0 * hit_luminance.rgb * albedo, 0.02);
+            vec3 F = mix(f0, vec3(1.0), pow(1.0 - v_dot_h, 5.0));
+            specular_radiance = mix(specular_radiance, F * hit_luminance.rgb * albedo, 0.01);
         }
         else
         {
-            specular_radiance = mix(specular_radiance, vec3(0.0), 0.02);
+            specular_radiance = mix(specular_radiance, vec3(0.0), 0.005);
         }
 
         imageStore(specular_radiance_tex, PUV_coord_half, vec4(specular_radiance, 1.0));

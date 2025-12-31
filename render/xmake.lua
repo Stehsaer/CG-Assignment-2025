@@ -1,6 +1,6 @@
 target("render")
 	set_kind("static")
-    set_languages("c++23") -- C++23标准
+    set_languages("c++23")
 
     add_packages("libsdl3", "glm", "imgui")
 

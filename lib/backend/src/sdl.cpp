@@ -20,7 +20,7 @@ namespace backend
 	std::expected<void, util::Error> initialize_sdl()
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
-			return util::Error(std::format("初始化 SDL 失败: {}", SDL_GetError()));
+			return util::Error(std::format("Initialize SDL failed: {}", SDL_GetError()));
 
 		sdl_cleanup_instance = std::make_unique<SDL_cleanup>();
 

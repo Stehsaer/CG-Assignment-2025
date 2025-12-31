@@ -11,3 +11,6 @@ TODO.md
 
 # Drawio backup
 *.drawio.bkp
+
+# Imgui generated files
+imgui.ini

@@ -27,7 +27,7 @@ class Logic
 	glm::vec3 light_color = {1.0, 1.0, 1.0};
 	float light_intensity = 80000.0;
 	float bloom_attenuation = 1.2f;
-	float bloom_strength = 0.05f;
+	float bloom_strength = 0.025f;
 	bool use_bloom_mask = true;
 	bool show_ceiling = true;
 	float ambient_intensity = 50;

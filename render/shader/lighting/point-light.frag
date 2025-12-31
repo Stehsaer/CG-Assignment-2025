@@ -24,18 +24,18 @@ layout(std140, set = 3, binding = 0) uniform Param
 
 void main()
 {
-    const vec2 uv = (vec2(gl_FragCoord.xy) + 0.5) / screen_size;
-    const vec2 ndc = uv_to_ndc(uv);
+    const ivec2 puv = ivec2(gl_FragCoord.xy);
+    const vec2 ndc = uv_to_ndc((vec2(puv) + 0.5) / screen_size);
 
-    const float depth = textureLod(depth_tex, uv, 0).r;
+    const float depth = texelFetch(depth_tex, puv, 0).r;
     if (depth == 0.0)
     {
         out_light_buffer = vec4(0.0);
         return;
     }
 
-    const vec3 albedo = textureLod(albedo_tex, uv, 0).rgb;
-    const uvec2 light_info = textureLod(light_info_tex, uv, 0).rg;
+    const vec3 albedo = texelFetch(albedo_tex, puv, 0).rgb;
+    const uvec2 light_info = texelFetch(light_info_tex, puv, 0).rg;
 
     const vec4 W_pos_h = VP_inv * vec4(ndc, depth, 1.0);
     const vec3 W_pos = W_pos_h.xyz / W_pos_h.w;

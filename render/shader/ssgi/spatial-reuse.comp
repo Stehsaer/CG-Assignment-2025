@@ -105,8 +105,8 @@ Reservoir acquire_previous_reservoir(ivec2 comp_coord, ivec2 full_coord, vec3 W_
     return reservoir;
 }
 
-const float sigma = 6;
-const int maxOffset = 18;
+const float sigma = 8;
+const int maxOffset = 24;
 
 void main()
 {
@@ -143,11 +143,11 @@ void main()
 
     Reservoir reservoir = acquire_previous_reservoir(comp_coord, full_coord, W_curr_pos);
 
-    int iters = int(mix(24.0, 8.0, reservoir.M / 500.0));
+    int iters = int(mix(16.0, 8.0, reservoir.M / 500.0));
 
     for (int i = 0; i < iters; i++)
     {
-        const vec4 noise = textureLod(blue_noise_tex, noise_unorm.xy + vec2(i) / 128.0, 0).xyzw;
+        const vec4 noise = textureLod(blue_noise_tex, noise_unorm.xy + vec2(i % 4, i / 4) / 128.0, 0).xyzw;
 
         const float u1 = max(noise.x, 1e-6);
         const float u2 = noise.y;
