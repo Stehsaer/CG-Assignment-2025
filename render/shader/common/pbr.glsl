@@ -41,11 +41,14 @@ vec3 gltf_calculate_pbr(vec3 light_dir, vec3 light_intensity, vec3 view_dir, vec
 
     vec3 c_diff = mix(albedo, vec3(0.0), metalness);
     vec3 f0 = mix(vec3(0.04), albedo, metalness);
+    float fd90 = 0.5 + 2.0 * v_dot_h * v_dot_h * roughness;
     float alpha = roughness * roughness;
 
     vec3 F = f0 + (1.0 - f0) * pow(1.0 - v_dot_h, 5.0);
+    float light_scatter = mix(1.0, fd90, pow(1.0 - n_dot_l, 5.0));
+    float view_scatter = mix(1.0, fd90, pow(1.0 - n_dot_v, 5.0));
 
-    vec3 f_diffuse = (1.0 - F) * (1.0 / PI) * c_diff;
+    vec3 f_diffuse = light_scatter * view_scatter * (1.0 / PI) * c_diff;
     vec3 f_specular = F
             * gltf_microfacet_distribution(n_dot_h, alpha)
             * gltf_geometry_occlusion(n_dot_l, n_dot_v, alpha)
