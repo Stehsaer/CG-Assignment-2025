@@ -2,7 +2,7 @@ target("backend")
 	set_kind("static")
 	set_languages("c++23", {public=true})
 
-	add_packages("libsdl3", "glm", "imgui", "implot-new", {public=true})
+	add_packages("libsdl3", "glm", "imgui", "implot", {public=true})
 	add_packages("vulkan-headers")
 
 	add_files("src/*.cpp")
