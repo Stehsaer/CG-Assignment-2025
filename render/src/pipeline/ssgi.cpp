@@ -115,7 +115,7 @@ namespace render::pipeline
 			.inv_view_mat = glm::inverse(param.view_mat),
 			.comp_resolution = (resolution + 1u) / 2u,
 			.full_resolution = resolution,
-			.blend_factor = param.blend_factor
+			.blend_factor = 0.03
 		};
 	}
 

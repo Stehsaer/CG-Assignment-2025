@@ -233,8 +233,7 @@ namespace render
 			.view_mat = params.camera.view_matrix,
 			.prev_view_proj_mat = params.camera.prev_view_proj_matrix,
 			.max_scene_distance = gbuffer_drawdata.get_max_distance(),
-			.distance_attenuation = 0.0,
-			.blend_factor = 0.01
+			.distance_attenuation = 0.0
 		};
 
 		const auto ssgi_result = pipeline.ssgi.render(

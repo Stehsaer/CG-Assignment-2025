@@ -1,11 +1,13 @@
-#include "logic/light-source.hpp"
+#include "logic/light-controller.hpp"
 
 #include "asset/light-volume.hpp"
 #include "render/light-volume.hpp"
+#include "ui/capsule.hpp"
 #include "util/asset.hpp"
 #include "zip/zip.hpp"
 
 #include <SDL3/SDL_gpu.h>
+#include <imgui.h>
 #include <nlohmann/json.hpp>
 
 namespace logic
@@ -161,7 +163,7 @@ namespace logic
 		return {};
 	}
 
-	std::expected<std::map<std::string, Light_group>, util::Error> load_light_groups(
+	std::expected<Light_controller, util::Error> Light_controller::create(
 		SDL_GPUDevice* device,
 		const gltf::Model& model
 	) noexcept
@@ -179,6 +181,73 @@ namespace logic
 		const auto assign_result = assign_lights_to_groups(device, groups, json["lights"], model);
 		if (!assign_result) return assign_result.error().forward("Assign lights to groups failed");
 
-		return groups;
+		return Light_controller(std::move(groups));
+	}
+
+	void Light_controller::control_ui() noexcept
+	{
+		ui::capsule::window(
+			"##LightControl",
+			ui::capsule::Position::Bottom_left,
+			[this] {
+				const auto light_on_icon = "\U000f0335";   // Light on icon
+				const auto light_off_icon = "\U000f0e50";  // Light off icon
+
+				for (auto& [group_name, group] : light_groups)
+				{
+					if (ui::capsule::button(
+							std::format(
+								"{}##LightGroupToggle{}",
+								group.enabled ? light_on_icon : light_off_icon,
+								group_name
+							)
+						))
+						group.enabled = !group.enabled;
+
+					ui::capsule::small_label(group.display_name);
+					ImGui::NewLine();
+				}
+			},
+			{0, -1}
+		);
+	}
+
+	std::vector<std::pair<uint32_t, float>> Light_controller::get_emission_overrides() const noexcept
+	{
+		std::vector<std::pair<uint32_t, float>> emission_overrides;
+
+		for (const auto& light_group : light_groups | std::views::values)
+			emission_overrides.append_range(
+				light_group.emission_nodes | std::views::transform([&light_group](uint32_t node_index) {
+					return std::make_pair(node_index, light_group.enabled ? 1.0f : 0.0f);
+				})
+			);
+
+		return emission_overrides;
+	}
+
+	std::vector<render::drawdata::Light> Light_controller::get_light_drawdata(
+		const gltf::Drawdata& drawdata
+	) const noexcept
+	{
+		return light_groups
+			| std::views::values
+			| std::views::filter(&logic::Light_group::enabled)
+			| std::views::transform(&logic::Light_group::lights)
+			| std::views::join
+			| std::views::transform([&drawdata](const logic::Light_source& light) {
+				   return render::drawdata::Light::from(
+					   drawdata.node_matrices[light.node_index],
+					   glm::mat4(1.0),
+					   light.light,
+					   light.volume
+				   );
+			   })
+			| std::ranges::to<std::vector>();
+	}
+
+	void Light_controller::handle_fire_event() noexcept
+	{
+		for (auto& group : light_groups | std::views::values) group.enabled = true;
 	}
 }

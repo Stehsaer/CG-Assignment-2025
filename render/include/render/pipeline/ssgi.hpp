@@ -27,7 +27,6 @@ namespace render::pipeline
 			glm::mat4 prev_view_proj_mat;  // Previous frame view-projection matrix
 			float max_scene_distance;      // farthest viewable distance in the scene
 			float distance_attenuation;    // attenuation factor for distance
-			float blend_factor;            // blending factor for temporal accumulation
 		};
 
 		static std::expected<SSGI, util::Error> create(SDL_GPUDevice* device) noexcept;

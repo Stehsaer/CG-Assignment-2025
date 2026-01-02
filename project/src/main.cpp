@@ -9,74 +9,9 @@
 #include "backend/imgui.hpp"
 #include "backend/loop.hpp"
 #include "backend/sdl.hpp"
-#include "gltf/model.hpp"
 #include "logic.hpp"
 #include "render.hpp"
-#include "tiny_gltf.h"
 #include "util/unwrap.hpp"
-
-static std::expected<gltf::Model, util::Error> create_scene_from_model(
-	const backend::SDL_context& context,
-	const std::string& path
-) noexcept
-{
-	auto gltf_load_result = backend::display_until_task_done(
-		context,
-		std::async(std::launch::async, gltf::load_tinygltf_model_from_file, std::ref(path)),
-		[] {
-			ImGui::Text("加载模型...");
-			ImGui::ProgressBar(-ImGui::GetTime(), ImVec2(300.0f, 0.0f));
-		}
-	);
-	if (!gltf_load_result) return gltf_load_result.error().forward("Load tinygltf model failed");
-
-	std::atomic<gltf::Model::Load_progress> load_progress;
-
-	auto future = std::async(std::launch::async, [&context, &gltf_load_result, &load_progress]() {
-		return gltf::Model::from_tinygltf(
-			context.device,
-			*gltf_load_result,
-			gltf::Sampler_config{.anisotropy = 4.0f},
-			{.color_mode = gltf::Color_compress_mode::RGBA8_BC3,
-			 .normal_mode = gltf::Normal_compress_mode::RGn_BC5},
-			std::ref(load_progress)
-		);
-	});
-
-	auto gltf_result = backend::display_until_task_done(context, std::move(future), [&load_progress] {
-		const auto current = load_progress.load();
-
-		switch (current.stage)
-		{
-		case gltf::Model::Load_stage::Node:
-			ImGui::Text("解析节点树...");
-			break;
-		case gltf::Model::Load_stage::Mesh:
-			ImGui::Text("分析并优化网格...");
-			break;
-		case gltf::Model::Load_stage::Material:
-			ImGui::Text("压缩材质...");
-			break;
-		case gltf::Model::Load_stage::Animation:
-			ImGui::Text("解析动画...");
-			break;
-		case gltf::Model::Load_stage::Skin:
-			ImGui::Text("解析皮肤...");
-			break;
-		case gltf::Model::Load_stage::Postprocess:
-			ImGui::Text("处理中...");
-			break;
-		}
-
-		ImGui::ProgressBar(
-			current.progress < 0 ? (-ImGui::GetTime()) : current.progress,
-			ImVec2(300.0f, 0.0f)
-		);
-	});
-	if (!gltf_result) return gltf_result.error().forward("Load gltf model failed");
-
-	return gltf_result;
-}
 
 static void main_logic(const backend::SDL_context& sdl_context, const std::string& model_path)
 {
@@ -91,26 +26,7 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		)
 		| util::unwrap("Create render resource failed");
 
-	auto model = create_scene_from_model(sdl_context, model_path) | util::unwrap("Load 3D model failed");
-    
-	// auto image_data =
-	// 	util::get_asset(resource_asset::my_asset, "test.png")
-	// 		.and_then(zip::Decompress())
-	// 		.and_then(image::load_from_memory<image::Precision::U8, image::Format::RGBA>)
-	// 	| util::unwrap("Load image asset failed");
-
-	// auto gpu_image =
-	// 	graphics::create_texture_from_image(
-	// 		sdl_context.device,
-	// 		{.type = SDL_GPU_TEXTURETYPE_2D,
-	// 		 .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-	// 		 .usage = {.sampler = true}},
-	// 		image_data,
-	// 		"Test Image"
-	// 	)
-	// 	| util::unwrap("Create GPU texture from image failed");
-
-	auto logic = Logic::create(sdl_context.device, model) | util::unwrap("Create logic failed");
+	auto logic = Logic::create(sdl_context, model_path) | util::unwrap("Create logic failed");
 
 	/* 主循环 */
 
@@ -135,16 +51,7 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		/*===== Logic =====*/
 
 		backend::imgui_new_frame();
-		const auto [params, model_drawdata, primary_point_lights] = logic.logic(sdl_context, model);
-
-		// if (ImGui::Begin("Test Image"))
-		// { 	
-		// 	if(gpu_image!=nullptr)
-		// 	ImGui::Image((ImTextureID)(intptr_t)(SDL_GPUTexture*)gpu_image, {400, 400});
-		// 	else
-		// 	ImGui::Text("Image not loaded");
-		// }
-		// ImGui::End();
+		const auto [params, model_drawdata, primary_point_lights] = logic.logic(sdl_context);
 
 		/*===== Render =====*/
 

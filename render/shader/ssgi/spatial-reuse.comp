@@ -210,7 +210,7 @@ void main()
                 W_curr_normal,
                 W_view_dir,
                 lighting.roughness
-            ) / clamp(jacobian, 1.0, 5.0);
+            ) / clamp(jacobian, 1.0, 10000.0);
 
         neighbor_reservoir.z.start_position = W_curr_pos;
         neighbor_reservoir.z.start_normal = W_curr_normal;

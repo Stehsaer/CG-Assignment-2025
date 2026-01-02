@@ -50,24 +50,26 @@ namespace backend
 	{
 		ImGui::StyleColorsDark();
 		ImGuiStyle& style = ImGui::GetStyle();
-		// 主窗口圆角
+
 		style.WindowRounding = 12.0f;
 
-		// 下面这些通常也一起调，不然“按钮/子窗口/Tab”还是直角
-		style.ChildRounding     = 12.0f;
-		style.FrameRounding     = 10.0f; // Button/Checkbox/Slider 等控件的圆角
-		style.PopupRounding     = 12.0f;
-		style.ScrollbarRounding = 12.0f;
-		style.GrabRounding      = 10.0f;
-		style.TabRounding       = 10.0f;
+		style.ChildRounding = 6.0f;
+		style.FrameRounding = 6.0f;
+		style.PopupRounding = 6.0f;
+		style.ScrollbarRounding = 6.0f;
+		style.GrabRounding = 6.0f;
+		style.TabRounding = 6.0f;
 
-		// 让圆角边缘更平滑（一般默认就是 true）
 		style.AntiAliasedLines = true;
-		style.AntiAliasedFill  = true;	
+		style.AntiAliasedFill = true;
+
 		style.Colors[ImGuiCol_PlotHistogram] = style.Colors[ImGuiCol_ButtonHovered];
 		style.Colors[ImGuiCol_PlotLines] = style.Colors[ImGuiCol_ButtonHovered];
 		style.Colors[ImGuiCol_PlotHistogramHovered] = style.Colors[ImGuiCol_ButtonHovered];
 		style.Colors[ImGuiCol_PlotLinesHovered] = style.Colors[ImGuiCol_ButtonHovered];
+		style.Colors[ImGuiCol_ModalWindowDimBg] = {0.1, 0.1, 0.1, 0.5};
+
+		style.WindowTitleAlign = {0.5f, 0.5f};
 	}
 
 	std::expected<void, util::Error> initialize_imgui(const SDL_context& sdl_context) noexcept

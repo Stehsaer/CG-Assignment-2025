@@ -24,7 +24,7 @@ includes("xmake/rule", "xmake/task/*.lua")
 
 -- Packages
 add_requires(
-	"libsdl3 main",
+	"libsdl3",
 	"glm 1.0.2",
 	"gzip-hpp v0.1.0",
 	"stb 2025.03.14",
@@ -32,14 +32,10 @@ add_requires(
 	"meshoptimizer v0.25",
 	"paul_thread_pool 0.7.0",
 	"vulkan-headers 1.4.309+0",
-	"implot v0.17"
+	"implot v0.17",
+	"imgui"
 )
-add_requires(
-	"imgui v1.92.1-docking", 
-	{configs={sdl3=true, sdl3_gpu=true, wchar32=true}}
-)
-add_requireconfs("imgui.libsdl3", {override=true, version="main"})
-add_requireconfs("implot.imgui", {override=true, version="v1.92.1-docking", configs={sdl3=true, sdl3_gpu=true, wchar32=true}})
-add_requireconfs("implot.imgui.libsdl3", {override=true, version="main"})
+add_requireconfs("**libsdl3", {override=true, version="main"})
+add_requireconfs("**imgui", {override=true, version="v1.92.1-docking", configs={sdl3=true, sdl3_gpu=true, wchar32=true}})
 
 includes("project", "lib", "render")

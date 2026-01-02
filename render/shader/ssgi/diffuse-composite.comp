@@ -71,6 +71,7 @@ void main()
             uintBitsToFloat(reservoir_tex2_sample.z)
         );
     const float W = reservoir_tex1_sample.z;
+    const float M = reservoir_tex1_sample.y;
     const GBufferLighting lighting = unpack_gbuffer_lighting(texelFetch(lighting_info_tex, full_coord, 0).xy);
     const vec3 W_curr_normal = lighting.normal;
 
@@ -78,7 +79,7 @@ void main()
     const vec3 NDC_prev = P_prev_h.xyz / P_prev_h.w;
     const vec2 UV_pixel_unit = 2.0 / vec2(full_resolution);
 
-    const vec3 curr_luminance = hit_luminance * W;
+    const vec3 curr_luminance = hit_luminance * W * step(50.0, M);
 
     const vec3 W_light_dir = normalize(W_hit_position - W_curr_pos);
     const vec3 W_view_dir = normalize(inv_view_mat[3].xyz - W_curr_pos);

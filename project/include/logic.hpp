@@ -1,13 +1,13 @@
 #pragma once
 
+#include "backend/sdl.hpp"
 #include "gltf/model.hpp"
+#include "logic/area.hpp"
 #include "logic/camera-control.hpp"
-#include "logic/light-source.hpp"
+#include "logic/environment.hpp"
+#include "logic/light-controller.hpp"
+#include "logic/time-controller.hpp"
 #include "render/drawdata/light.hpp"
-#include "render/light-volume.hpp"
-#include "logic/climate-viewer.hpp"
-#include "logic/day-night-cycle.hpp"
-#include "logic/section-view.hpp"
 #include "render/param.hpp"
 
 #include <glm/glm.hpp>
@@ -15,116 +15,73 @@
 
 class Logic
 {
-	/* Camera */
+	/* Resources */
 
-	logic::Camera camera_control;
+	gltf::Model model;
 
-	/* Lighting Control */
+	/* Controllers */
 
-	float light_azimuth = glm::radians(159.0);
-	float light_pitch = glm::radians(35.0);
+	logic::Camera camera_control = {};
 
-	glm::vec3 light_color = {1.0, 1.0, 1.0};
-	float light_intensity = 80000.0;
-	float bloom_attenuation = 1.2f;
-	float bloom_strength = 0.025f;
-	bool use_bloom_mask = true;
-	bool show_ceiling = true;
-	float ambient_intensity = 50;
+	logic::Time_controller time_controller = {};
+	logic::Light_controller light_controller;
 
-	uint32_t ceiling_node_index = 0;
+	logic::Environment environment = {};
 
-	float csm_linear_blend = 0.56f;
+	void update(const backend::SDL_context& context) noexcept;
 
-	void light_control_ui() noexcept;
+	/* Render */
 
-	/* Day-Night Cycle System */
+	std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::drawdata::Light>>
+	get_render_params(const backend::SDL_context& context) noexcept;
 
-	logic::Day_night_cycle day_night_cycle;
+	/* UI & UI States */
 
-	/* Section View Control */
-
-	logic::Section_view section_view;
-
-	/* Climate Viewer */
-
-	logic::Climate_viewer climate_viewer;
-
-	void climate_control_ui() noexcept;
-
-	/* Antialiasing */
-
-	render::Antialias_mode aa_mode = render::Antialias_mode::MLAA;
-
-	void antialias_control_ui() noexcept;
-
-	/* Statistics */
-
-	void statistic_display_ui() const noexcept;
-
-	/* Animations */
-
-	const float max_door_time = 53.0f / 24.0f;  // seconds
-	const float max_door5_time = 5.0;
-	const float max_curtain_time = 72.0f / 24.0f;  // seconds
-
-	struct Animation_state
+	enum class Sidebar_tab
 	{
-		static constexpr float lerp_factor = 2;
-
-		float current = 0.0f;
-		float target = 0.0f;
-		float max_time;
-		std::string key;
-
-		Animation_state(float max_time, std::string key) :
-			max_time(max_time),
-			key(std::move(key))
-		{}
-
-		void update(float dt) noexcept;
-		float get_time() const noexcept;
+		Light_control,
+		Charts_view,
+		Climate_control
 	};
 
-	struct Animation_metric
+	struct Sidebar_tab_info
 	{
-		size_t animation_index;
-		float distance;
-		float dot;
-		glm::vec2 puv;
-
-		static Animation_metric from(
-			size_t animation_index,
-			const render::Camera_matrices& camera_matrices,
-			glm::mat4 handle_matrix,
-			glm::vec3 forward_dir
-		) noexcept;
+		const char* icon;
+		const char* hint;
 	};
 
-	Animation_state door1_animation{max_door_time, "Door1"};
-	Animation_state door2_animation{max_door_time, "Door2"};
-	Animation_state door3_animation{max_door_time, "Door3"};
-	Animation_state door4_animation{max_door_time, "Door4"};
-	Animation_state door5_animation{max_door5_time, "Door5"};
-	Animation_state curtain_left_animation{max_curtain_time, "CurtainLeft"};
-	Animation_state curtain_right_animation{max_curtain_time, "CurtainRight"};
+	struct Fire_alarm
+	{
+		logic::Area area;
+		double time;
+		bool active;
+	};
 
-	uint32_t door1_node_index = 0;
-	uint32_t door2_node_index = 0;
-	uint32_t door3_node_index = 0;
-	uint32_t door4_node_index = 0;
-	uint32_t door5_node_index = 0;
-	uint32_t curtain_left_node_index = 0;
-	uint32_t curtain_right_node_index = 0;
+	std::optional<Sidebar_tab> active_sidebar_tab = std::nullopt;
+	static const std::map<Sidebar_tab, Sidebar_tab_info> sidebar_tab_icons;
 
-	void animation_control_ui() noexcept;
+	std::optional<Fire_alarm> fire_alarm = std::nullopt;
 
-	/* Lights */
+	const std::string device_name;
+	const std::string driver_name;
 
-	std::map<std::string, logic::Light_group> light_groups;
-	void light_source_control_ui() noexcept;
+	void render_ui() noexcept;
+	void left_sidebar_ui() noexcept;
+	void draw_debug_overlay() noexcept;
 
-	Logic() = default;
+	/* Constructor*/
+
+	Logic(
+		gltf::Model model,
+		logic::Light_controller light_controller,
+		std::string device_name,
+		std::string driver_name
+	) :
+		model(std::move(model)),
+		light_controller(std::move(light_controller)),
+		device_name(std::move(device_name)),
+		driver_name(std::move(driver_name))
+	{}
 
   public:
 
@@ -133,10 +90,12 @@ class Logic
 	Logic& operator=(const Logic&) = delete;
 	Logic& operator=(Logic&&) = delete;
 
-	static std::expected<Logic, util::Error> create(SDL_GPUDevice* device, const gltf::Model& model) noexcept;
+	static std::expected<Logic, util::Error> create(
+		const backend::SDL_context& context,
+		const std::string& path
+	) noexcept;
 
 	std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::drawdata::Light>> logic(
-		const backend::SDL_context& context,
-		const gltf::Model& model
+		const backend::SDL_context& context
 	) noexcept;
 };
