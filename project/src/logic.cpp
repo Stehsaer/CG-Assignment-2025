@@ -1,11 +1,15 @@
 #include "logic.hpp"
+#include "asset/scene.hpp"
 #include "backend/loop.hpp"
 #include "backend/sdl.hpp"
+#include "gltf/model.hpp"
 #include "logic/area.hpp"
 #include "logic/light-controller.hpp"
 #include "render/drawdata/light.hpp"
 #include "render/param.hpp"
 #include "ui/capsule.hpp"
+#include "util/asset.hpp"
+#include "zip/zip.hpp"
 
 #include <SDL3/SDL_properties.h>
 #include <cstdint>
@@ -14,13 +18,29 @@
 #include <string>
 
 static std::expected<gltf::Model, util::Error> create_scene_from_model(
-	const backend::SDL_context& context,
-	const std::string& path
+	const backend::SDL_context& context
 ) noexcept
 {
+	auto model_decompress_result = backend::display_until_task_done(
+		context,
+		std::async(
+			std::launch::async,
+			[] { return util::get_asset(resource_asset::scene, "scene.glb").and_then(zip::Decompress()); }
+		),
+		[] {
+			ImGui::Text("解压场景数据...");
+			ImGui::ProgressBar(-ImGui::GetTime(), ImVec2(300.0f, 0.0f));
+		}
+	);
+	if (!model_decompress_result)
+		return model_decompress_result.error().forward("Decompress scene asset failed");
+
 	auto gltf_load_result = backend::display_until_task_done(
 		context,
-		std::async(std::launch::async, gltf::load_tinygltf_model_from_file, std::ref(path)),
+		std::async(
+			std::launch::async,
+			[&model_decompress_result] { return gltf::load_tinygltf_model(*model_decompress_result); }
+		),
 		[] {
 			ImGui::Text("加载模型...");
 			ImGui::ProgressBar(-ImGui::GetTime(), ImVec2(300.0f, 0.0f));
@@ -76,12 +96,9 @@ static std::expected<gltf::Model, util::Error> create_scene_from_model(
 	return gltf_result;
 }
 
-std::expected<Logic, util::Error> Logic::create(
-	const backend::SDL_context& context,
-	const std::string& path
-) noexcept
+std::expected<Logic, util::Error> Logic::create(const backend::SDL_context& context) noexcept
 {
-	auto model = create_scene_from_model(context, path);
+	auto model = create_scene_from_model(context);
 	if (!model) return model.error().forward("Load 3D model failed");
 
 	auto light_controller = logic::Light_controller::create(context.device, *model);

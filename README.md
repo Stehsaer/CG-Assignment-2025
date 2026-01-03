@@ -16,7 +16,9 @@ This repository contains the source code for SYSU Computer Graphics course assig
 - Multi light source rendering, supports point and spot lights. Drawn using light volume.
 
 ## Current Stage
-This project is currently under "Render-Tech Dev" stage. No game/interaction logic is implemented yet.
+This project is under maintainence stage. All major developments are done.
+
+> Note: we have plans to make this project a general-purpose renderer.
 
 ## Prerequisites
 
@@ -42,15 +44,21 @@ xmake check-env
 This should check all the prerequisites for building.
 
 ### Step 2
+Config the project with a given glb scene file. Currently the model file is not publicly available due to its size (~70 MiB).
+```bash
+xmake f --scene=<path-to-scene-glb-file>
+```
+
+### Step 3
 Build the project using the following command:
 ```bash
 xmake build
 ```
 For first-time builds, xmake may prompt for installing third-party packages. Permit the installation to proceed.
 
-### Step 3
+### Step 4
 Run:
 ```bash
-xmake run main <gltf-file-path>
+xmake run main
 ```
 to run the program and see the visual outputs.

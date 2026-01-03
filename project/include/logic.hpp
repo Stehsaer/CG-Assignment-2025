@@ -30,13 +30,9 @@ class Logic
 	/// @brief Create Logic instance
 	///
 	/// @param context SDL backend context
-	/// @param path Path to 3D model file
 	/// @return Logic instance or error
 	///
-	static std::expected<Logic, util::Error> create(
-		const backend::SDL_context& context,
-		const std::string& path
-	) noexcept;
+	static std::expected<Logic, util::Error> create(const backend::SDL_context& context) noexcept;
 
 	///
 	/// @brief Execute per-frame logic and produce render output

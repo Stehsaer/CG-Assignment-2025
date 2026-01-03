@@ -30,6 +30,18 @@ package_end()
 
 add_requires("imgui-knob")
 
+option("scene")
+    set_showmenu(true)
+    set_description("Scene model data path")
+    set_default("")
+
+    on_check(function (option)
+        local scene_path = option:value()
+        if not os.exists(scene_path) or not os.isfile(scene_path) then
+            raise("Scene data file not found: %s", scene_path or "nil")
+        end
+    end)
+
 target("main")
     set_kind("binary")
     set_languages("c++23") -- C++23标准
@@ -46,3 +58,13 @@ target("main")
 
     add_rules("asset.pack")
     add_files("asset/*.pack-desc")
+    add_files("scene/scene.pack-desc")
+
+    before_prepare(function (target)
+        import("core.project.config")
+
+        local scene_path = config.get("scene")
+        local output_path = os.scriptdir() .. "/scene/scene.glb"
+
+        os.cp(scene_path, output_path, {copy_if_different=true})
+    end)

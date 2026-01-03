@@ -13,7 +13,7 @@
 #include "render.hpp"
 #include "util/unwrap.hpp"
 
-static void main_logic(const backend::SDL_context& sdl_context, const std::string& model_path)
+static void main_logic(const backend::SDL_context& sdl_context)
 {
 	auto render_resource =
 		backend::display_until_task_done(
@@ -26,9 +26,9 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		)
 		| util::unwrap("Create render resource failed");
 
-	auto logic = Logic::create(sdl_context, model_path) | util::unwrap("Create logic failed");
+	auto logic = Logic::create(sdl_context) | util::unwrap("Create logic failed");
 
-	/* 主循环 */
+	/* Main loop */
 
 	bool quit = false;
 	bool fullscreen = false;
@@ -64,17 +64,10 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 	}
 }
 
-int main(int argc, const char** argv)
+int main()
 try
 {
-	std::span<const char*> args(argv, argc);
-	if (args.size() != 2)
-	{
-		std::println(std::cerr, "No path specified!");
-		return EXIT_FAILURE;
-	}
-
-	/* 初始化 */
+	/* Init */
 
 #ifdef NDEBUG
 	constexpr bool enable_debug_layer = false;
@@ -101,7 +94,7 @@ try
 
 	backend::initialize_imgui(*sdl_context) | util::unwrap();
 
-	main_logic(*sdl_context, args[1]);
+	main_logic(*sdl_context);
 
 	backend::destroy_imgui();
 
@@ -116,11 +109,11 @@ catch (const util::Error& e)
 }
 catch (const std::exception& e)
 {
-	std::println(std::cerr, "\033[91m[异常]\033[0m {}", e.what());
+	std::println(std::cerr, "\033[91m[Error]\033[0m {}", e.what());
 	std::terminate();
 }
 catch (...)
 {
-	std::println(std::cerr, "\033[91m[异常]\033[0m 未知异常发生");
+	std::println(std::cerr, "\033[91m[Error]\033[0m Unknown error");
 	std::terminate();
 }
