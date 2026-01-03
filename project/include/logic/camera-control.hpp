@@ -15,57 +15,46 @@ namespace logic
 	  public:
 
 		///
-		/// @brief Update camera control based on user input.
+		/// @brief Update and get camera matrices
 		///
+		/// @param camera Target camera view
+		/// @return Current camera matrices
 		///
-		void update_motion(const backend::SDL_context& context) noexcept;
-
-		///
-		/// @brief Get camera matrices and eye position. Must be called exactly once per frame.
-		///
-		/// @return Camera matrices
-		///
-		render::Camera_matrices update_and_get_matrices() noexcept;
-
-		///
-		/// @brief Set camera to a specific position and orientation
-		///
-		/// @param position Camera position
-		/// @param azimuth Azimuth angle in radians
-		/// @param pitch Pitch angle in radians
-		///
-		void set_camera(glm::dvec3 position, double azimuth, double pitch) noexcept;
-
-		///
-		/// @brief Get current camera position and angles
-		///
-		/// @return Tuple of position, azimuth, and pitch
-		///
-		std::tuple<glm::dvec3, double, double> get_camera_state() const noexcept;
-
-		void camera_control_ui() noexcept;
+		render::Camera_matrices update(const graphics::camera::view::Flying& camera) noexcept;
 
 	  private:
 
-		using Perspective = graphics::camera::projection::Perspective;
-		using Orbit = graphics::camera::view::Orbit;
-		using Flying = graphics::camera::view::Flying;
-
-		Perspective camera_projection =
+		graphics::camera::projection::Perspective camera_projection =
 			{.fov_y = glm::radians(45.0f), .near_plane = 0.15, .far_plane = std::nullopt};
 
-		Flying target_camera = {
+		std::optional<graphics::camera::view::Flying> camera;
+		std::optional<glm::dmat4> prev_frame_camera_matrix;
+
+		static constexpr float mix_factor = 16.0f;
+	};
+
+	class Free_camera
+	{
+	  public:
+
+		///
+		/// @brief Update free camera based on user input, and returns current camera view
+		///
+		/// @param context SDL backend context
+		/// @param free_cam Whether to enable free camera mode (false = fixed 1.5m height)
+		/// @return Current camera view
+		///
+		graphics::camera::view::Flying update(const backend::SDL_context& context, bool free_cam) noexcept;
+
+	  private:
+
+		graphics::camera::view::Flying target_camera = {
 			.position = glm::dvec3(0.0, 1.5, 0.0),
 			.angles = {.azimuth = glm::radians(90.0f), .pitch = glm::radians(-20.0f)},
 			.up = glm::dvec3(0.0, 1.0, 0.0)
 		};
-		Flying lerp_camera = target_camera;
 
-		const float azimuth_per_width = glm::radians(180.0f);
-		const float pitch_per_height = glm::radians(90.0f);
-		const float mix_factor = 16.0f;
-		bool free_camera_mode = false;
-
-		std::optional<glm::dmat4> prev_frame_camera_matrix;
+		inline static const float azimuth_per_width = glm::radians(180.0f);
+		inline static const float pitch_per_height = glm::radians(90.0f);
 	};
 }

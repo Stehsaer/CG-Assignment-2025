@@ -87,6 +87,10 @@ std::expected<Logic, util::Error> Logic::create(
 	auto light_controller = logic::Light_controller::create(context.device, *model);
 	if (!light_controller) return light_controller.error().forward("Create light controller failed");
 
+	auto furniture_controller = logic::Furniture_controller::create(*model);
+	if (!furniture_controller)
+		return furniture_controller.error().forward("Create furniture controller failed");
+
 	const auto prop = SDL_GetGPUDeviceProperties(context.device);
 	if (prop == 0) return util::Error("Get SDL GPU device properties failed");
 
@@ -98,66 +102,102 @@ std::expected<Logic, util::Error> Logic::create(
 
 	SDL_DestroyProperties(prop);
 
+	const auto ceiling_node_index = model->find_node_by_name("Ceiling");
+	if (!ceiling_node_index.has_value()) return util::Error("Ceiling node not found in the model");
+
 	return Logic(
 		std::move(*model),
 		std::move(*light_controller),
+		std::move(*furniture_controller),
 		device_name,
-		std::format("{} ({})", driver_name, driver_version)
+		std::format("{} ({})", driver_name, driver_version),
+		*ceiling_node_index
 	);
 }
 
 const std::map<Logic::Sidebar_tab, Logic::Sidebar_tab_info> Logic::sidebar_tab_icons = {
-	{Sidebar_tab::Light_control,   {.icon = "\U000f06e8", .hint = "灯光控制"}}, // Light bulb icon
-	{Sidebar_tab::Charts_view,     {.icon = "\uf201", .hint = "环境信息"}    }, // Chart icon
-	{Sidebar_tab::Climate_control, {.icon = "\U000f0393", .hint = "环境控制"}}, // Thermometer icon
+	{Sidebar_tab::Light_control,     {.icon = "\U000f06e8", .hint = "灯光控制"}}, // Light bulb icon
+	{Sidebar_tab::Charts_view,       {.icon = "\uf201", .hint = "环境信息"}    }, // Chart icon
+	{Sidebar_tab::Climate_control,   {.icon = "\U000f0393", .hint = "环境控制"}}, // Thermometer icon
+	{Sidebar_tab::Furniture_control, {.icon = "\U000f0425", .hint = "家具控制"}}  // Couch icon
 };
 
-void Logic::left_sidebar_ui() noexcept
+void Logic::sidebar_ui() noexcept
 {
 	ui::capsule::window("##LeftSidebar", ui::capsule::Position::Bottom_left, [this] {
-		for (const auto& [tab, info] : sidebar_tab_icons)
-		{
-			const auto [icon, hint] = info;
-
-			if (active_sidebar_tab.has_value())
-			{
-				if (active_sidebar_tab.value() == tab)
-				{
-					ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
-					ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 200));
-					if (ui::capsule::button(
-							std::format("{}##SidebarTabActive{}", icon, static_cast<int>(tab))
-						))
-						active_sidebar_tab = std::nullopt;
-					ImGui::PopStyleColor();
-					ImGui::PopStyleVar();
-				}
-				else
-				{
-					if (ui::capsule::button(
-							std::format("{}##SidebarTabInactive{}", icon, static_cast<int>(tab))
-						))
-						active_sidebar_tab = tab;
-				}
-			}
-			else
-			{
-				if (ui::capsule::button(std::format("{}##SidebarTab{}", icon, static_cast<int>(tab))))
-					active_sidebar_tab = tab;
-			}
-
-			ImGui::SetItemTooltip("%s", hint);
-		}
+		sidebar_ui_camera();
+		ui::capsule::vertical_separator();
+		sidebar_ui_tabs();
 	});
 }
 
-void Logic::render_ui() noexcept
+void Logic::sidebar_ui_tabs() noexcept
 {
-	left_sidebar_ui();
+	for (const auto& [tab, info] : sidebar_tab_icons)
+	{
+		const auto [icon, hint] = info;
+
+		if (active_sidebar_tab.has_value())
+		{
+			if (active_sidebar_tab.value() == tab)
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+				ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 200));
+				if (ui::capsule::button(std::format("{}##SidebarTabActive{}", icon, static_cast<int>(tab))))
+					active_sidebar_tab = std::nullopt;
+				ImGui::PopStyleColor();
+				ImGui::PopStyleVar();
+			}
+			else
+			{
+				if (ui::capsule::button(std::format("{}##SidebarTabInactive{}", icon, static_cast<int>(tab))))
+					active_sidebar_tab = tab;
+			}
+		}
+		else
+		{
+			if (ui::capsule::button(std::format("{}##SidebarTab{}", icon, static_cast<int>(tab))))
+				active_sidebar_tab = tab;
+		}
+
+		ImGui::SetItemTooltip("%s", hint);
+	}
+}
+
+void Logic::sidebar_ui_camera() noexcept
+{
+	switch (view_mode)
+	{
+	case View_mode::Walk:
+		if (ui::capsule::button("\ue213 漫游视角", false)) view_mode = View_mode::Free;
+		break;
+	case View_mode::Free:
+		if (ui::capsule::button("\uf1d9 自由视角", false)) view_mode = View_mode::Cross_section;
+		break;
+	case View_mode::Cross_section:
+		if (ui::capsule::button("\U000F034D 剖面视角", false)) view_mode = View_mode::Walk;
+		break;
+	}
+}
+
+void Logic::render_ui(
+	std::span<const glm::mat4> node_vertices,
+	const render::Camera_matrices& camera_matrices
+) noexcept
+{
+	// Bottom left sidebar
+	sidebar_ui();
+
+	// Debug overlay: fps, device name, driver name
 	draw_debug_overlay();
 
+	// Time controller UI, always visible
 	time_controller.control_ui();
 
+	// Furniture HUD UI
+	furniture_controller.hud_ui(node_vertices, camera_matrices);
+
+	// Active sidebar tab UI
 	if (active_sidebar_tab.has_value())
 	{
 		switch (active_sidebar_tab.value())
@@ -171,9 +211,13 @@ void Logic::render_ui() noexcept
 		case Sidebar_tab::Climate_control:
 			environment.control_ui();
 			break;
+		case Sidebar_tab::Furniture_control:
+			furniture_controller.control_ui();
+			break;
 		}
 	}
 
+	// Fire alarm UI
 	if (fire_alarm && fire_alarm->active)
 	{
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(192, 0, 0, 200));
@@ -224,56 +268,68 @@ void Logic::draw_debug_overlay() noexcept
 	draw_text(driver_name, {10.0f, 60.0f}, 16.0f);
 }
 
-void Logic::update(const backend::SDL_context& context) noexcept
+Logic::Render_output Logic::update(const backend::SDL_context& context) noexcept
 {
-	camera_control.update_motion(context);
+	const auto camera_matrices = [&]() {
+		switch (view_mode)
+		{
+		case View_mode::Walk:
+			return main_camera.update(free_camera.update(context, false));
+		case View_mode::Free:
+			return main_camera.update(free_camera.update(context, true));
+		case View_mode::Cross_section:
+			return main_camera.update(cross_section_camera);
+		}
+		return render::Camera_matrices{};
+	}();
+
 	const auto sim_time = time_controller.update();
 	const auto env_update_result = environment.update(sim_time);
+	const auto animation_keys = furniture_controller.update();
 
 	if (env_update_result.fire_alert)
 	{
 		if (!fire_alarm)
 		{
 			fire_alarm = {.area = *env_update_result.fire_alert, .time = sim_time, .active = true};
-
 			light_controller.handle_fire_event();
+			furniture_controller.handle_fire_event(*env_update_result.fire_alert);
 		}
 	}
 	else
 	{
 		if (fire_alarm && !fire_alarm->active) fire_alarm = std::nullopt;
 	}
-}
 
-std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::drawdata::Light>>
-Logic::get_render_params(const backend::SDL_context& context [[maybe_unused]]) noexcept
-{
-	const auto camera_matrices = camera_control.update_and_get_matrices();
+	/* Generate render params */
 
 	std::vector<std::pair<uint32_t, float>> emission_overrides = light_controller.get_emission_overrides();
 	const auto [primary_light_param, ambient_light_param] = time_controller.get_sun_params();
 
-	auto main_drawdata = model.generate_drawdata(glm::mat4(1.0f), {}, emission_overrides, {});
+	std::vector<uint32_t> hidden_nodes;
+	if (view_mode == View_mode::Cross_section) hidden_nodes.push_back(ceiling_node_index);
+
+	auto main_drawdata =
+		model.generate_drawdata(glm::mat4(1.0f), animation_keys, emission_overrides, hidden_nodes);
 
 	auto light_drawdata_list = light_controller.get_light_drawdata(main_drawdata);
 
-	std::vector<gltf::Drawdata> drawdata_list;
-	drawdata_list.emplace_back(std::move(main_drawdata));
-
 	const render::Params params{
 		.camera = camera_matrices,
-		.primary_light = primary_light_param,
+		.primary_light = view_mode == View_mode::Cross_section ? cross_section_light : primary_light_param,
 		.ambient = ambient_light_param
 	};
 
-	return std::make_tuple(params, std::move(drawdata_list), std::move(light_drawdata_list));
+	return {
+		.params = params,
+		.main_drawdata = std::move(main_drawdata),
+		.light_drawdata_list = std::move(light_drawdata_list)
+	};
 }
 
-std::tuple<render::Params, std::vector<gltf::Drawdata>, std::vector<render::drawdata::Light>> Logic::logic(
-	const backend::SDL_context& context
-) noexcept
+Logic::Render_output Logic::logic(const backend::SDL_context& context) noexcept
 {
-	update(context);
-	render_ui();
-	return get_render_params(context);
+	auto render_results = update(context);
+	render_ui(render_results.main_drawdata.node_matrices, render_results.params.camera);
+	return render_results;
 }

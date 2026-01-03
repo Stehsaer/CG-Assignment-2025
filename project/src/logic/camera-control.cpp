@@ -1,12 +1,44 @@
 #include "logic/camera-control.hpp"
+#include "graphics/camera/view/flying.hpp"
 #include "render/param.hpp"
 
 #include <SDL3/SDL_mouse.h>
+#include <cassert>
 #include <imgui.h>
 
 namespace logic
 {
-	void Camera::update_motion(const backend::SDL_context& context) noexcept
+	render::Camera_matrices Camera::update(const graphics::camera::view::Flying& camera) noexcept
+	{
+		const auto [width, height] = ImGui::GetIO().DisplaySize;
+		const auto aspect_ratio = width / height;
+
+		this->camera = graphics::camera::view::Flying::lerp(
+			this->camera.value_or(camera),
+			camera,
+			glm::clamp(mix_factor * ImGui::GetIO().DeltaTime, 0.0f, 1.0f)
+		);
+
+		assert(this->camera.has_value());
+
+		const auto view_matrix = this->camera->matrix();
+		const auto proj_matrix = camera_projection.matrix_reverse_z(aspect_ratio);
+		const auto camera_matrix = proj_matrix * view_matrix;
+		const auto prev_matrix = prev_frame_camera_matrix.value_or(camera_matrix);
+		prev_frame_camera_matrix = camera_matrix;
+
+		return render::Camera_matrices{
+			.view_matrix = view_matrix,
+			.proj_matrix = proj_matrix,
+			.prev_view_proj_matrix = prev_matrix,
+			.eye_position = this->camera->eye_position(),
+		};
+	}
+
+	graphics::camera::view::Flying Free_camera::update(
+		const backend::SDL_context& context,
+		bool free_cam
+	) noexcept
 	{
 		auto& io = ImGui::GetIO();
 		const auto [width, height] = io.DisplaySize;
@@ -48,48 +80,8 @@ namespace logic
 			}
 		}
 
-		if (!free_camera_mode) target_camera.position.y = 1.5;
+		if (!free_cam) target_camera.position.y = 1.5;
 
-		const float dt = io.DeltaTime;
-
-		lerp_camera = Flying::lerp(lerp_camera, target_camera, glm::clamp(mix_factor * dt, 0.0f, 1.0f));
-	}
-
-	render::Camera_matrices Camera::update_and_get_matrices() noexcept
-	{
-		const auto [width, height] = ImGui::GetIO().DisplaySize;
-		const auto aspect_ratio = width / height;
-
-		const auto view_matrix = lerp_camera.matrix();
-		const auto proj_matrix = camera_projection.matrix_reverse_z(aspect_ratio);
-		const auto camera_matrix = proj_matrix * view_matrix;
-		const auto prev_matrix = prev_frame_camera_matrix.value_or(camera_matrix);
-		prev_frame_camera_matrix = camera_matrix;
-
-		return render::Camera_matrices{
-			.view_matrix = view_matrix,
-			.proj_matrix = proj_matrix,
-			.prev_view_proj_matrix = prev_matrix,
-			.eye_position = lerp_camera.eye_position(),
-		};
-	}
-
-	void Camera::set_camera(glm::dvec3 position, double azimuth, double pitch) noexcept
-	{
-		target_camera.position = position;
-		target_camera.angles.azimuth = azimuth;
-		target_camera.angles.pitch = pitch;
-		lerp_camera = target_camera;
-	}
-
-	std::tuple<glm::dvec3, double, double> Camera::get_camera_state() const noexcept
-	{
-		return {target_camera.position, target_camera.angles.azimuth, target_camera.angles.pitch};
-	}
-
-	void Camera::camera_control_ui() noexcept
-	{
-		ImGui::Separator();
-		ImGui::Checkbox("相机自由视角", &free_camera_mode);
+		return target_camera;
 	}
 }

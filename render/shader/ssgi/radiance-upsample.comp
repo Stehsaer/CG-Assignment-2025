@@ -26,7 +26,7 @@ const float NORMAL_THRES = 0.5;
 const float DEPTH_SIGMA = 10;
 const float ALBEDO_SIGMA = 10;
 const float ROUGHNESS_METALNESS_SIGMA = 5;
-const float BLUR_SIGMA = 1.5;
+const float BLUR_SIGMA = 2.5;
 
 float normal_similarity(vec3 n1, vec3 n2)
 {

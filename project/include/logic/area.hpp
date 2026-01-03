@@ -14,5 +14,9 @@ namespace logic
 		Exterior
 	};
 
+	///
+	/// @brief Mappings from Area enum to area names
+	///
+	///
 	extern const std::map<Area, const char*> area_names;
 }

@@ -87,12 +87,17 @@ namespace ui::capsule
 		ImGui::End();
 	}
 
-	bool button(const std::string& label) noexcept
+	bool button(const std::string& label, bool round) noexcept
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, button_size / 2.0f);
-		bool result = ImGui::Button(label.c_str(), {button_size, button_size});
+		if (!round) ImGui::PushStyleVarX(ImGuiStyleVar_FramePadding, 15.0f);
+
+		bool result = ImGui::Button(label.c_str(), {round ? button_size : 0.0f, button_size});
 		ImGui::SameLine();
+
+		if (!round) ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
+
 		return result;
 	}
 
@@ -115,7 +120,6 @@ namespace ui::capsule
 
 	void vertical_separator() noexcept
 	{
-
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_Border]);
 		label("│", font_size);
 		ImGui::PopStyleColor();

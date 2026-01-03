@@ -37,10 +37,24 @@ namespace logic
 
 	  public:
 
+		///
+		/// @brief Update time controller (simulate)
+		///
+		/// @return Current simulated time in seconds
+		///
 		double update() noexcept;
 
+		///
+		/// @brief Control time controller UI
+		///
+		///
 		void control_ui() noexcept;
 
+		///
+		/// @brief Get sun parameters based on current time of day
+		///
+		/// @return Sun light parameters
+		///
 		std::tuple<render::Primary_light_params, render::Ambient_params> get_sun_params() const noexcept;
 	};
 }

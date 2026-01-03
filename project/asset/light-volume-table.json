@@ -46,7 +46,7 @@
 		{
 			"node_name": "WallLight",
 			"group": "living_room",
-			"path": "WallLightVolume.obj"
+			"path": "WallLightVolume-Base.obj"
 		},
 		{
 			"node_name": "HallLight",

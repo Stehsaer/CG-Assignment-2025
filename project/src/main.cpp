@@ -51,11 +51,14 @@ static void main_logic(const backend::SDL_context& sdl_context, const std::strin
 		/*===== Logic =====*/
 
 		backend::imgui_new_frame();
-		const auto [params, model_drawdata, primary_point_lights] = logic.logic(sdl_context);
+		auto [params, main_drawdata, primary_point_lights] = logic.logic(sdl_context);
+
+		std::vector<gltf::Drawdata> drawdata_list;
+		drawdata_list.emplace_back(std::move(main_drawdata));
 
 		/*===== Render =====*/
 
-		const render::Drawdata drawdata = {.models = model_drawdata, .lights = primary_point_lights};
+		const render::Drawdata drawdata = {.models = drawdata_list, .lights = primary_point_lights};
 
 		render_resource.render(sdl_context, drawdata, params) | util::unwrap("Render frame failed");
 	}

@@ -43,7 +43,7 @@ namespace ui::capsule
 		bool less_rounding = false
 	);
 
-	bool button(const std::string& label) noexcept;
+	bool button(const std::string& label, bool round = true) noexcept;
 
 	void label(const std::string& text, float font_size = ui::capsule::font_size) noexcept;
 
