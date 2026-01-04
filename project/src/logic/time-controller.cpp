@@ -5,6 +5,7 @@
 #include <glm/gtc/constants.hpp>
 #include <imgui.h>
 #include <ranges>
+#include <utility>
 
 namespace logic
 {
@@ -80,23 +81,45 @@ namespace logic
 		return time_of_day;
 	}
 
-	void Time_controller::time_wrap_popup() noexcept
+	void Time_controller::settings_panel() noexcept
 	{
-		if (ImGui::BeginPopupModal("时间加速", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-		{
-			for (const auto [idx, wrap_option] : time_wrap_options | std::views::enumerate)
-			{
-				if (ImGui::RadioButton(
-						std::format("{}x##TimeWrapOption{}", wrap_option, idx).c_str(),
-						time_wrap_index == idx
-					))
-					time_wrap_index = idx;
-			}
+		if (settings_panel_opened)
+			ui::capsule::window(
+				"时间设置",
+				ui::capsule::Position::Bottom_center,
+				[this] {
+					ImGui::AlignTextToFramePadding();
 
-			if (ImGui::Button("确定")) ImGui::CloseCurrentPopup();
+					if (ui::capsule::button("\uf049")) time_of_day -= 3600.0;
+					if (ui::capsule::button("\uf048")) time_of_day -= 60.0;
 
-			ImGui::EndPopup();
-		}
+					ui::capsule::label(
+						std::format(
+							"{:02}:{:02}:{:02}",
+							static_cast<int>(time_of_day) / 3600,
+							(static_cast<int>(time_of_day) % 3600) / 60,
+							static_cast<int>(time_of_day) % 60
+						)
+					);
+
+					if (ui::capsule::button("\uf051")) time_of_day += 60.0;
+					if (ui::capsule::button("\uf050")) time_of_day += 3600.0;
+					time_of_day = std::fmod(time_of_day + 86400.0, 86400.0);
+
+					ImGui::NewLine();
+					ImGui::Separator();
+
+					if (ui::capsule::button("\uf068"))
+						if (time_wrap_index > 0) time_wrap_index--;
+					if (ui::capsule::button("\uf067"))
+						if (time_wrap_index + 1 < time_wrap_options.size()) time_wrap_index++;
+
+					ImGui::AlignTextToFramePadding();
+					ui::capsule::label(std::format("{:.0f}x", time_wrap_options[time_wrap_index]));
+				},
+				{0, -1},
+				true
+			);
 	}
 
 	void Time_controller::control_ui() noexcept
@@ -105,11 +128,21 @@ namespace logic
 			time_flowing = !time_flowing;
 
 		ui::capsule::window("##TimeControl", ui::capsule::Position::Bottom_center, [this] {
+			if (settings_panel_opened)
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+				ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(255, 255, 255, 200));
+				if (ui::capsule::button("\uf013")) settings_panel_opened = !settings_panel_opened;
+				ImGui::PopStyleColor();
+				ImGui::PopStyleVar();
+			}
+			else
+			{
+				if (ui::capsule::button("\uf013")) settings_panel_opened = !settings_panel_opened;
+			}
+
 			if (ui::capsule::button(std::format("{}##TimeFlowSwitch", time_flowing ? "\uf04c" : "\uf04b")))
 				time_flowing = !time_flowing;
-			ImGui::OpenPopupOnItemClick("时间加速", ImGuiPopupFlags_MouseButtonRight);
-
-			time_wrap_popup();
 
 			ui::capsule::label(
 				std::format(
@@ -128,6 +161,8 @@ namespace logic
 					time_of_day = hour * 3600.0 + minute * 60.0;
 			}
 		});
+
+		settings_panel();
 	}
 
 	std::tuple<render::Primary_light_params, render::Ambient_params>

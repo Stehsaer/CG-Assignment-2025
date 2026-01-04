@@ -5,7 +5,6 @@
 #include "gltf/model.hpp"
 #include "logic/area.hpp"
 #include "logic/light-controller.hpp"
-#include "render/drawdata/light.hpp"
 #include "render/param.hpp"
 #include "ui/capsule.hpp"
 #include "util/asset.hpp"

@@ -81,7 +81,7 @@ try
 		backend::SDL_context::create(
 			1280,
 			720,
-			"Demo",
+			"光线追踪好房子展示程序",
 			SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED,
 			backend::Vulkan_config{
 				.debug_enabled = enable_debug_layer,

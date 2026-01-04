@@ -27,12 +27,16 @@
 namespace backend
 {
 	///
-	/// @brief Initialize the ImGui library
+	/// @brief Initialize ImGui context
 	///
 	/// @param sdl_context SDL Context
 	///
 	std::expected<void, util::Error> initialize_imgui(const SDL_context& sdl_context) noexcept;
 
+	///
+	/// @brief Destroy ImGui context
+	///
+	///
 	void destroy_imgui() noexcept;
 
 	///

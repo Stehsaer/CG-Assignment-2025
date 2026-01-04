@@ -6,8 +6,8 @@
 #include "gpu/graphics-pipeline.hpp"
 
 #include <SDL3/SDL_gpu.h>
-#include <format>
 #include <array>
+#include <format>
 
 namespace graphics
 {

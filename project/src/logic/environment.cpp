@@ -87,6 +87,8 @@ namespace logic
 		float modified_pm2_5 = climate.pm2_5;
 		float modified_carbon_oxide = climate.carbon_oxide;
 
+		const auto scale = ImGui::GetStyle().FontScaleDpi;
+
 		ImGuiKnobs::Knob(
 			"温度",
 			&modified_temperature,
@@ -95,7 +97,7 @@ namespace logic
 			1.0f,
 			"%.1f °C",
 			ImGuiKnobVariant_WiperDot,
-			80.0f,
+			80.0f * scale,
 			0
 		);
 		ImGui::SameLine();
@@ -108,7 +110,7 @@ namespace logic
 			1.0f,
 			"%.1f %%RH",
 			ImGuiKnobVariant_WiperDot,
-			80.0f,
+			80.0f * scale,
 			0
 		);
 		ImGui::SameLine();
@@ -121,7 +123,7 @@ namespace logic
 			1.0f,
 			"%.1f µg/m³",
 			ImGuiKnobVariant_WiperDot,
-			80.0f,
+			80.0f * scale,
 			0
 		);
 		ImGui::SameLine();
@@ -134,7 +136,7 @@ namespace logic
 			0.1f,
 			"%.2f ppm",
 			ImGuiKnobVariant_WiperDot,
-			80.0f,
+			80.0f * scale,
 			0
 		);
 
@@ -146,28 +148,32 @@ namespace logic
 
 	static void draw_bar(const Climate& climate) noexcept
 	{
+		const auto scale = ImGui::GetStyle().FontScaleDpi;
+
 		auto draw_component =
-			[](const char* label,
-			   float value,
-			   float min_value,
-			   float max_value,
-			   auto color_func,
-			   auto format) {
+			[scale](
+				const char* label,
+				float value,
+				float min_value,
+				float max_value,
+				auto color_func,
+				auto format
+			) {
 				const float normalized =
 					glm::clamp((value - min_value) / (max_value - min_value), 0.0f, 1.0f);
 				const ImVec4 color = color_func(value);
 
 				ImGui::TextUnformatted(label);
 				ImGui::SameLine();
-				ImGui::Indent(80.0f);
+				ImGui::Indent(80.0f * scale);
 
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
-				ImGui::ProgressBar(normalized, ImVec2(200.0f, 20.0f), "");
+				ImGui::ProgressBar(normalized, ImVec2(200.0f * scale, 20.0f * scale), "");
 				ImGui::PopStyleColor();
 				ImGui::SameLine();
 
 				ImGui::Text(format, value);
-				ImGui::Unindent(80.0f);
+				ImGui::Unindent(80.0f * scale);
 			};
 
 		draw_component(

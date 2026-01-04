@@ -7,12 +7,12 @@
 
 namespace ui::capsule
 {
-	constexpr float window_padding = 15.0f;
-	constexpr float window_margin = 20.0f;
-	constexpr float window_rounding = 30.0f;
+	constexpr float window_padding = 12.0f;
+	constexpr float window_margin = 12.0f;
+	constexpr float window_rounding = 25.0f;
 	constexpr float window_height = window_rounding * 2;
-	constexpr float font_size = 28.0f;
-	constexpr float button_size = 40.0f;
+	constexpr float font_size = 22.0f;
+	constexpr float button_size = 34.0f;
 
 	enum class Position
 	{

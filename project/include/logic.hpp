@@ -1,7 +1,6 @@
 #pragma once
 
 #include "backend/sdl.hpp"
-#include "gltf/animation.hpp"
 #include "gltf/model.hpp"
 #include "logic/area.hpp"
 #include "logic/camera-control.hpp"

@@ -26,6 +26,8 @@ namespace logic
 		uint32_t time_wrap_index = 0;
 		double time_of_day = 8.0 * 3600.0;  // Time of day in seconds
 
+		bool settings_panel_opened = false;
+
 		const float max_brightness = 80000.0;
 		const float max_temperature = 5000.0;
 		const float min_temperature = 1000.0;
@@ -33,7 +35,7 @@ namespace logic
 		const float sunrise_azimuth = glm::radians(-90.0f);
 		const float day_ambient_intensity = 30.0f;
 
-		void time_wrap_popup() noexcept;
+		void settings_panel() noexcept;
 
 	  public:
 
