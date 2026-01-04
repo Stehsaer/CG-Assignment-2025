@@ -1,3 +1,5 @@
+set_xmakever("3.0.6")
+
 -- Rules and Policies
 add_rules("mode.debug", "mode.release", "mode.releasedbg", "mode.asan")
 set_policy("build.warning", true)
