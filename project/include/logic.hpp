@@ -82,7 +82,7 @@ class Logic
 	logic::Time_controller time_controller = {};
 	logic::Light_controller light_controller;
 	logic::Furniture_controller furniture_controller;
-	logic::Environment environment = {};
+	logic::Environment environment;
 
 	std::optional<Fire_alarm> fire_alarm = std::nullopt;
 	View_mode view_mode = View_mode::Walk;
@@ -158,6 +158,7 @@ class Logic
 		gltf::Model model,
 		logic::Light_controller light_controller,
 		logic::Furniture_controller furniture_controller,
+		logic::Environment environment,
 		std::string device_name,
 		std::string driver_name,
 		uint32_t ceiling_node_index
@@ -166,6 +167,7 @@ class Logic
 		ceiling_node_index(ceiling_node_index),
 		light_controller(std::move(light_controller)),
 		furniture_controller(std::move(furniture_controller)),
+		environment(std::move(environment)),
 		device_name(std::move(device_name)),
 		driver_name(std::move(driver_name))
 	{}
@@ -173,7 +175,7 @@ class Logic
   public:
 
 	Logic(const Logic&) = delete;
-	Logic(Logic&&) = default;
+	Logic(Logic&&) noexcept = default;
 	Logic& operator=(const Logic&) = delete;
 	Logic& operator=(Logic&&) = delete;
 };

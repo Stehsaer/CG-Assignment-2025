@@ -1,6 +1,7 @@
 #include "logic/environment.hpp"
 #include "ui/capsule.hpp"
 
+#include <format>
 #include <imgui-knobs.h>
 #include <imgui.h>
 #include <implot.h>
@@ -196,6 +197,32 @@ namespace logic
 		draw_component("CO", climate.carbon_oxide, 0.0f, 50.0f, color_palette::get_co_color, "%.2f ppm");
 	}
 
+	const std::map<Area, std::string> Environment::area_node_names = {
+		{Area::Living_room,   "LivingRoom-Marker"  },
+		{Area::Large_bedroom, "LargeBedroom-Marker"},
+		{Area::Kitchen,       "Kitchen-Marker"     },
+		{Area::Toilet,        "Toilet-Marker"      },
+		{Area::Small_bedroom, "SmallBedroom-Marker"}
+	};
+
+	std::expected<Environment, util::Error> Environment::create(const gltf::Model& model) noexcept
+	{
+		std::map<Area, uint32_t> area_node_indices;
+
+		for (const auto& [area, node_name] : Environment::area_node_names)
+		{
+			const auto node_index_opt = model.find_node_by_name(node_name);
+			if (!node_index_opt)
+				return util::Error(
+					std::format("Environment::create: Node '{}' not found in model", node_name)
+				);
+
+			area_node_indices[area] = *node_index_opt;
+		}
+
+		return Environment(std::move(area_node_indices));
+	}
+
 	void Environment::control_ui() noexcept
 	{
 		ui::capsule::window(
@@ -244,6 +271,54 @@ namespace logic
 			{0, -1},
 			true
 		);
+	}
+
+	void Environment::hud_ui(
+		std::span<const glm::mat4> node_matrices,
+		const render::Camera_matrices& camera_matrices
+	) const noexcept
+	{
+		const auto view_proj_mat = camera_matrices.proj_matrix * camera_matrices.view_matrix;
+		const auto viewport_size_imgui = ImGui::GetIO().DisplaySize;
+		const auto viewport_size = glm::vec2(viewport_size_imgui.x, viewport_size_imgui.y);
+
+		for (const auto& [area, node_index] : area_node_indices)
+		{
+			const auto& climate = area_climates.at(area);
+			const auto& name = area_names.at(area);
+			const auto& node_mat = node_matrices[node_index];
+
+			const auto world_pos = glm::vec3(node_mat[3]);
+			const auto clip_pos = view_proj_mat * glm::vec4(world_pos, 1.0f);
+			const auto ndc_pos = clip_pos / clip_pos.w;
+			const auto screen_pos =
+				glm::vec2(ndc_pos.x * 0.5f + 0.5f, ndc_pos.y * -0.5f + 0.5f) * viewport_size;
+
+			ImGui::SetNextWindowPos(ImVec2(screen_pos.x, screen_pos.y), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowCollapsed(false, ImGuiCond_Always);
+
+			const std::string window_name = std::format("##ClimateHUD{}", node_index);
+			if (ImGui::Begin(
+					window_name.c_str(),
+					nullptr,
+					ImGuiWindowFlags_NoMove
+						| ImGuiWindowFlags_NoDecoration
+						| ImGuiWindowFlags_AlwaysAutoResize
+				))
+			{
+
+				if (ImGui::IsWindowHovered())
+				{
+					ui::capsule::label(std::format("{}", name));
+					draw_bar(climate);
+				}
+				else
+				{
+					ImGui::Text("%s", name);
+				}
+			}
+			ImGui::End();
+		}
 	}
 
 	Climate Environment::generate_outdoor_climate(double sim_time) noexcept

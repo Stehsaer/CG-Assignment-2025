@@ -1,9 +1,15 @@
 #pragma once
 
 #include "area.hpp"
+#include "gltf/model.hpp"
+#include "render/param.hpp"
+#include "util/error.hpp"
 
 #include <array>
+#include <expected>
+#include <glm/glm.hpp>
 #include <optional>
+#include <span>
 
 namespace logic
 {
@@ -19,6 +25,8 @@ namespace logic
 	{
 	  public:
 
+		static std::expected<Environment, util::Error> create(const gltf::Model& model) noexcept;
+
 		///
 		/// @brief Control UI for climate data.
 		///
@@ -30,6 +38,17 @@ namespace logic
 		///
 		///
 		void chart_ui() noexcept;
+
+		///
+		/// @brief HUD UI for climate data
+		///
+		/// @param node_matrices Node transformation matrices
+		/// @param camera_matrices Camera transformation matrices
+		///
+		void hud_ui(
+			std::span<const glm::mat4> node_matrices,
+			const render::Camera_matrices& camera_matrices
+		) const noexcept;
 
 		struct Update_result
 		{
@@ -86,11 +105,25 @@ namespace logic
 			{Area::Exterior,      {}},
 		};
 
+		const std::map<Area, uint32_t> area_node_indices;
+		static const std::map<Area, std::string> area_node_names;
+
 		std::optional<double> prev_sim_time = std::nullopt;
 
 		void draw_bars() const noexcept;
 		void draw_comparison_table() const noexcept;
 
 		static Climate generate_outdoor_climate(double sim_time) noexcept;
+
+		Environment(std::map<Area, uint32_t> area_node_indices) :
+			area_node_indices(std::move(area_node_indices))
+		{}
+
+	  public:
+
+		Environment(const Environment&) = default;
+		Environment(Environment&&) = default;
+		Environment& operator=(const Environment&) = delete;
+		Environment& operator=(Environment&&) = delete;
 	};
 }

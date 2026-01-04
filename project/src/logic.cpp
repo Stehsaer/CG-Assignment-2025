@@ -107,6 +107,9 @@ std::expected<Logic, util::Error> Logic::create(const backend::SDL_context& cont
 	if (!furniture_controller)
 		return furniture_controller.error().forward("Create furniture controller failed");
 
+	auto environment = logic::Environment::create(*model);
+	if (!environment) return environment.error().forward("Create environment failed");
+
 	const auto prop = SDL_GetGPUDeviceProperties(context.device);
 	if (prop == 0) return util::Error("Get SDL GPU device properties failed");
 
@@ -125,6 +128,7 @@ std::expected<Logic, util::Error> Logic::create(const backend::SDL_context& cont
 		std::move(*model),
 		std::move(*light_controller),
 		std::move(*furniture_controller),
+		std::move(*environment),
 		device_name,
 		std::format("{} ({})", driver_name, driver_version),
 		*ceiling_node_index
@@ -232,6 +236,8 @@ void Logic::render_ui(
 			break;
 		}
 	}
+
+	if (view_mode == View_mode::Cross_section) environment.hud_ui(node_vertices, camera_matrices);
 
 	// Fire alarm UI
 	if (fire_alarm && fire_alarm->active)
