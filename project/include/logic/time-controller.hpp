@@ -2,6 +2,8 @@
 
 #include "render/param.hpp"
 
+#include <array>
+
 namespace logic
 {
 	class Time_controller

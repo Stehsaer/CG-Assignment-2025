@@ -310,6 +310,7 @@ namespace logic
 				if (ImGui::IsWindowHovered())
 				{
 					ui::capsule::label(std::format("{}", name));
+					ImGui::NewLine();
 					draw_bar(climate);
 				}
 				else
