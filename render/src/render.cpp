@@ -255,9 +255,9 @@ namespace render
 	) const noexcept
 	{
 		const pipeline::Auto_exposure::Params auto_exposure_params = {
-			.min_luminance = 1e-2,
-			.max_luminance = 500,
-			.eye_adaptation_rate = 1.5,
+			.min_luminance = EXPOSURE_MIN,
+			.max_luminance = EXPOSURE_MAX,
+			.eye_adaptation_rate = EXPOSURE_EYE_ADAPTATION_RATE,
 			.delta_time = ImGui::GetIO().DeltaTime
 		};
 
@@ -280,8 +280,11 @@ namespace render
 		glm::u32vec2 swapchain_size
 	) const noexcept
 	{
-		const pipeline::Bloom::Param bloom_render_params =
-			{.start_threshold = 2.0, .end_threshold = 10.0, .attenuation = params.bloom.bloom_attenuation};
+		const pipeline::Bloom::Param bloom_render_params = {
+			.start_threshold = BLOOM_START_THRES,
+			.end_threshold = BLOOM_END_THRES,
+			.attenuation = params.bloom.bloom_attenuation
+		};
 		const auto bloom_result = pipeline.bloom.render(
 			command_buffer,
 			target.light_buffer_target,

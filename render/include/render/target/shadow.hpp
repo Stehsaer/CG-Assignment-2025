@@ -31,6 +31,6 @@ namespace render::target
 
 		/* Resize */
 
-		std::expected<void, util::Error> resize(SDL_GPUDevice* device, glm::u32vec2 size) noexcept;
+		std::expected<void, util::Error> resize(SDL_GPUDevice* device) noexcept;
 	};
 }

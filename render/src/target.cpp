@@ -28,7 +28,7 @@ namespace render
 		if (const auto result = gbuffer_target.cycle(device, swapchain_size); !result)
 			return result.error().forward("Resize or cycle G-buffer target failed");
 
-		if (const auto result = shadow_target.resize(device, {3072, 3072}); !result)
+		if (const auto result = shadow_target.resize(device); !result)
 			return result.error().forward("Resize shadow target failed");
 
 		if (const auto result = light_buffer_target.cycle(device, swapchain_size); !result)
