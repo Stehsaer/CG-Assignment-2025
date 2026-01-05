@@ -56,7 +56,6 @@ void main()
     const vec4 reservoir_tex1_sample = texelFetch(reservoir_tex1, comp_coord, 0);
     const uvec4 reservoir_tex2_sample = texelFetch(reservoir_tex2, comp_coord, 0);
     const vec4 reservoir_tex4_sample = texelFetch(reservoir_tex4, comp_coord, 0);
-    const vec3 albedo = texelFetch(albedo_tex, full_coord, 0).rgb;
 
     // Reconstruct world position from full-res depth. Depth texture stores
     // post-projection depth in Vulkan's [0,1] NDC Z range (reverse-Z handled by proj).

@@ -305,7 +305,7 @@ void main()
             W_start_normal,
             W_view_dir,
             lighting.roughness
-        ) + 1e-2;
+        ) + (trace_result.hit ? 0.0 : 1e-2);
         const float w_new = p_hat / pdf;
 
         const bool updated = update_reservoir(

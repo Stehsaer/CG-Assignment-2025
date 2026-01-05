@@ -178,9 +178,7 @@ void main()
                 neighbor_reservoir_tex4
             );
 
-        const vec2 UV_neighbor = (vec2(neighbor_coord << 1) + 0.5) / vec2(full_resolution);
-        const vec4 W_neighbor_pos_h = inv_view_proj_mat * vec4(uv_to_ndc(UV_neighbor), neighbor_depth, 1.0);
-        const vec3 W_neighbor_pos = W_neighbor_pos_h.xyz / W_neighbor_pos_h.w;
+        const vec3 W_neighbor_pos = neighbor_reservoir.z.start_position;
 
         const float normal_similarity = dot(
                 neighbor_reservoir.z.start_normal,
