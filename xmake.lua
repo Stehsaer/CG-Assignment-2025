@@ -40,4 +40,4 @@ add_requires(
 add_requireconfs("**libsdl3", {override=true, version="main"})
 add_requireconfs("**imgui", {override=true, version="v1.92.1-docking", configs={sdl3=true, sdl3_gpu=true, wchar32=true}})
 
-includes("project", "lib", "render")
+includes("project", "lib")
