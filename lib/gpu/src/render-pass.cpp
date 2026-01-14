@@ -2,13 +2,13 @@
 
 namespace gpu
 {
-	void Render_pass::bind_pipeline(const Graphics_pipeline& pipeline) const noexcept
+	void RenderPass::bind_pipeline(const GraphicsPipeline& pipeline) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_BindGPUGraphicsPipeline(resource, pipeline);
 	}
 
-	void Render_pass::bind_vertex_buffers(
+	void RenderPass::bind_vertex_buffers(
 		uint32_t first_slot,
 		std::span<const SDL_GPUBufferBinding> bindings
 	) const noexcept
@@ -22,7 +22,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_index_buffer(
+	void RenderPass::bind_index_buffer(
 		const SDL_GPUBufferBinding& binding,
 		SDL_GPUIndexElementSize element_size
 	) const noexcept
@@ -31,7 +31,7 @@ namespace gpu
 		SDL_BindGPUIndexBuffer(resource, &binding, element_size);
 	}
 
-	void Render_pass::bind_vertex_samplers(
+	void RenderPass::bind_vertex_samplers(
 		uint32_t first_slot,
 		std::span<const SDL_GPUTextureSamplerBinding> bindings
 	) const noexcept
@@ -45,7 +45,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_vertex_storage_textures(
+	void RenderPass::bind_vertex_storage_textures(
 		uint32_t first_slot,
 		std::span<SDL_GPUTexture* const> textures
 	) const noexcept
@@ -59,7 +59,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_vertex_storage_buffers(
+	void RenderPass::bind_vertex_storage_buffers(
 		uint32_t first_slot,
 		std::span<SDL_GPUBuffer* const> buffers
 	) const noexcept
@@ -73,7 +73,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_fragment_samplers(
+	void RenderPass::bind_fragment_samplers(
 		uint32_t first_slot,
 		std::span<const SDL_GPUTextureSamplerBinding> bindings
 	) const noexcept
@@ -87,7 +87,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_fragment_storage_textures(
+	void RenderPass::bind_fragment_storage_textures(
 		uint32_t first_slot,
 		std::span<SDL_GPUTexture* const> textures
 	) const noexcept
@@ -101,7 +101,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::bind_fragment_storage_buffers(
+	void RenderPass::bind_fragment_storage_buffers(
 		uint32_t first_slot,
 		std::span<SDL_GPUBuffer* const> buffers
 	) const noexcept
@@ -115,7 +115,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::draw_indexed(
+	void RenderPass::draw_indexed(
 		uint32_t index_count,
 		uint32_t index_offset,
 		uint32_t instance_count,
@@ -134,7 +134,7 @@ namespace gpu
 		);
 	}
 
-	void Render_pass::draw(
+	void RenderPass::draw(
 		uint32_t vertex_count,
 		uint32_t vertex_offset,
 		uint32_t instance_count,
@@ -145,13 +145,13 @@ namespace gpu
 		SDL_DrawGPUPrimitives(resource, vertex_count, instance_count, vertex_offset, instance_offset);
 	}
 
-	void Render_pass::draw_indirect(const Buffer& buffer, uint32_t count, uint32_t offset) const noexcept
+	void RenderPass::draw_indirect(const Buffer& buffer, uint32_t count, uint32_t offset) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_DrawGPUPrimitivesIndirect(resource, buffer, offset, count);
 	}
 
-	void Render_pass::draw_indexed_indirect(
+	void RenderPass::draw_indexed_indirect(
 		const Buffer& buffer,
 		uint32_t count,
 		uint32_t offset
@@ -161,25 +161,25 @@ namespace gpu
 		SDL_DrawGPUIndexedPrimitivesIndirect(resource, buffer, offset, count);
 	}
 
-	void Render_pass::set_viewport(const SDL_GPUViewport& viewport) const noexcept
+	void RenderPass::set_viewport(const SDL_GPUViewport& viewport) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_SetGPUViewport(resource, &viewport);
 	}
 
-	void Render_pass::set_scissor(const SDL_Rect& scissor) const noexcept
+	void RenderPass::set_scissor(const SDL_Rect& scissor) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_SetGPUScissor(resource, &scissor);
 	}
 
-	void Render_pass::set_stencil_reference(uint8_t reference) const noexcept
+	void RenderPass::set_stencil_reference(uint8_t reference) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_SetGPUStencilReference(resource, reference);
 	}
 
-	void Render_pass::set_blend_constants(const SDL_FColor& blend_constants) const noexcept
+	void RenderPass::set_blend_constants(const SDL_FColor& blend_constants) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_SetGPUBlendConstants(resource, blend_constants);

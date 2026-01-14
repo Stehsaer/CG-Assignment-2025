@@ -4,12 +4,12 @@
 
 namespace gpu
 {
-	Command_buffer::Command_buffer(Command_buffer&& other) noexcept :
+	CommandBuffer::CommandBuffer(CommandBuffer&& other) noexcept :
 		device(std::exchange(other.device, nullptr)),
 		cmd_buffer(std::exchange(other.cmd_buffer, nullptr))
 	{}
 
-	Command_buffer& Command_buffer::operator=(Command_buffer&& other) noexcept
+	CommandBuffer& CommandBuffer::operator=(CommandBuffer&& other) noexcept
 	{
 		if (&other != this)
 		{
@@ -20,28 +20,28 @@ namespace gpu
 		return *this;
 	}
 
-	std::expected<Command_buffer, util::Error> Command_buffer::acquire_from(SDL_GPUDevice* device) noexcept
+	std::expected<CommandBuffer, util::Error> CommandBuffer::acquire_from(SDL_GPUDevice* device) noexcept
 	{
 		assert(device != nullptr);
 
 		auto* const cmd_buffer = SDL_AcquireGPUCommandBuffer(device);
 		if (cmd_buffer == nullptr) RETURN_SDL_ERROR;
 
-		return Command_buffer(device, cmd_buffer);
+		return CommandBuffer(device, cmd_buffer);
 	}
 
-	std::expected<Copy_pass, util::Error> Command_buffer::begin_copy_pass() const noexcept
+	std::expected<CopyPass, util::Error> CommandBuffer::begin_copy_pass() const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
 		auto* const copy_pass = SDL_BeginGPUCopyPass(cmd_buffer);
 		if (copy_pass == nullptr) RETURN_SDL_ERROR;
 
-		return Copy_pass(copy_pass);
+		return CopyPass(copy_pass);
 	}
 
-	std::expected<void, util::Error> Command_buffer::run_copy_pass(
-		const std::function<void(const Copy_pass&)>& task
+	std::expected<void, util::Error> CommandBuffer::run_copy_pass(
+		const std::function<void(const CopyPass&)>& task
 	) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
@@ -58,7 +58,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<Render_pass, util::Error> Command_buffer::begin_render_pass(
+	std::expected<RenderPass, util::Error> CommandBuffer::begin_render_pass(
 		std::span<const SDL_GPUColorTargetInfo> color_targets,
 		const std::optional<SDL_GPUDepthStencilTargetInfo>& depth_stencil_target
 	) const noexcept
@@ -73,13 +73,13 @@ namespace gpu
 		);
 
 		if (render_pass == nullptr) RETURN_SDL_ERROR;
-		return Render_pass(render_pass);
+		return RenderPass(render_pass);
 	}
 
-	std::expected<void, util::Error> Command_buffer::run_render_pass(
+	std::expected<void, util::Error> CommandBuffer::run_render_pass(
 		std::span<const SDL_GPUColorTargetInfo> color_targets,
 		const std::optional<SDL_GPUDepthStencilTargetInfo>& depth_stencil_target,
-		const std::function<void(const Render_pass&)>& task
+		const std::function<void(const RenderPass&)>& task
 	) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
@@ -96,7 +96,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<Compute_pass, util::Error> Command_buffer::begin_compute_pass(
+	std::expected<ComputePass, util::Error> CommandBuffer::begin_compute_pass(
 		std::span<const SDL_GPUStorageTextureReadWriteBinding> storage_textures,
 		std::span<const SDL_GPUStorageBufferReadWriteBinding> storage_buffers
 	) const noexcept
@@ -112,13 +112,13 @@ namespace gpu
 		);
 
 		if (compute_pass == nullptr) RETURN_SDL_ERROR;
-		return Compute_pass(compute_pass);
+		return ComputePass(compute_pass);
 	}
 
-	std::expected<void, util::Error> Command_buffer::run_compute_pass(
+	std::expected<void, util::Error> CommandBuffer::run_compute_pass(
 		std::span<const SDL_GPUStorageTextureReadWriteBinding> storage_textures,
 		std::span<const SDL_GPUStorageBufferReadWriteBinding> storage_buffers,
-		const std::function<void(const Compute_pass&)>& task
+		const std::function<void(const ComputePass&)>& task
 	) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
@@ -135,8 +135,8 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<std::optional<Command_buffer::Swapchain_texture_result>, util::Error>
-	Command_buffer::acquire_swapchain_texture(SDL_Window* window) const noexcept
+	std::expected<std::optional<CommandBuffer::SwapchainTextureResult>, util::Error>
+	CommandBuffer::acquire_swapchain_texture(SDL_Window* window) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		assert(window != nullptr);
@@ -151,15 +151,15 @@ namespace gpu
 
 		if (swapchain_texture == nullptr) return std::nullopt;
 
-		return Swapchain_texture_result{
+		return SwapchainTextureResult{
 			.swapchain_texture = swapchain_texture,
 			.width = width,
 			.height = height
 		};
 	}
 
-	std::expected<Command_buffer::Swapchain_texture_result, util::Error>
-	Command_buffer::wait_and_acquire_swapchain_texture(SDL_Window* window) const noexcept
+	std::expected<CommandBuffer::SwapchainTextureResult, util::Error>
+	CommandBuffer::wait_and_acquire_swapchain_texture(SDL_Window* window) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		assert(window != nullptr);
@@ -172,14 +172,14 @@ namespace gpu
 
 		if (!success) RETURN_SDL_ERROR;
 
-		return Swapchain_texture_result{
+		return SwapchainTextureResult{
 			.swapchain_texture = swapchain_texture,
 			.width = width,
 			.height = height
 		};
 	}
 
-	void Command_buffer::push_uniform_to_vertex(uint32_t slot, const void* data, size_t size) const noexcept
+	void CommandBuffer::push_uniform_to_vertex(uint32_t slot, const void* data, size_t size) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -187,7 +187,7 @@ namespace gpu
 		SDL_PushGPUVertexUniformData(cmd_buffer, slot, data, static_cast<int>(size));
 	}
 
-	void Command_buffer::push_uniform_to_fragment(uint32_t slot, const void* data, size_t size) const noexcept
+	void CommandBuffer::push_uniform_to_fragment(uint32_t slot, const void* data, size_t size) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -195,7 +195,7 @@ namespace gpu
 		SDL_PushGPUFragmentUniformData(cmd_buffer, slot, data, static_cast<int>(size));
 	}
 
-	void Command_buffer::push_uniform_to_compute(uint32_t slot, const void* data, size_t size) const noexcept
+	void CommandBuffer::push_uniform_to_compute(uint32_t slot, const void* data, size_t size) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -203,7 +203,7 @@ namespace gpu
 		SDL_PushGPUComputeUniformData(cmd_buffer, slot, data, static_cast<int>(size));
 	}
 
-	void Command_buffer::push_uniform_to_vertex(uint32_t slot, std::span<const std::byte> data) const noexcept
+	void CommandBuffer::push_uniform_to_vertex(uint32_t slot, std::span<const std::byte> data) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -211,7 +211,7 @@ namespace gpu
 		SDL_PushGPUVertexUniformData(cmd_buffer, slot, data.data(), static_cast<int>(data.size()));
 	}
 
-	void Command_buffer::push_uniform_to_fragment(
+	void CommandBuffer::push_uniform_to_fragment(
 		uint32_t slot,
 		std::span<const std::byte> data
 	) const noexcept
@@ -222,10 +222,7 @@ namespace gpu
 		SDL_PushGPUFragmentUniformData(cmd_buffer, slot, data.data(), static_cast<int>(data.size()));
 	}
 
-	void Command_buffer::push_uniform_to_compute(
-		uint32_t slot,
-		std::span<const std::byte> data
-	) const noexcept
+	void CommandBuffer::push_uniform_to_compute(uint32_t slot, std::span<const std::byte> data) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -233,37 +230,37 @@ namespace gpu
 		SDL_PushGPUComputeUniformData(cmd_buffer, slot, data.data(), static_cast<int>(data.size()));
 	}
 
-	void Command_buffer::generate_mipmaps(const Texture& texture) noexcept
+	void CommandBuffer::generate_mipmaps(const Texture& texture) noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_GenerateMipmapsForGPUTexture(cmd_buffer, texture);
 	}
 
-	void Command_buffer::blit_texture(const SDL_GPUBlitInfo& blit_info) const noexcept
+	void CommandBuffer::blit_texture(const SDL_GPUBlitInfo& blit_info) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_BlitGPUTexture(cmd_buffer, &blit_info);
 	}
 
-	void Command_buffer::insert_debug_label(const char* name) const noexcept
+	void CommandBuffer::insert_debug_label(const char* name) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_InsertGPUDebugLabel(cmd_buffer, name);
 	}
 
-	void Command_buffer::push_debug_group(const char* name) const noexcept
+	void CommandBuffer::push_debug_group(const char* name) const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_PushGPUDebugGroup(cmd_buffer, name);
 	}
 
-	void Command_buffer::pop_debug_group() const noexcept
+	void CommandBuffer::pop_debug_group() const noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_PopGPUDebugGroup(cmd_buffer);
 	}
 
-	std::expected<void, util::Error> Command_buffer::submit() noexcept
+	std::expected<void, util::Error> CommandBuffer::submit() noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -281,7 +278,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<Fence, util::Error> Command_buffer::submit_and_acquire_fence() noexcept
+	std::expected<Fence, util::Error> CommandBuffer::submit_and_acquire_fence() noexcept
 	{
 		assert(cmd_buffer != nullptr);
 
@@ -299,7 +296,7 @@ namespace gpu
 		return Fence(std::exchange(device, nullptr), fence);
 	}
 
-	void Command_buffer::cancel() noexcept
+	void CommandBuffer::cancel() noexcept
 	{
 		assert(cmd_buffer != nullptr);
 		SDL_CancelGPUCommandBuffer(cmd_buffer);
@@ -307,12 +304,12 @@ namespace gpu
 		device = nullptr;
 	}
 
-	Command_buffer::operator SDL_GPUCommandBuffer*() const noexcept
+	CommandBuffer::operator SDL_GPUCommandBuffer*() const noexcept
 	{
 		return this->cmd_buffer;
 	}
 
-	Command_buffer::Command_buffer(SDL_GPUDevice* device, SDL_GPUCommandBuffer* resource) noexcept :
+	CommandBuffer::CommandBuffer(SDL_GPUDevice* device, SDL_GPUCommandBuffer* resource) noexcept :
 		device(device),
 		cmd_buffer(resource)
 	{}

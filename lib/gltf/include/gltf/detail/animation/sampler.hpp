@@ -40,7 +40,7 @@ namespace gltf::detail::animation
 		// Keyframes stored as (time, value) pairs
 		std::variant<
 			std::vector<std::pair<float, T>>,
-			std::vector<std::pair<float, detail::animation::Cubic_keyframe<T>>>
+			std::vector<std::pair<float, detail::animation::CubicKeyFrame<T>>>
 		>
 			keyframes;
 
@@ -52,7 +52,7 @@ namespace gltf::detail::animation
 		}
 
 		Sampler(
-			std::vector<std::pair<float, detail::animation::Cubic_keyframe<T>>> keyframes,
+			std::vector<std::pair<float, detail::animation::CubicKeyFrame<T>>> keyframes,
 			Interpolation interpolation
 		) :
 			interpolation(interpolation),
@@ -106,7 +106,7 @@ namespace gltf::detail::animation
 
 		case Interpolation::Cubic:
 		{
-			using Vec_type = std::vector<std::pair<float, detail::animation::Cubic_keyframe<T>>>;
+			using Vec_type = std::vector<std::pair<float, detail::animation::CubicKeyFrame<T>>>;
 			assert((std::holds_alternative<Vec_type>(keyframes)));
 			const auto& keyframe_vec = std::get<Vec_type>(keyframes);
 
@@ -114,7 +114,7 @@ namespace gltf::detail::animation
 				keyframe_vec,
 				time,
 				{},
-				&std::pair<float, detail::animation::Cubic_keyframe<T>>::first
+				&std::pair<float, detail::animation::CubicKeyFrame<T>>::first
 			);
 			if (upper == keyframe_vec.begin()) return upper->second.value;
 			if (upper == keyframe_vec.end()) return std::prev(upper)->second.value;
@@ -210,12 +210,12 @@ namespace gltf::detail::animation
 					)
 				);
 
-			std::vector<std::pair<float, detail::animation::Cubic_keyframe<T>>> keyframes;
+			std::vector<std::pair<float, detail::animation::CubicKeyFrame<T>>> keyframes;
 			keyframes.reserve(timestamps.size());
 
 			for (const auto idx : std::views::iota(0u, timestamps.size()))
 			{
-				detail::animation::Cubic_keyframe<T> keyframe;
+				detail::animation::CubicKeyFrame<T> keyframe;
 				keyframe.in_tangent = values[idx * 3 + 0];
 				keyframe.value = values[idx * 3 + 1];
 				keyframe.out_tangent = values[idx * 3 + 2];
@@ -223,7 +223,7 @@ namespace gltf::detail::animation
 				keyframes.emplace_back(timestamps[idx], keyframe);
 			}
 
-			std::ranges::sort(keyframes, {}, &std::pair<float, detail::animation::Cubic_keyframe<T>>::first);
+			std::ranges::sort(keyframes, {}, &std::pair<float, detail::animation::CubicKeyFrame<T>>::first);
 
 			return Sampler<T>(std::move(keyframes), interpolation);
 		}

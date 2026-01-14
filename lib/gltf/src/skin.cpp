@@ -52,9 +52,9 @@ namespace gltf
 		);
 	}
 
-	std::expected<Skin_list, util::Error> Skin_list::from_tinygltf(const tinygltf::Model& model) noexcept
+	std::expected<SkinList, util::Error> SkinList::from_tinygltf(const tinygltf::Model& model) noexcept
 	{
-		Skin_list skin_collection;
+		SkinList skin_collection;
 
 		for (const auto [idx, elem] : model.skins | std::views::enumerate)
 		{
@@ -71,7 +71,7 @@ namespace gltf
 		return skin_collection;
 	}
 
-	std::vector<glm::mat4> Skin_list::compute_joint_matrices(
+	std::vector<glm::mat4> SkinList::compute_joint_matrices(
 		const std::vector<glm::mat4>& node_world_matrices
 	) const noexcept
 	{
@@ -87,16 +87,16 @@ namespace gltf
 		return joint_matrices;
 	}
 
-	std::expected<void, util::Error> Deferred_skinning_resource::prepare_gpu_buffers(
-		graphics::Buffer_pool& buffer_pool,
-		graphics::Transfer_buffer_pool& transfer_pool
+	std::expected<void, util::Error> DeferredSkinningResource::prepare_gpu_buffers(
+		graphics::BufferPool& buffer_pool,
+		graphics::TransferBufferPool& transfer_pool
 	) noexcept
 	{
 		if (upload_buffer || joint_matrices_buffer)
 			return util::Error("GPU buffers for skin computation already prepared");
 
 		const auto upload_buffer_result = transfer_pool.acquire_buffer(
-			gpu::Transfer_buffer::Usage::Upload,
+			gpu::TransferBuffer::Usage::Upload,
 			sizeof(glm::mat4) * joint_matrices_data.size()
 		);
 		if (!upload_buffer_result)
@@ -118,7 +118,7 @@ namespace gltf
 		return {};
 	}
 
-	void Deferred_skinning_resource::upload_gpu_buffers(const gpu::Copy_pass& copy_pass) noexcept
+	void DeferredSkinningResource::upload_gpu_buffers(const gpu::CopyPass& copy_pass) noexcept
 	{
 		assert(upload_buffer != nullptr && joint_matrices_buffer != nullptr);
 

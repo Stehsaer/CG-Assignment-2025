@@ -5,10 +5,10 @@ namespace graphics
 {
 	std::expected<void, util::Error> execute_copy_task(
 		SDL_GPUDevice* device,
-		const std::function<void(const gpu::Copy_pass&)>& task
+		const std::function<void(const gpu::CopyPass&)>& task
 	) noexcept
 	{
-		auto command_buffer = gpu::Command_buffer::acquire_from(device);
+		auto command_buffer = gpu::CommandBuffer::acquire_from(device);
 		if (!command_buffer) return command_buffer.error().forward("Acquire command buffer failed");
 
 		const auto copy_result = command_buffer->run_copy_pass(task);

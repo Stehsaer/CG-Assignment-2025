@@ -13,7 +13,7 @@
 namespace gltf
 {
 	// Sampler creation configuration
-	struct Sampler_config
+	struct SamplerConfig
 	{
 		float lod_bias = 0.0f;                   // LOD bias
 		std::optional<float> anisotropy = 4.0f;  // Max anisotropy, nullopt to disable anisotropic filtering
@@ -29,6 +29,6 @@ namespace gltf
 	std::expected<gpu::Sampler, util::Error> create_sampler(
 		SDL_GPUDevice* device,
 		const tinygltf::Sampler& sampler,
-		const Sampler_config& config
+		const SamplerConfig& config
 	) noexcept;
 }

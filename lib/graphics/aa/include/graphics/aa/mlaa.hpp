@@ -39,7 +39,7 @@ namespace graphics::aa
 
 		std::expected<void, util ::Error> run_antialiasing(
 			SDL_GPUDevice* device,
-			const gpu::Command_buffer& command_buffer,
+			const gpu::CommandBuffer& command_buffer,
 			SDL_GPUTexture* source,
 			SDL_GPUTexture* target,
 			glm::u32vec2 size
@@ -50,20 +50,20 @@ namespace graphics::aa
 		MLAA(
 			gpu::Sampler sampler,
 			gpu::Texture blend_lut,
-			Fullscreen_pass<true> pass1,
-			Fullscreen_pass<true> pass2,
-			Fullscreen_pass<true> pass3
+			FullscreenPass<true> pass1,
+			FullscreenPass<true> pass2,
+			FullscreenPass<true> pass3
 		) noexcept;
 
 		gpu::Sampler sampler;
 		gpu::Texture blend_lut;
 
-		Fullscreen_pass<true> pass1;
-		Fullscreen_pass<true> pass2;
-		Fullscreen_pass<true> pass3;
+		FullscreenPass<true> pass1;
+		FullscreenPass<true> pass2;
+		FullscreenPass<true> pass3;
 
-		Auto_texture edge_texture;
-		Auto_texture blend_texture;
+		AutoTexture edge_texture;
+		AutoTexture blend_texture;
 	};
 
 }

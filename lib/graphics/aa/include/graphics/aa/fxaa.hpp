@@ -39,7 +39,7 @@ namespace graphics::aa
 
 		std::expected<void, util::Error> run_antialiasing(
 			SDL_GPUDevice* device,
-			const gpu::Command_buffer& command_buffer,
+			const gpu::CommandBuffer& command_buffer,
 			SDL_GPUTexture* source,
 			SDL_GPUTexture* target,
 			glm::u32vec2 size
@@ -47,10 +47,10 @@ namespace graphics::aa
 
 	  private:
 
-		FXAA(Fullscreen_pass<true> fxaa_pass, gpu::Sampler sampler) noexcept;
+		FXAA(FullscreenPass<true> fxaa_pass, gpu::Sampler sampler) noexcept;
 
 		gpu::Sampler sampler;
-		Fullscreen_pass<true> fxaa_pass;
+		FullscreenPass<true> fxaa_pass;
 	};
 
 }

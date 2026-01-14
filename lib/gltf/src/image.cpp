@@ -32,14 +32,14 @@ namespace gltf
 	}
 
 	template <typename T>
-	static std::function<std::expected<gpu::Texture, util::Error>(const image::Image_container<T>&)>
+	static std::function<std::expected<gpu::Texture, util::Error>(const image::ImageContainer<T>&)>
 	create_texture_from_image_fn(
 		SDL_GPUDevice* device,
 		SDL_GPUTextureFormat format,
 		const std::string& name
 	) noexcept
 	{
-		return [device, format, name](const image::Image_container<T>& image) {
+		return [device, format, name](const image::ImageContainer<T>& image) {
 			return graphics::create_texture_from_image(
 				device,
 				gpu::Texture::Format{
@@ -93,7 +93,7 @@ namespace gltf
 		{
 			return extract_u8_rgba(image)
 				.and_then(image::compress_to_bc3)
-				.and_then(create_texture_from_image_fn<image::BC_block_8bpp>(device, format, name))
+				.and_then(create_texture_from_image_fn<image::CompressionBlock>(device, format, name))
 				.transform_error(util::Error::forward_fn());
 		}
 
@@ -101,7 +101,7 @@ namespace gltf
 			.transform([](const auto& uncompressed_image) {
 				return image::generate_mipmap(uncompressed_image, {4, 4});
 			})
-			.and_then(image::Compress_mipmap(image::compress_to_bc3))
+			.and_then(image::CompressMipmap(image::compress_to_bc3))
 			.and_then(create_texture_from_mipmap_fn(device, format, name))
 			.transform_error(util::Error::forward_fn());
 	}
@@ -127,7 +127,7 @@ namespace gltf
 		{
 			return extract_u8_rgba(image)
 				.and_then(image::compress_to_bc7)
-				.and_then(create_texture_from_image_fn<image::BC_block_8bpp>(device, format, name))
+				.and_then(create_texture_from_image_fn<image::CompressionBlock>(device, format, name))
 				.transform_error(util::Error::forward_fn());
 		}
 
@@ -135,7 +135,7 @@ namespace gltf
 			.transform([](const auto& uncompressed_image) {
 				return image::generate_mipmap(uncompressed_image, {4, 4});
 			})
-			.and_then(image::Compress_mipmap(image::compress_to_bc7))
+			.and_then(image::CompressMipmap(image::compress_to_bc7))
 			.and_then(create_texture_from_mipmap_fn(device, format, name))
 			.transform_error(util::Error::forward_fn());
 	}
@@ -171,7 +171,7 @@ namespace gltf
 				return extract_u8_rgba(image)
 					.and_then(image::compress_to_bc5)
 					.and_then(
-						create_texture_from_image_fn<image::BC_block_8bpp>(
+						create_texture_from_image_fn<image::CompressionBlock>(
 							device,
 							SDL_GPU_TEXTUREFORMAT_BC5_RG_UNORM,
 							name
@@ -203,7 +203,7 @@ namespace gltf
 		{
 			return extract_u8_rgba(image)
 				.transform([](const auto& img) { return image::generate_mipmap(img, {4, 4}); })
-				.and_then(image::Compress_mipmap(image::compress_to_bc5))
+				.and_then(image::CompressMipmap(image::compress_to_bc5))
 				.and_then(create_texture_from_mipmap_fn(device, SDL_GPU_TEXTUREFORMAT_BC5_RG_UNORM, name))
 				.transform_error(util::Error::forward_fn());
 		}
@@ -261,7 +261,7 @@ namespace gltf
 					})
 					.and_then(image::compress_to_bc5)
 					.and_then(
-						create_texture_from_image_fn<image::BC_block_8bpp>(
+						create_texture_from_image_fn<image::CompressionBlock>(
 							device,
 							SDL_GPU_TEXTUREFORMAT_BC5_RG_UNORM,
 							name
@@ -298,7 +298,7 @@ namespace gltf
 					});
 				})
 				.transform([&](const auto& img) { return image::generate_mipmap(img, {4, 4}); })
-				.and_then(image::Compress_mipmap(image::compress_to_bc5))
+				.and_then(image::CompressMipmap(image::compress_to_bc5))
 				.and_then(create_texture_from_mipmap_fn(device, SDL_GPU_TEXTUREFORMAT_BC5_RG_UNORM, name))
 				.transform_error(util::Error::forward_fn());
 		}
@@ -318,18 +318,18 @@ namespace gltf
 	std::expected<gpu::Texture, util::Error> create_color_texture_from_image(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		Color_compress_mode compress_mode,
+		ColorCompressMode compress_mode,
 		bool srgb,
 		const std::string& name
 	) noexcept
 	{
 		switch (compress_mode)
 		{
-		case Color_compress_mode::RGBA8_raw:
+		case ColorCompressMode::RGBA8_raw:
 			return create_color_uncompressed(device, image, srgb, name);
-		case Color_compress_mode::RGBA8_BC3:
+		case ColorCompressMode::RGBA8_BC3:
 			return create_color_bc3(device, image, srgb, name);
-		case Color_compress_mode::RGBA8_BC7:
+		case ColorCompressMode::RGBA8_BC7:
 			return create_color_bc7(device, image, srgb, name);
 		}
 
@@ -339,14 +339,14 @@ namespace gltf
 	std::expected<gpu::Texture, util::Error> create_normal_texture_from_image(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		Normal_compress_mode compress_mode,
+		NormalCompressMode compress_mode,
 		const std::string& name
 	) noexcept
 	{
 		const bool compress_when_8bit =
-			(compress_mode == Normal_compress_mode::RGn_BC5
-			 || compress_mode == Normal_compress_mode::RG16_raw_RG8_BC5);
-		const bool compress_when_16bit = (compress_mode == Normal_compress_mode::RGn_BC5);
+			(compress_mode == NormalCompressMode::RGn_BC5
+			 || compress_mode == NormalCompressMode::RG16_raw_RG8_BC5);
+		const bool compress_when_16bit = (compress_mode == NormalCompressMode::RGn_BC5);
 
 		if (image.bits == 8 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
 			return create_normal_8bit(device, image, compress_when_8bit, name);

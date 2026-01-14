@@ -10,15 +10,15 @@ namespace gpu
 	/// @brief GPU Pass Template
 	///
 	template <typename T>
-	class Scoped_pass
+	class ScopedPass
 	{
 	  protected:
 
-		friend class Command_buffer;
+		friend class CommandBuffer;
 
 		T* resource;
 
-		Scoped_pass(T* resource) noexcept :
+		ScopedPass(T* resource) noexcept :
 			resource(resource)
 		{
 			assert(resource != nullptr);
@@ -28,21 +28,21 @@ namespace gpu
 
 	  public:
 
-		Scoped_pass(const Scoped_pass&) = delete;
-		Scoped_pass& operator=(const Scoped_pass&) = delete;
+		ScopedPass(const ScopedPass&) = delete;
+		ScopedPass& operator=(const ScopedPass&) = delete;
 
-		Scoped_pass(Scoped_pass&& other) noexcept :
+		ScopedPass(ScopedPass&& other) noexcept :
 			resource(other.resource)
 		{
 			other.resource = nullptr;
 		}
 
-		Scoped_pass& operator=(Scoped_pass&& other) noexcept
+		ScopedPass& operator=(ScopedPass&& other) noexcept
 		{
 			if (&other != this)
 			{
-				this->~Scoped_pass();
-				new (this) Scoped_pass(std::move(other));
+				this->~ScopedPass();
+				new (this) ScopedPass(std::move(other));
 			}
 
 			return *this;
@@ -61,6 +61,6 @@ namespace gpu
 			resource = nullptr;
 		}
 
-		~Scoped_pass() noexcept { assert(resource == nullptr); }
+		~ScopedPass() noexcept { assert(resource == nullptr); }
 	};
 }

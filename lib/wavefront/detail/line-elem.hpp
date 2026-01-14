@@ -9,22 +9,22 @@
 
 namespace wavefront::detail
 {
-	struct Position_line
+	struct PositionLine
 	{
 		glm::vec3 pos;
 	};
 
-	struct Uv_line
+	struct UvLine
 	{
 		glm::vec2 uv;
 	};
 
-	struct Normal_line
+	struct NormalLine
 	{
 		glm::vec3 normal;
 	};
 
-	struct Face_line
+	struct FaceLine
 	{
 		struct Index
 		{
@@ -38,5 +38,5 @@ namespace wavefront::detail
 		std::array<Index, 3> as_array() const noexcept;
 	};
 
-	using Parsed_line = std::variant<std::monostate, Position_line, Uv_line, Normal_line, Face_line>;
+	using ParsedLine = std::variant<std::monostate, PositionLine, UvLine, NormalLine, FaceLine>;
 }

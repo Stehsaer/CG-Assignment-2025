@@ -4,7 +4,7 @@ namespace gpu
 {
 #define DEF_DELETER(name)                                                                                    \
 	template <>                                                                                              \
-	void Resource_box<SDL_GPU##name>::delete_resource() noexcept                                             \
+	void ResourceBox<SDL_GPU##name>::delete_resource() noexcept                                              \
 	{                                                                                                        \
 		if (device == nullptr || resource == nullptr) return;                                                \
 		SDL_ReleaseGPU##name(device, resource);                                                              \

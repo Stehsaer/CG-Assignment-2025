@@ -3,18 +3,18 @@
 
 namespace graphics
 {
-	void Buffer_pool::cycle() noexcept
+	void BufferPool::cycle() noexcept
 	{
 		for (auto& [key, buffer] : in_use_buffers) backup_pool[key].emplace_back(std::move(buffer));
 		in_use_buffers.clear();
 	}
 
-	std::expected<std::shared_ptr<gpu::Buffer>, util::Error> Buffer_pool::acquire_buffer(
+	std::expected<std::shared_ptr<gpu::Buffer>, util::Error> BufferPool::acquire_buffer(
 		gpu::Buffer::Usage usage,
 		uint32_t size
 	) noexcept
 	{
-		const Pool_key key{.size = size, .usage = usage};
+		const PoolKey key{.size = size, .usage = usage};
 
 		/* Search for available buffer */
 
@@ -36,23 +36,23 @@ namespace graphics
 		return in_use_buffers.back().second;
 	}
 
-	void Buffer_pool::gc() noexcept
+	void BufferPool::gc() noexcept
 	{
 		backup_pool.clear();
 	}
 
-	void Transfer_buffer_pool::cycle() noexcept
+	void TransferBufferPool::cycle() noexcept
 	{
 		for (auto& [key, buffer] : in_use_buffers) backup_pool[key].emplace_back(std::move(buffer));
 		in_use_buffers.clear();
 	}
 
-	std::expected<std::shared_ptr<gpu::Transfer_buffer>, util::Error> Transfer_buffer_pool::acquire_buffer(
-		gpu::Transfer_buffer::Usage usage,
+	std::expected<std::shared_ptr<gpu::TransferBuffer>, util::Error> TransferBufferPool::acquire_buffer(
+		gpu::TransferBuffer::Usage usage,
 		uint32_t size
 	) noexcept
 	{
-		const Pool_key key{.usage = usage, .size = size};
+		const PoolKey key{.usage = usage, .size = size};
 
 		/* Search for available buffer */
 
@@ -67,15 +67,15 @@ namespace graphics
 
 		/* Create new buffer */
 
-		auto buffer_result = gpu::Transfer_buffer::create(device, usage, size);
+		auto buffer_result = gpu::TransferBuffer::create(device, usage, size);
 		if (!buffer_result) return buffer_result.error().forward("Create transfer buffer failed");
 
 		in_use_buffers
-			.emplace_back(key, std::make_shared<gpu::Transfer_buffer>(std::move(buffer_result.value())));
+			.emplace_back(key, std::make_shared<gpu::TransferBuffer>(std::move(buffer_result.value())));
 		return in_use_buffers.back().second;
 	}
 
-	void Transfer_buffer_pool::gc() noexcept
+	void TransferBufferPool::gc() noexcept
 	{
 		backup_pool.clear();
 	}

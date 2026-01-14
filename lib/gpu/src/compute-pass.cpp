@@ -3,13 +3,13 @@
 
 namespace gpu
 {
-	void Compute_pass::bind_pipeline(const Compute_pipeline& pipeline) const noexcept
+	void ComputePass::bind_pipeline(const ComputePipeline& pipeline) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_BindGPUComputePipeline(resource, pipeline);
 	}
 
-	void Compute_pass::bind_samplers(
+	void ComputePass::bind_samplers(
 		uint32_t first_slot,
 		std::span<const SDL_GPUTextureSamplerBinding> samplers
 	) const noexcept
@@ -23,7 +23,7 @@ namespace gpu
 		);
 	}
 
-	void Compute_pass::bind_storage_textures(
+	void ComputePass::bind_storage_textures(
 		uint32_t first_slot,
 		std::span<SDL_GPUTexture* const> textures
 	) const noexcept
@@ -37,7 +37,7 @@ namespace gpu
 		);
 	}
 
-	void Compute_pass::bind_storage_buffers(
+	void ComputePass::bind_storage_buffers(
 		uint32_t first_slot,
 		std::span<SDL_GPUBuffer* const> buffers
 	) const noexcept
@@ -51,7 +51,7 @@ namespace gpu
 		);
 	}
 
-	void Compute_pass::dispatch(
+	void ComputePass::dispatch(
 		uint32_t group_count_x,
 		uint32_t group_count_y,
 		uint32_t group_count_z
@@ -61,7 +61,7 @@ namespace gpu
 		SDL_DispatchGPUCompute(resource, group_count_x, group_count_y, group_count_z);
 	}
 
-	void Compute_pass::dispatch_indirect(const Buffer& buffer, uint32_t offset) const noexcept
+	void ComputePass::dispatch_indirect(const Buffer& buffer, uint32_t offset) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_DispatchGPUComputeIndirect(resource, buffer, offset);

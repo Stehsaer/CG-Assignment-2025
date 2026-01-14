@@ -34,7 +34,7 @@ namespace gltf::detail::animation
 
 	// Cubic Spline Keyframe
 	template <typename T>
-	struct Cubic_keyframe
+	struct CubicKeyFrame
 	{
 		T in_tangent;
 		T value;
@@ -54,8 +54,8 @@ namespace gltf::detail::animation
 	///
 	template <typename T>
 	T interpolate_cubic_spline(
-		const Cubic_keyframe<T>& a,
-		const Cubic_keyframe<T>& b,
+		const CubicKeyFrame<T>& a,
+		const CubicKeyFrame<T>& b,
 		float at,
 		float bt,
 		float t

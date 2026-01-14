@@ -25,7 +25,7 @@ namespace gltf
 		bool operator==(const Vertex& other) const noexcept;
 	};
 
-	struct Rigged_vertex
+	struct RiggedVertex
 	{
 		glm::vec3 position;
 		glm::vec3 normal;
@@ -34,29 +34,29 @@ namespace gltf
 		glm::uvec4 joint_indices;
 		glm::vec4 joint_weights;
 
-		bool operator==(const Rigged_vertex& other) const noexcept;
+		bool operator==(const RiggedVertex& other) const noexcept;
 	};
 
-	struct Shadow_vertex
+	struct ShadowVertex
 	{
 		glm::vec3 position;
 		glm::vec2 texcoord;
 
-		bool operator==(const Shadow_vertex& other) const noexcept;
+		bool operator==(const ShadowVertex& other) const noexcept;
 
-		static Shadow_vertex from_vertex(const Vertex& vertex) noexcept;
+		static ShadowVertex from_vertex(const Vertex& vertex) noexcept;
 	};
 
-	struct Rigged_shadow_vertex
+	struct RiggedShadowVertex
 	{
 		glm::vec3 position;
 		glm::vec2 texcoord;
 		glm::uvec4 joint_indices;
 		glm::vec4 joint_weights;
 
-		bool operator==(const Rigged_shadow_vertex& other) const noexcept;
+		bool operator==(const RiggedShadowVertex& other) const noexcept;
 
-		static Rigged_shadow_vertex from_rigged_vertex(const Rigged_vertex& vertex) noexcept;
+		static RiggedShadowVertex from_rigged_vertex(const RiggedVertex& vertex) noexcept;
 	};
 
 	// Primitive Mesh Data
@@ -65,7 +65,7 @@ namespace gltf
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 
-		std::vector<Shadow_vertex> shadow_vertices;
+		std::vector<ShadowVertex> shadow_vertices;
 		std::vector<uint32_t> shadow_indices;
 
 		std::optional<uint32_t> material;
@@ -86,12 +86,12 @@ namespace gltf
 	};
 
 	// Rigged Primitive Mesh Data
-	struct Rigged_primitive
+	struct RiggedPrimitive
 	{
-		std::vector<Rigged_vertex> vertices;
+		std::vector<RiggedVertex> vertices;
 		std::vector<uint32_t> indices;
 
-		std::vector<Rigged_shadow_vertex> shadow_vertices;
+		std::vector<RiggedShadowVertex> shadow_vertices;
 		std::vector<uint32_t> shadow_indices;
 
 		std::optional<uint32_t> material;
@@ -105,14 +105,14 @@ namespace gltf
 		/// @param primitive Tinygltf primitive
 		/// @return Rigged_primitive on success, or error on failure
 		///
-		static std::expected<Rigged_primitive, util::Error> from_tinygltf(
+		static std::expected<RiggedPrimitive, util::Error> from_tinygltf(
 			const tinygltf::Model& model,
 			const tinygltf::Primitive& primitive
 		) noexcept;
 	};
 
 	// Plain raw data for drawing a primitive
-	struct Primitive_mesh_binding
+	struct PrimitiveMeshBinding
 	{
 		SDL_GPUBufferBinding vertex_buffer_binding;
 		SDL_GPUBufferBinding index_buffer_binding;
@@ -123,7 +123,7 @@ namespace gltf
 	};
 
 	// Primitive Mesh Data for GPU
-	struct Primitive_gpu
+	struct PrimitiveGPU
 	{
 		uint32_t index_count;
 
@@ -142,7 +142,7 @@ namespace gltf
 		/// @param primitive CPU-side primitive
 		/// @return GPU-side primitive, or error on failure
 		///
-		static std::expected<Primitive_gpu, util::Error> from_primitive(
+		static std::expected<PrimitiveGPU, util::Error> from_primitive(
 			SDL_GPUDevice* device,
 			const Primitive& primitive
 		) noexcept;
@@ -153,16 +153,16 @@ namespace gltf
 		/// @param primitive CPU-side rigged primitive
 		/// @return GPU-side primitive, or error on failure
 		///
-		static std::expected<Primitive_gpu, util::Error> from_rigged_primitive(
+		static std::expected<PrimitiveGPU, util::Error> from_rigged_primitive(
 			SDL_GPUDevice* device,
-			const Rigged_primitive& primitive
+			const RiggedPrimitive& primitive
 		) noexcept;
 
 		///
 		/// @brief Generate drawdata for this primitive
 		/// @return (Primitive_draw, local_position_min, local_position_max)
 		///
-		FORCE_INLINE std::tuple<Primitive_mesh_binding, glm::vec3, glm::vec3> gen_drawdata() const noexcept
+		FORCE_INLINE std::tuple<PrimitiveMeshBinding, glm::vec3, glm::vec3> gen_drawdata() const noexcept
 		{
 			return {
 				{.vertex_buffer_binding = {.buffer = vertex_buffer, .offset = 0},
@@ -181,7 +181,7 @@ namespace gltf
 	struct Mesh
 	{
 		std::vector<Primitive> primitives;
-		std::vector<Rigged_primitive> rigged_primitives;
+		std::vector<RiggedPrimitive> rigged_primitives;
 
 		///
 		/// @brief Parse a `tinygltf::Mesh` into a `Mesh`
@@ -197,9 +197,9 @@ namespace gltf
 	};
 
 	// Mesh data on GPU side
-	struct Mesh_gpu
+	struct MeshGPU
 	{
-		std::vector<Primitive_gpu> primitives;
+		std::vector<PrimitiveGPU> primitives;
 
 		///
 		/// @brief Upload a `Mesh` to GPU, creating `Mesh_gpu`
@@ -207,7 +207,7 @@ namespace gltf
 		/// @param mesh CPU-side mesh
 		/// @return GPU-side mesh, or error on failure
 		///
-		static std::expected<Mesh_gpu, util::Error> from_mesh(
+		static std::expected<MeshGPU, util::Error> from_mesh(
 			SDL_GPUDevice* device,
 			const Mesh& mesh
 		) noexcept;

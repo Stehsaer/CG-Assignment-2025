@@ -10,7 +10,7 @@
 
 namespace gpu
 {
-	class Render_pass : public Scoped_pass<SDL_GPURenderPass>
+	class RenderPass : public ScopedPass<SDL_GPURenderPass>
 	{
 	  public:
 
@@ -18,7 +18,7 @@ namespace gpu
 		/// @brief Binds a graphics pipeline
 		/// @param pipeline Graphics pipeline
 		///
-		void bind_pipeline(const Graphics_pipeline& pipeline) const noexcept;
+		void bind_pipeline(const GraphicsPipeline& pipeline) const noexcept;
 
 		///
 		/// @brief Binds some vertex buffers
@@ -296,6 +296,6 @@ namespace gpu
 
 	  private:
 
-		using Scoped_pass<SDL_GPURenderPass>::Scoped_pass;
+		using ScopedPass<SDL_GPURenderPass>::ScopedPass;
 	};
 }

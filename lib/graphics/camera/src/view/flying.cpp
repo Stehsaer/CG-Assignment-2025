@@ -20,7 +20,7 @@ namespace graphics::camera::view
 	{
 		return Flying{
 			.position = glm::mix(a.position, b.position, t),
-			.angles = Spherical_angle::lerp(a.angles, b.angles, t),
+			.angles = SphericalAngle::lerp(a.angles, b.angles, t),
 			.up = graphics::slerp(a.up, b.up, t)
 		};
 	}

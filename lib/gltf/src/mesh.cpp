@@ -23,7 +23,7 @@ namespace gltf
 		return position_equal && normal_equal && texcoord_equal && tangent_equal;
 	}
 
-	bool Rigged_vertex::operator==(const Rigged_vertex& other) const noexcept
+	bool RiggedVertex::operator==(const RiggedVertex& other) const noexcept
 	{
 		const bool position_equal = position == other.position;
 		const bool normal_equal = glm::dot(normal, other.normal) >= vertex_eq_thres;
@@ -41,7 +41,7 @@ namespace gltf
 			&& joint_weights_equal;
 	}
 
-	bool Shadow_vertex::operator==(const Shadow_vertex& other) const noexcept
+	bool ShadowVertex::operator==(const ShadowVertex& other) const noexcept
 	{
 		const bool position_equal = position == other.position;
 		const bool texcoord_equal = texcoord == other.texcoord;
@@ -49,7 +49,7 @@ namespace gltf
 		return position_equal && texcoord_equal;
 	}
 
-	bool Rigged_shadow_vertex::operator==(const Rigged_shadow_vertex& other) const noexcept
+	bool RiggedShadowVertex::operator==(const RiggedShadowVertex& other) const noexcept
 	{
 		const bool position_equal = position == other.position;
 		const bool texcoord_equal = texcoord == other.texcoord;
@@ -60,17 +60,17 @@ namespace gltf
 		return position_equal && texcoord_equal && joint_indices_equal && joint_weights_equal;
 	}
 
-	Shadow_vertex Shadow_vertex::from_vertex(const Vertex& vertex) noexcept
+	ShadowVertex ShadowVertex::from_vertex(const Vertex& vertex) noexcept
 	{
-		return Shadow_vertex{
+		return ShadowVertex{
 			.position = vertex.position,
 			.texcoord = vertex.texcoord,
 		};
 	}
 
-	Rigged_shadow_vertex Rigged_shadow_vertex::from_rigged_vertex(const Rigged_vertex& vertex) noexcept
+	RiggedShadowVertex RiggedShadowVertex::from_rigged_vertex(const RiggedVertex& vertex) noexcept
 	{
-		return Rigged_shadow_vertex{
+		return RiggedShadowVertex{
 			.position = vertex.position,
 			.texcoord = vertex.texcoord,
 			.joint_indices = vertex.joint_indices,
@@ -97,20 +97,20 @@ namespace gltf
 		auto [optimized_vertices, optimized_indices] = optimize_primitive(*vertex_list_result);
 		auto [optimized_shadow_vertices, optimized_shadow_indices] = optimize_primitive(
 			*vertex_list_result
-			| std::views::transform(&Shadow_vertex::from_vertex)
+			| std::views::transform(&ShadowVertex::from_vertex)
 			| std::ranges::to<std::vector>()
 		);
 
 		/* Calculate Min/Max */
 
 		auto position_min = std::ranges::fold_left(
-			optimized_shadow_vertices | std::views::transform(&Shadow_vertex::position),
+			optimized_shadow_vertices | std::views::transform(&ShadowVertex::position),
 			glm::vec3(std::numeric_limits<float>::max()),
 			[](const glm::vec3& a, const glm::vec3& b) { return glm::min(a, b); }
 		);
 
 		auto position_max = std::ranges::fold_left(
-			optimized_shadow_vertices | std::views::transform(&Shadow_vertex::position),
+			optimized_shadow_vertices | std::views::transform(&ShadowVertex::position),
 			glm::vec3(std::numeric_limits<float>::lowest()),
 			[](const glm::vec3& a, const glm::vec3& b) { return glm::max(a, b); }
 		);
@@ -139,7 +139,7 @@ namespace gltf
 		};
 	}
 
-	std::expected<Rigged_primitive, util::Error> Rigged_primitive::from_tinygltf(
+	std::expected<RiggedPrimitive, util::Error> RiggedPrimitive::from_tinygltf(
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive
 	) noexcept
@@ -153,20 +153,20 @@ namespace gltf
 		auto [optimized_vertices, optimized_indices] = optimize_primitive(*vertex_list_result);
 		auto [optimized_shadow_vertices, optimized_shadow_indices] = optimize_primitive(
 			*vertex_list_result
-			| std::views::transform(&Rigged_shadow_vertex::from_rigged_vertex)
+			| std::views::transform(&RiggedShadowVertex::from_rigged_vertex)
 			| std::ranges::to<std::vector>()
 		);
 
 		/* Calculate Min/Max */
 
 		auto position_min = std::ranges::fold_left(
-			optimized_shadow_vertices | std::views::transform(&Rigged_shadow_vertex::position),
+			optimized_shadow_vertices | std::views::transform(&RiggedShadowVertex::position),
 			glm::vec3(std::numeric_limits<float>::max()),
 			[](const glm::vec3& a, const glm::vec3& b) { return glm::min(a, b); }
 		);
 
 		auto position_max = std::ranges::fold_left(
-			optimized_shadow_vertices | std::views::transform(&Rigged_shadow_vertex::position),
+			optimized_shadow_vertices | std::views::transform(&RiggedShadowVertex::position),
 			glm::vec3(std::numeric_limits<float>::lowest()),
 			[](const glm::vec3& a, const glm::vec3& b) { return glm::max(a, b); }
 		);
@@ -184,7 +184,7 @@ namespace gltf
 			position_max = glm::max(position_max, center + glm::vec3(min_extent));
 		}
 
-		return Rigged_primitive{
+		return RiggedPrimitive{
 			.vertices = std::move(optimized_vertices),
 			.indices = std::move(optimized_indices),
 			.shadow_vertices = std::move(optimized_shadow_vertices),
@@ -195,7 +195,7 @@ namespace gltf
 		};
 	}
 
-	std::expected<Primitive_gpu, util::Error> Primitive_gpu::from_primitive(
+	std::expected<PrimitiveGPU, util::Error> PrimitiveGPU::from_primitive(
 		SDL_GPUDevice* device,
 		const Primitive& primitive
 	) noexcept
@@ -235,7 +235,7 @@ namespace gltf
 		if (!shadow_index_buffer)
 			return shadow_index_buffer.error().forward("Create position index buffer failed");
 
-		return Primitive_gpu{
+		return PrimitiveGPU{
 			.index_count = static_cast<uint32_t>(primitive.indices.size()),
 
 			.vertex_buffer = std::move(*vertex_buffer),
@@ -250,9 +250,9 @@ namespace gltf
 		};
 	}
 
-	std::expected<Primitive_gpu, util::Error> Primitive_gpu::from_rigged_primitive(
+	std::expected<PrimitiveGPU, util::Error> PrimitiveGPU::from_rigged_primitive(
 		SDL_GPUDevice* device,
-		const Rigged_primitive& primitive
+		const RiggedPrimitive& primitive
 	) noexcept
 	{
 		auto vertex_buffer = graphics::create_buffer_from_data(
@@ -290,7 +290,7 @@ namespace gltf
 		if (!shadow_index_buffer)
 			return shadow_index_buffer.error().forward("Create position index buffer failed");
 
-		return Primitive_gpu{
+		return PrimitiveGPU{
 			.index_count = static_cast<uint32_t>(primitive.indices.size()),
 
 			.vertex_buffer = std::move(*vertex_buffer),
@@ -311,7 +311,7 @@ namespace gltf
 	) noexcept
 	{
 		std::vector<Primitive> primitives;
-		std::vector<Rigged_primitive> rigged_primitives;
+		std::vector<RiggedPrimitive> rigged_primitives;
 		primitives.reserve(mesh.primitives.size());
 		rigged_primitives.reserve(mesh.primitives.size());
 
@@ -319,7 +319,7 @@ namespace gltf
 		{
 			if (primitive.attributes.contains("JOINTS_0") || primitive.attributes.contains("WEIGHTS_0"))
 			{
-				auto rigged_primitive_result = Rigged_primitive::from_tinygltf(model, primitive);
+				auto rigged_primitive_result = RiggedPrimitive::from_tinygltf(model, primitive);
 				if (!rigged_primitive_result)
 					return rigged_primitive_result.error().forward("Create Rigged_Primitive failed");
 
@@ -337,14 +337,14 @@ namespace gltf
 		return Mesh{.primitives = std::move(primitives), .rigged_primitives = std::move(rigged_primitives)};
 	}
 
-	std::expected<Mesh_gpu, util::Error> Mesh_gpu::from_mesh(SDL_GPUDevice* device, const Mesh& mesh) noexcept
+	std::expected<MeshGPU, util::Error> MeshGPU::from_mesh(SDL_GPUDevice* device, const Mesh& mesh) noexcept
 	{
-		std::vector<Primitive_gpu> primitives;
+		std::vector<PrimitiveGPU> primitives;
 		primitives.reserve(mesh.primitives.size() + mesh.rigged_primitives.size());
 
 		for (const auto& primitive : mesh.primitives)
 		{
-			auto primitive_result = Primitive_gpu::from_primitive(device, primitive);
+			auto primitive_result = PrimitiveGPU::from_primitive(device, primitive);
 			if (!primitive_result) return primitive_result.error().forward("Create Primitive_gpu failed");
 
 			primitives.emplace_back(std::move(*primitive_result));
@@ -352,13 +352,13 @@ namespace gltf
 
 		for (const auto& rigged_primitive : mesh.rigged_primitives)
 		{
-			auto rigged_primitive_result = Primitive_gpu::from_rigged_primitive(device, rigged_primitive);
+			auto rigged_primitive_result = PrimitiveGPU::from_rigged_primitive(device, rigged_primitive);
 			if (!rigged_primitive_result)
 				return rigged_primitive_result.error().forward("Create Rigged_Primitive_gpu failed");
 
 			primitives.emplace_back(std::move(*rigged_primitive_result));
 		}
 
-		return Mesh_gpu{.primitives = std::move(primitives)};
+		return MeshGPU{.primitives = std::move(primitives)};
 	}
 }

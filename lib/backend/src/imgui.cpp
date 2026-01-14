@@ -72,7 +72,7 @@ namespace backend
 		style.WindowTitleAlign = {0.5f, 0.5f};
 	}
 
-	std::expected<void, util::Error> initialize_imgui(const SDL_context& sdl_context) noexcept
+	std::expected<void, util::Error> initialize_imgui(const SDLcontext& sdl_context) noexcept
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -122,15 +122,15 @@ namespace backend
 		ImGui::NewFrame();
 	}
 
-	void imgui_upload_data(const gpu::Command_buffer& command_buffer) noexcept
+	void imgui_upload_data(const gpu::CommandBuffer& command_buffer) noexcept
 	{
 		ImGui::Render();
 		ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), command_buffer);
 	}
 
 	void imgui_draw_to_renderpass(
-		const gpu::Command_buffer& command_buffer,
-		const gpu::Render_pass& render_pass
+		const gpu::CommandBuffer& command_buffer,
+		const gpu::RenderPass& render_pass
 	) noexcept
 	{
 		ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), command_buffer, render_pass);

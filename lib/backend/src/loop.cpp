@@ -20,11 +20,11 @@ namespace backend
 	}
 
 	std::expected<bool, util::Error> run_one_frame(
-		const SDL_context& context,
+		const SDLcontext& context,
 		bool clear,
 		const std::function<bool()>& loop_fn,
 		const std::function<std::expected<void, util::Error>(
-			const gpu::Command_buffer& command_buffer,
+			const gpu::CommandBuffer& command_buffer,
 			SDL_GPUTexture* swapchain,
 			glm::u32vec2 size
 		)>& render_fn
@@ -48,7 +48,7 @@ namespace backend
 
 		/* Acquire Swapchain */
 
-		auto command_buffer = gpu::Command_buffer::acquire_from(context.device);
+		auto command_buffer = gpu::CommandBuffer::acquire_from(context.device);
 		if (!command_buffer) return command_buffer.error().forward("Acquire command buffer failed");
 
 		const auto swapchain_result = command_buffer->wait_and_acquire_swapchain_texture(context.window);
@@ -73,7 +73,7 @@ namespace backend
 		const auto render_imgui_result = command_buffer->run_render_pass(
 			{&swapchain_info, 1},
 			{},
-			[&command_buffer](const gpu::Render_pass& render_pass) {
+			[&command_buffer](const gpu::RenderPass& render_pass) {
 				backend::imgui_draw_to_renderpass(*command_buffer, render_pass);
 			}
 		);

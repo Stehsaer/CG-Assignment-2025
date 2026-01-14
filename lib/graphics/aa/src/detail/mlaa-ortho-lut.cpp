@@ -9,7 +9,7 @@ namespace graphics::aa
 {
 	namespace
 	{
-		struct Ortho_silhouette
+		struct OrthoSilhouette
 		{
 			double left = 0, right = 0;
 		};
@@ -18,7 +18,7 @@ namespace graphics::aa
 		/// @brief Pattern silhouette lookup list for orthogonal blend area LUT generation
 		///
 		///
-		constexpr auto pattern_silhouette_list = std::to_array<Ortho_silhouette>({
+		constexpr auto pattern_silhouette_list = std::to_array<OrthoSilhouette>({
 			{.left = 0,    .right = 0   },
 			{.left = -0.5, .right = 0   },
 			{.left = 0,    .right = -0.5},
@@ -150,7 +150,7 @@ namespace graphics::aa
 		size_t lut_size
 	) noexcept
 	{
-		const auto image = image::Image_container<glm::u8vec2>{
+		const auto image = image::ImageContainer<glm::u8vec2>{
 			.size = {uint32_t(lut_size * 5), uint32_t(lut_size * 5)},
 			.pixels = generate_ortho_area_lut_data(lut_size)
 		};

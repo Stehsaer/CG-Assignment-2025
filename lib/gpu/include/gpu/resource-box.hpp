@@ -12,7 +12,7 @@ namespace gpu
 	/// @tparam T Resource Type
 	///
 	template <typename T>
-	class Resource_box
+	class ResourceBox
 	{
 	  protected:
 
@@ -24,10 +24,10 @@ namespace gpu
 
 	  public:
 
-		Resource_box(const Resource_box&) = delete;
-		Resource_box& operator=(const Resource_box&) = delete;
+		ResourceBox(const ResourceBox&) = delete;
+		ResourceBox& operator=(const ResourceBox&) = delete;
 
-		Resource_box(Resource_box&& other) noexcept :
+		ResourceBox(ResourceBox&& other) noexcept :
 			device(other.device),
 			resource(other.resource)
 		{
@@ -35,7 +35,7 @@ namespace gpu
 			other.resource = nullptr;
 		}
 
-		Resource_box& operator=(Resource_box&& other) noexcept
+		ResourceBox& operator=(ResourceBox&& other) noexcept
 		{
 			if (&other != this)
 			{
@@ -46,7 +46,7 @@ namespace gpu
 			return *this;
 		}
 
-		Resource_box(SDL_GPUDevice* device, T* resource) noexcept :
+		ResourceBox(SDL_GPUDevice* device, T* resource) noexcept :
 			device(device),
 			resource(resource)
 		{
@@ -54,7 +54,7 @@ namespace gpu
 			assert(resource != nullptr);
 		}
 
-		~Resource_box() noexcept
+		~ResourceBox() noexcept
 		{
 			if (device == nullptr || resource == nullptr) return;
 			delete_resource();

@@ -17,7 +17,7 @@ namespace gltf
 	namespace detail
 	{
 		template <typename T>
-		class Accessor_type_trait
+		class AccessTypeTrait
 		{
 		  public:
 
@@ -25,7 +25,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<uint8_t>
+		class AccessTypeTrait<uint8_t>
 		{
 		  public:
 
@@ -35,7 +35,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<uint16_t>
+		class AccessTypeTrait<uint16_t>
 		{
 		  public:
 
@@ -45,7 +45,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<uint32_t>
+		class AccessTypeTrait<uint32_t>
 		{
 		  public:
 
@@ -55,7 +55,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<float>
+		class AccessTypeTrait<float>
 		{
 		  public:
 
@@ -65,7 +65,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::vec2>
+		class AccessTypeTrait<glm::vec2>
 		{
 		  public:
 
@@ -75,7 +75,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::vec3>
+		class AccessTypeTrait<glm::vec3>
 		{
 		  public:
 
@@ -85,7 +85,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::vec4>
+		class AccessTypeTrait<glm::vec4>
 		{
 		  public:
 
@@ -95,7 +95,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::quat>
+		class AccessTypeTrait<glm::quat>
 		{
 		  public:
 
@@ -105,7 +105,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::u32vec4>
+		class AccessTypeTrait<glm::u32vec4>
 		{
 		  public:
 
@@ -115,7 +115,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::u16vec4>
+		class AccessTypeTrait<glm::u16vec4>
 		{
 		  public:
 
@@ -125,7 +125,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::u8vec4>
+		class AccessTypeTrait<glm::u8vec4>
 		{
 		  public:
 
@@ -135,7 +135,7 @@ namespace gltf
 		};
 
 		template <>
-		class Accessor_type_trait<glm::mat4>
+		class AccessTypeTrait<glm::mat4>
 		{
 		  public:
 
@@ -147,8 +147,8 @@ namespace gltf
 		template <typename T>
 		bool check_accessor_for_type(const tinygltf::Accessor& accessor) noexcept
 		{
-			return accessor.componentType == Accessor_type_trait<T>::component_type
-				&& accessor.type == Accessor_type_trait<T>::type;
+			return accessor.componentType == AccessTypeTrait<T>::component_type
+				&& accessor.type == AccessTypeTrait<T>::type;
 		}
 	}
 
@@ -161,7 +161,7 @@ namespace gltf
 	/// @return Extract result, or error on failure
 	///
 	template <typename T>
-		requires(detail::Accessor_type_trait<T>::available)
+		requires(detail::AccessTypeTrait<T>::available)
 	std::expected<std::vector<T>, util::Error> extract_from_accessor(
 		const tinygltf::Model& model,
 		const tinygltf::Accessor& accessor

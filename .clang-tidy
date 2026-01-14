@@ -25,7 +25,6 @@ Checks: "
   -bugprone-narrowing-conversions,
   -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
-  -bugprone-reserved-identifier,
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-magic-numbers,
@@ -48,12 +47,12 @@ Checks: "
 
 CheckOptions:
   readability-identifier-naming.VariableCase: lower_case
-  readability-identifier-naming.ClassCase: Leading_upper_snake_case
-  readability-identifier-naming.AbstractClassCase: Leading_upper_snake_case
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.AbstractClassCase: CamelCase
   readability-identifier-naming.FunctionCase: lower_case
-  readability-identifier-naming.StructCase: Leading_upper_snake_case
-  readability-identifier-naming.EnumCase: Leading_upper_snake_case
-  readability-identifier-naming.EnumConstantCase: Leading_upper_snake_case
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.EnumCase: CamelCase
+  readability-identifier-naming.EnumConstantCase: CamelCase
   readability-identifier-naming.FunctionIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
   readability-identifier-naming.VariableIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)
   readability-identifier-naming.EnumConstantIgnoredRegexp: (^_+.*)|([A-Z]+[a-z0-9_]*)

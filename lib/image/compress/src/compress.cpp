@@ -13,7 +13,7 @@ namespace image
 
 	// Extract a 4x4 block from source image
 	static Block_pixel_array_8bpp extract_block(
-		const Image_container<RGBA_pixel_type>& src,
+		const ImageContainer<RGBA_pixel_type>& src,
 		uint32_t block_x,
 		uint32_t block_y
 	) noexcept
@@ -28,10 +28,10 @@ namespace image
 
 	// Iterate over all 4x4 blocks in the source
 	template <typename Func>
-		requires(std::invocable<Func, const Block_pixel_array_8bpp&, BC_block_8bpp&>)
+		requires(std::invocable<Func, const Block_pixel_array_8bpp&, CompressionBlock&>)
 	static void iterate_over_blocks(
-		const Image_container<RGBA_pixel_type>& src,
-		Image_container<BC_block_8bpp>& dst,
+		const ImageContainer<RGBA_pixel_type>& src,
+		ImageContainer<CompressionBlock>& dst,
 		Func&& compress_block_func
 	) noexcept
 	{
@@ -51,8 +51,8 @@ namespace image
 	}
 
 	// Generate destination image container
-	static std::expected<BC_image_8bpp, util::Error> generate_dst_image(
-		const Image_container<RGBA_pixel_type>& src
+	static std::expected<BCImage, util::Error> generate_dst_image(
+		const ImageContainer<RGBA_pixel_type>& src
 	) noexcept
 	{
 		if (src.size.x % 4 != 0 || src.size.y % 4 != 0)
@@ -63,15 +63,15 @@ namespace image
 		if (uint64_t(src.size.x) * uint64_t(src.size.y) > (1ull << 32))
 			return util::Error(std::format("Source image size {}x{} is too large", src.size.x, src.size.y));
 
-		BC_image_8bpp dst_image{
+		BCImage dst_image{
 			.size = src.size,
-			.pixels = std::vector<BC_block_8bpp>((src.size.x / 4) * (src.size.y / 4))
+			.pixels = std::vector<CompressionBlock>((src.size.x / 4) * (src.size.y / 4))
 		};
 
 		return dst_image;
 	}
 
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc3(
+	std::expected<BCImage, util::Error> compress_to_bc3(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept
 	{
@@ -81,7 +81,7 @@ namespace image
 		iterate_over_blocks(
 			src_image,
 			*dst_image,
-			[](const Block_pixel_array_8bpp& block_pixels, BC_block_8bpp& output) {
+			[](const Block_pixel_array_8bpp& block_pixels, CompressionBlock& output) {
 				stb_compress_dxt_block(
 					reinterpret_cast<uint8_t*>(output.block.data()),
 					reinterpret_cast<const uint8_t*>(block_pixels.data()),
@@ -94,7 +94,7 @@ namespace image
 		return dst_image;
 	}
 
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc5(
+	std::expected<BCImage, util::Error> compress_to_bc5(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept
 	{
@@ -104,7 +104,7 @@ namespace image
 		iterate_over_blocks(
 			src_image,
 			*dst_image,
-			[](const Block_pixel_array_8bpp& block_pixels, BC_block_8bpp& output) {
+			[](const Block_pixel_array_8bpp& block_pixels, CompressionBlock& output) {
 				rgbcx::encode_bc5(
 					reinterpret_cast<uint8_t*>(output.block.data()),
 					reinterpret_cast<const uint8_t*>(block_pixels.data())
@@ -115,7 +115,7 @@ namespace image
 		return dst_image;
 	}
 
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc7(
+	std::expected<BCImage, util::Error> compress_to_bc7(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept
 	{
@@ -133,7 +133,7 @@ namespace image
 		iterate_over_blocks(
 			src_image,
 			*dst_image,
-			[&params](const Block_pixel_array_8bpp& block_pixels, BC_block_8bpp& output) {
+			[&params](const Block_pixel_array_8bpp& block_pixels, CompressionBlock& output) {
 				bc7enc_compress_block(
 					reinterpret_cast<uint8_t*>(output.block.data()),
 					reinterpret_cast<const uint8_t*>(block_pixels.data()),

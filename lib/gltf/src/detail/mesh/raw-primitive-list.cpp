@@ -91,7 +91,7 @@ namespace gltf::detail::mesh
 			| std::ranges::to<std::vector>();
 	}
 
-	std::expected<std::vector<Rigged_vertex>, util::Error> get_rigged_primitive_list(
+	std::expected<std::vector<RiggedVertex>, util::Error> get_rigged_primitive_list(
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive
 	) noexcept
@@ -163,7 +163,7 @@ namespace gltf::detail::mesh
 					  const auto& tangent,
 					  const auto& joint_indices,
 					  const auto& joint_weights) {
-					   return Rigged_vertex{
+					   return RiggedVertex{
 						   .position = position,
 						   .normal = normal,
 						   .tangent = tangent,

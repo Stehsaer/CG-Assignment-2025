@@ -31,7 +31,7 @@ namespace backend
 	///
 	/// @param sdl_context SDL Context
 	///
-	std::expected<void, util::Error> initialize_imgui(const SDL_context& sdl_context) noexcept;
+	std::expected<void, util::Error> initialize_imgui(const SDLcontext& sdl_context) noexcept;
 
 	///
 	/// @brief Destroy ImGui context
@@ -56,14 +56,14 @@ namespace backend
 	/// @brief Upload ImGui data to the GPU
 	/// @note Call this function on a command buffer before rendering ImGui elements.
 	///
-	void imgui_upload_data(const gpu::Command_buffer& command_buffer) noexcept;
+	void imgui_upload_data(const gpu::CommandBuffer& command_buffer) noexcept;
 
 	///
 	/// @brief Render ImGui draw data into a render pass
 	/// @note Generally called during the final render pass to render ImGui elements into the swapchain.
 	///
 	void imgui_draw_to_renderpass(
-		const gpu::Command_buffer& command_buffer,
-		const gpu::Render_pass& render_pass
+		const gpu::CommandBuffer& command_buffer,
+		const gpu::RenderPass& render_pass
 	) noexcept;
 }

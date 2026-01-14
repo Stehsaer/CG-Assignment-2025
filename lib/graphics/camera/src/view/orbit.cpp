@@ -21,7 +21,7 @@ namespace graphics::camera::view
 	{
 		return Orbit{
 			.distance = glm::mix(a.distance, b.distance, t),
-			.angles = Spherical_angle::lerp(a.angles, b.angles, t),
+			.angles = SphericalAngle::lerp(a.angles, b.angles, t),
 			.center = glm::mix(a.center, b.center, t),
 			.up = graphics::slerp(a.up, b.up, t)
 		};

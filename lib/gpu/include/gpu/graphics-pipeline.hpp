@@ -14,15 +14,15 @@ namespace gpu
 	/// @brief graphics Shader Object
 	///
 	///
-	class Graphics_shader : public Resource_box<SDL_GPUShader>
+	class GraphicsShader : public ResourceBox<SDL_GPUShader>
 	{
 	  public:
 
-		Graphics_shader(const Graphics_shader&) = delete;
-		Graphics_shader& operator=(const Graphics_shader&) = delete;
-		Graphics_shader(Graphics_shader&&) noexcept = default;
-		Graphics_shader& operator=(Graphics_shader&&) noexcept = default;
-		~Graphics_shader() noexcept = default;
+		GraphicsShader(const GraphicsShader&) = delete;
+		GraphicsShader& operator=(const GraphicsShader&) = delete;
+		GraphicsShader(GraphicsShader&&) noexcept = default;
+		GraphicsShader& operator=(GraphicsShader&&) noexcept = default;
+		~GraphicsShader() noexcept = default;
 
 		enum class Stage
 		{
@@ -33,7 +33,7 @@ namespace gpu
 		///
 		/// @brief Creates a graphics shader
 		///
-		static std::expected<Graphics_shader, util::Error> create(
+		static std::expected<GraphicsShader, util::Error> create(
 			SDL_GPUDevice* device,
 			std::span<const std::byte> shader_data,
 			Stage stage,
@@ -45,28 +45,28 @@ namespace gpu
 
 	  private:
 
-		using Resource_box<SDL_GPUShader>::Resource_box;
+		using ResourceBox<SDL_GPUShader>::ResourceBox;
 	};
 
 	///
 	/// @brief GPU graphics Pipeline
 	///
 	///
-	class Graphics_pipeline : public Resource_box<SDL_GPUGraphicsPipeline>
+	class GraphicsPipeline : public ResourceBox<SDL_GPUGraphicsPipeline>
 	{
 	  public:
 
-		Graphics_pipeline(const Graphics_pipeline&) = delete;
-		Graphics_pipeline& operator=(const Graphics_pipeline&) = delete;
-		Graphics_pipeline(Graphics_pipeline&&) noexcept = default;
-		Graphics_pipeline& operator=(Graphics_pipeline&&) noexcept = default;
-		~Graphics_pipeline() noexcept = default;
+		GraphicsPipeline(const GraphicsPipeline&) = delete;
+		GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
+		GraphicsPipeline(GraphicsPipeline&&) noexcept = default;
+		GraphicsPipeline& operator=(GraphicsPipeline&&) noexcept = default;
+		~GraphicsPipeline() noexcept = default;
 
 		///
 		/// @brief Depth stencil state
 		///
 		///
-		struct Depth_stencil_state
+		struct DepthStencilState
 		{
 			static constexpr SDL_GPUStencilOpState default_stencil_op_state = {
 				.fail_op = SDL_GPU_STENCILOP_KEEP,
@@ -85,7 +85,7 @@ namespace gpu
 			bool enable_depth_write;
 			bool enable_stencil_test;
 
-			SDL_GPUDepthStencilState to_sdl(this const Depth_stencil_state& self) noexcept;
+			SDL_GPUDepthStencilState to_sdl(this const DepthStencilState& self) noexcept;
 		};
 
 		///
@@ -103,22 +103,22 @@ namespace gpu
 		/// @param depth_stencil_state (Optional) Depth stencil state
 		/// @return Pipeline object on success, or error on failure
 		///
-		static std::expected<Graphics_pipeline, util::Error> create(
+		static std::expected<GraphicsPipeline, util::Error> create(
 			SDL_GPUDevice* device,
-			const Graphics_shader& vertex_shader,
-			const Graphics_shader& fragment_shader,
+			const GraphicsShader& vertex_shader,
+			const GraphicsShader& fragment_shader,
 			SDL_GPUPrimitiveType primitive_type,
 			SDL_GPUSampleCount multisample_count,
 			const SDL_GPURasterizerState& rasterizer_state,
 			std::span<const SDL_GPUVertexAttribute> vertex_attributes,
 			std::span<const SDL_GPUVertexBufferDescription> vertex_buffer_descs,
 			std::span<const SDL_GPUColorTargetDescription> color_target_descs,
-			const std::optional<Depth_stencil_state>& depth_stencil_state,
+			const std::optional<DepthStencilState>& depth_stencil_state,
 			const std::string& name
 		) noexcept;
 
 	  private:
 
-		using Resource_box<SDL_GPUGraphicsPipeline>::Resource_box;
+		using ResourceBox<SDL_GPUGraphicsPipeline>::ResourceBox;
 	};
 }

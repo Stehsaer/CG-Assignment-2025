@@ -27,7 +27,7 @@ namespace wavefront::detail
 
 	// Extract lines of a specific type from parsed lines
 	template <typename T>
-	std::vector<T> extract_lines(const std::vector<Parsed_line>& lines) noexcept
+	std::vector<T> extract_lines(const std::vector<ParsedLine>& lines) noexcept
 	{
 		return lines
 			| std::views::filter([](const auto& line) { return std::holds_alternative<T>(line); })
@@ -35,5 +35,5 @@ namespace wavefront::detail
 			| std::ranges::to<std::vector>();
 	}
 
-	std::optional<Face_line::Index> parse_face_index(const std::string_view& slice) noexcept;
+	std::optional<FaceLine::Index> parse_face_index(const std::string_view& slice) noexcept;
 }

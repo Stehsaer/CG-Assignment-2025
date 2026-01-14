@@ -4,17 +4,17 @@
 
 namespace graphics::camera
 {
-	struct Spherical_angle
+	struct SphericalAngle
 	{
 		double azimuth;
 		double pitch;
 
-		glm::dvec3 facing(this Spherical_angle self) noexcept;
+		glm::dvec3 facing(this SphericalAngle self) noexcept;
 
-		static Spherical_angle lerp(const Spherical_angle& a, const Spherical_angle& b, double t) noexcept;
+		static SphericalAngle lerp(const SphericalAngle& a, const SphericalAngle& b, double t) noexcept;
 
-		Spherical_angle rotate(
-			this Spherical_angle self,
+		SphericalAngle rotate(
+			this SphericalAngle self,
 			float azimuth_per_width,
 			float pitch_per_height,
 			glm::vec2 screen_size,

@@ -16,22 +16,22 @@ namespace graphics
 	/// - Use `operator*` to get the underlying image reference, valid until the next resize
 	/// @note 2D, single-layer mipmap textures only
 	///
-	class Auto_texture
+	class AutoTexture
 	{
 	  public:
 
-		Auto_texture(const Auto_texture&) = delete;
-		Auto_texture& operator=(const Auto_texture&) = delete;
-		Auto_texture(Auto_texture&&) = default;
-		Auto_texture& operator=(Auto_texture&&) = default;
+		AutoTexture(const AutoTexture&) = delete;
+		AutoTexture& operator=(const AutoTexture&) = delete;
+		AutoTexture(AutoTexture&&) = default;
+		AutoTexture& operator=(AutoTexture&&) = default;
 
-		Auto_texture(gpu::Texture::Format format, std::string name, uint32_t mip_levels = 1) noexcept :
+		AutoTexture(gpu::Texture::Format format, std::string name, uint32_t mip_levels = 1) noexcept :
 			format(format),
 			name(std::move(name)),
 			mip_levels(mip_levels)
 		{}
 
-		~Auto_texture() = default;
+		~AutoTexture() = default;
 
 		///
 		/// @brief Resize the texture
@@ -65,14 +65,14 @@ namespace graphics
 	/// @brief Smart texture that cycles between multiple textures each frame, to store previous frame data
 	/// @note Follows similar API to @p Smart_texture
 	///
-	class Cycle_texture
+	class CycleTexture
 	{
 	  public:
 
-		Cycle_texture(const Cycle_texture&) = delete;
-		Cycle_texture(Cycle_texture&&) noexcept = default;
-		Cycle_texture& operator=(const Cycle_texture&) = delete;
-		Cycle_texture& operator=(Cycle_texture&&) = default;
+		CycleTexture(const CycleTexture&) = delete;
+		CycleTexture(CycleTexture&&) noexcept = default;
+		CycleTexture& operator=(const CycleTexture&) = delete;
+		CycleTexture& operator=(CycleTexture&&) = default;
 
 		///
 		/// @brief Construct a Cycle_texture
@@ -80,7 +80,7 @@ namespace graphics
 		/// @param format Format of the texture
 		/// @param extra_pool_size Extra pool size, besides current and previous frame textures
 		///
-		Cycle_texture(
+		CycleTexture(
 			gpu::Texture::Format format,
 			std::string name,
 			uint32_t mip_levels = 1,

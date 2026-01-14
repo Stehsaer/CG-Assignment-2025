@@ -24,11 +24,11 @@ namespace backend
 	/// @return `true` if the loop should continue, `false` to exit, or an error if something went wrong
 	///
 	std::expected<bool, util::Error> run_one_frame(
-		const SDL_context& context,
+		const SDLcontext& context,
 		bool clear,
 		const std::function<bool()>& loop_fn,
 		const std::function<std::expected<void, util::Error>(
-			const gpu::Command_buffer& command_buffer,
+			const gpu::CommandBuffer& command_buffer,
 			SDL_GPUTexture* swapchain,
 			glm::u32vec2 size
 		)>& render_fn
@@ -48,7 +48,7 @@ namespace backend
 	///
 	template <typename T>
 	T display_until_task_done(
-		const SDL_context& context,
+		const SDLcontext& context,
 		std::future<T> future,
 		const std::function<void()>& progress_display_fn
 	)

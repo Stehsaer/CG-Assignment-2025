@@ -5,7 +5,7 @@
 
 namespace graphics::camera
 {
-	glm::dvec3 Spherical_angle::facing(this Spherical_angle self) noexcept
+	glm::dvec3 SphericalAngle::facing(this SphericalAngle self) noexcept
 	{
 		return {
 			glm::cos(self.pitch) * glm::sin(self.azimuth),
@@ -14,11 +14,7 @@ namespace graphics::camera
 		};
 	}
 
-	Spherical_angle Spherical_angle::lerp(
-		const Spherical_angle& a,
-		const Spherical_angle& b,
-		double t
-	) noexcept
+	SphericalAngle SphericalAngle::lerp(const SphericalAngle& a, const SphericalAngle& b, double t) noexcept
 	{
 		const auto azimuth_a = glm::mod(a.azimuth, glm::two_pi<double>());
 		const auto azimuth_b = glm::mod(b.azimuth, glm::two_pi<double>());
@@ -34,8 +30,8 @@ namespace graphics::camera
 		};
 	}
 
-	Spherical_angle Spherical_angle::rotate(
-		this Spherical_angle self,
+	SphericalAngle SphericalAngle::rotate(
+		this SphericalAngle self,
 		float azimuth_per_width,
 		float pitch_per_height,
 		glm::vec2 screen_size,

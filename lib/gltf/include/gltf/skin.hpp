@@ -20,7 +20,7 @@ namespace gltf
 	};
 
 	// Collection of skins
-	struct Skin_list
+	struct SkinList
 	{
 		std::vector<glm::mat4> inverse_bind_matrices;
 		std::vector<uint32_t> joints;
@@ -28,7 +28,7 @@ namespace gltf
 		// Skin binding (offset, length) by skin index
 		std::vector<std::pair<uint32_t, uint32_t>> skin_offsets;
 
-		static std::expected<Skin_list, util::Error> from_tinygltf(const tinygltf::Model& model) noexcept;
+		static std::expected<SkinList, util::Error> from_tinygltf(const tinygltf::Model& model) noexcept;
 
 		std::vector<glm::mat4> compute_joint_matrices(
 			const std::vector<glm::mat4>& node_world_matrices
@@ -52,12 +52,12 @@ namespace gltf
 	/// unit share this resource
 	/// - Responsible for preparing and uploading GPU buffers for skin computation
 	///
-	struct Deferred_skinning_resource
+	struct DeferredSkinningResource
 	{
 		std::vector<glm::mat4> joint_matrices_data;
 
 		// Initialize at render time, see `prepare_gpu_buffers`
-		std::shared_ptr<gpu::Transfer_buffer> upload_buffer = nullptr;
+		std::shared_ptr<gpu::TransferBuffer> upload_buffer = nullptr;
 
 		// Initialize at render time, see `prepare_gpu_buffers`
 		std::shared_ptr<gpu::Buffer> joint_matrices_buffer = nullptr;
@@ -67,7 +67,7 @@ namespace gltf
 		///
 		/// @param joint_matrices_data Computed joint matrices data, see `Skin_list::compute_joint_matrices`
 		///
-		Deferred_skinning_resource(std::vector<glm::mat4> joint_matrices_data) :
+		DeferredSkinningResource(std::vector<glm::mat4> joint_matrices_data) :
 			joint_matrices_data(std::move(joint_matrices_data))
 		{}
 
@@ -78,8 +78,8 @@ namespace gltf
 		/// @return Void on success, or error on failure
 		///
 		std::expected<void, util::Error> prepare_gpu_buffers(
-			graphics::Buffer_pool& buffer_pool,
-			graphics::Transfer_buffer_pool& transfer_pool
+			graphics::BufferPool& buffer_pool,
+			graphics::TransferBufferPool& transfer_pool
 		) noexcept;
 
 		///
@@ -87,6 +87,6 @@ namespace gltf
 		///
 		/// @param copy_pass Copy Pass
 		///
-		void upload_gpu_buffers(const gpu::Copy_pass& copy_pass) noexcept;
+		void upload_gpu_buffers(const gpu::CopyPass& copy_pass) noexcept;
 	};
 }

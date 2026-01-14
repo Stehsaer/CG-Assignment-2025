@@ -20,13 +20,13 @@
 namespace gltf
 {
 	// Drawcall for a non-rigged primitive
-	struct Primitive_drawcall
+	struct PrimitiveDrawcall
 	{
 		glm::vec3 world_position_min;
 		glm::vec3 world_position_max;
 		std::optional<uint32_t> material_index;
 		std::variant<glm::mat4, uint32_t> transform_or_joint_matrix_offset;
-		Primitive_mesh_binding primitive;
+		PrimitiveMeshBinding primitive;
 
 		float emissive_multiplier = 1.0f;
 
@@ -49,15 +49,15 @@ namespace gltf
 	struct Drawdata
 	{
 		// Drawcall list
-		std::vector<Primitive_drawcall> primitive_drawcalls;
+		std::vector<PrimitiveDrawcall> primitive_drawcalls;
 
 		std::vector<glm::mat4> node_matrices;
 
 		// Joint matrices
-		std::shared_ptr<Deferred_skinning_resource> deferred_skin_resource;
+		std::shared_ptr<DeferredSkinningResource> deferred_skin_resource;
 
 		// Material bind cache reference
-		Material_cache::Ref material_cache;
+		MaterialCache::Ref material_cache;
 	};
 
 	class Model
@@ -66,12 +66,12 @@ namespace gltf
 
 		/*===== Resources =====*/
 
-		Material_list material_list;        // List of materials
-		std::vector<Mesh_gpu> meshes;       // List of meshes
+		MaterialList material_list;         // List of materials
+		std::vector<MeshGPU> meshes;        // List of meshes
 		std::vector<Node> nodes;            // List of nodes
 		std::vector<Animation> animations;  // List of animations
 		std::vector<uint32_t> root_nodes;   // List of root node indices
-		Skin_list skin_list;                // Collection of skins
+		SkinList skin_list;                 // Collection of skins
 		std::vector<Light> lights;          // List of lights
 
 		/*===== Accelerating Structures =====*/
@@ -80,12 +80,12 @@ namespace gltf
 		std::vector<std::optional<uint32_t>> node_parents;    // Parent index for each node
 		std::vector<bool> renderable_nodes;                   // If node is renderable (children of root)
 		size_t primitive_count;                               // Total primitive count
-		std::unique_ptr<Material_cache> material_bind_cache;  // Material bind cache
+		std::unique_ptr<MaterialCache> material_bind_cache;   // Material bind cache
 		std::unordered_map<std::string, uint32_t> animation_name_map;  // Map of animation name to index
 
 	  public:
 
-		enum class Load_stage
+		enum class LoadStage
 		{
 			Node,
 			Mesh,
@@ -95,9 +95,9 @@ namespace gltf
 			Postprocess
 		};
 
-		struct Load_progress
+		struct LoadProgress
 		{
-			Load_stage stage;
+			LoadStage stage;
 			float progress;  // Negative => indeterminate
 		};
 
@@ -113,9 +113,9 @@ namespace gltf
 		static std::expected<Model, util::Error> from_tinygltf(
 			SDL_GPUDevice* device,
 			const tinygltf::Model& tinygltf_model,
-			const Sampler_config& sampler_config,
-			const Material_list::Image_config& image_config,
-			const std::optional<std::reference_wrapper<std::atomic<Load_progress>>>& progress = std::nullopt
+			const SamplerConfig& sampler_config,
+			const MaterialList::ImageConfig& image_config,
+			const std::optional<std::reference_wrapper<std::atomic<LoadProgress>>>& progress = std::nullopt
 		) noexcept;
 
 		///
@@ -130,7 +130,7 @@ namespace gltf
 		///
 		Drawdata generate_drawdata(
 			const glm::mat4& model_transform,
-			std::span<const Animation_key> animation,
+			std::span<const AnimationKey> animation,
 			std::span<const std::pair<uint32_t, float>> emission_overrides,
 			std::span<const uint32_t> hidden_nodes
 		) const noexcept;
@@ -174,30 +174,30 @@ namespace gltf
 		/*===== Render Stage =====*/
 
 		// Compute node transform overrides from animation keys
-		std::vector<Node::Transform_override> compute_node_overrides(
-			std::span<const Animation_key> animation
+		std::vector<Node::TransformOverride> compute_node_overrides(
+			std::span<const AnimationKey> animation
 		) const noexcept;
 
 		// Compute world matrices for all nodes
 		std::vector<glm::mat4> compute_node_world_matrices(
 			const glm::mat4& model_transform,
-			std::span<const Node::Transform_override> node_overrides
+			std::span<const Node::TransformOverride> node_overrides
 		) const noexcept;
 
 		// Generate drawcalls from world matrices
-		std::vector<Primitive_drawcall> compute_drawcalls(
+		std::vector<PrimitiveDrawcall> compute_drawcalls(
 			const std::vector<glm::mat4>& node_world_matrices,
 			std::span<const std::pair<uint32_t, float>> emission_overrides,
 			std::span<const uint32_t> hidden_nodes
 		) const noexcept;
 
 		Model(
-			Material_list material_list,
-			std::vector<Mesh_gpu> meshes,
+			MaterialList material_list,
+			std::vector<MeshGPU> meshes,
 			std::vector<Node> nodes,
 			std::vector<Animation> animations,
 			std::vector<uint32_t> root_nodes,
-			Skin_list skin_collection,
+			SkinList skin_collection,
 			std::vector<Light> lights
 		) noexcept;
 

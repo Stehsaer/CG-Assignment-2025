@@ -18,31 +18,31 @@ namespace gpu
 	/// @note Acquire the command buffer from a GPU device using @p acquire_from()
 	/// @note No automatic submission, explicitly submit using @p submit()
 	///
-	class Command_buffer
+	class CommandBuffer
 	{
 	  public:
 
-		Command_buffer(const Command_buffer&) = delete;
-		Command_buffer& operator=(const Command_buffer&) = delete;
+		CommandBuffer(const CommandBuffer&) = delete;
+		CommandBuffer& operator=(const CommandBuffer&) = delete;
 
-		Command_buffer(Command_buffer&&) noexcept;
-		Command_buffer& operator=(Command_buffer&&) noexcept;
+		CommandBuffer(CommandBuffer&&) noexcept;
+		CommandBuffer& operator=(CommandBuffer&&) noexcept;
 
-		~Command_buffer() noexcept = default;
+		~CommandBuffer() noexcept = default;
 
 		///
 		/// @brief Acquire a command buffer from a GPU device
 		///
 		/// @return Command buffer object, or error if failed
 		///
-		static std::expected<Command_buffer, util::Error> acquire_from(SDL_GPUDevice* device) noexcept;
+		static std::expected<CommandBuffer, util::Error> acquire_from(SDL_GPUDevice* device) noexcept;
 
 		///
 		/// @brief Begins a new copy pass
 		///
 		/// @return Copy pass object, or error if failed
 		///
-		std::expected<Copy_pass, util::Error> begin_copy_pass() const noexcept;
+		std::expected<CopyPass, util::Error> begin_copy_pass() const noexcept;
 
 		///
 		/// @brief Runs a new copy pass
@@ -50,7 +50,7 @@ namespace gpu
 		/// @param task Task function for the copy pass
 		///
 		std::expected<void, util::Error> run_copy_pass(
-			const std::function<void(const Copy_pass&)>& task
+			const std::function<void(const CopyPass&)>& task
 		) const noexcept;
 
 		///
@@ -60,7 +60,7 @@ namespace gpu
 		/// @param depth_stencil_target Depth stencil buffer target
 		/// @return Render pass object, or error if failed
 		///
-		std::expected<Render_pass, util::Error> begin_render_pass(
+		std::expected<RenderPass, util::Error> begin_render_pass(
 			std::span<const SDL_GPUColorTargetInfo> color_targets,
 			const std::optional<SDL_GPUDepthStencilTargetInfo>& depth_stencil_target
 		) const noexcept;
@@ -75,7 +75,7 @@ namespace gpu
 		std::expected<void, util::Error> run_render_pass(
 			std::span<const SDL_GPUColorTargetInfo> color_targets,
 			const std::optional<SDL_GPUDepthStencilTargetInfo>& depth_stencil_target,
-			const std::function<void(const Render_pass&)>& task
+			const std::function<void(const RenderPass&)>& task
 		) const noexcept;
 
 		///
@@ -85,7 +85,7 @@ namespace gpu
 		/// @param storage_buffers Storage buffers
 		/// @return Compute pass object, or error if failed
 		///
-		std::expected<Compute_pass, util::Error> begin_compute_pass(
+		std::expected<ComputePass, util::Error> begin_compute_pass(
 			std::span<const SDL_GPUStorageTextureReadWriteBinding> storage_textures,
 			std::span<const SDL_GPUStorageBufferReadWriteBinding> storage_buffers
 		) const noexcept;
@@ -100,10 +100,10 @@ namespace gpu
 		std::expected<void, util::Error> run_compute_pass(
 			std::span<const SDL_GPUStorageTextureReadWriteBinding> storage_textures,
 			std::span<const SDL_GPUStorageBufferReadWriteBinding> storage_buffers,
-			const std::function<void(const Compute_pass&)>& task
+			const std::function<void(const ComputePass&)>& task
 		) const noexcept;
 
-		struct Swapchain_texture_result
+		struct SwapchainTextureResult
 		{
 			SDL_GPUTexture* swapchain_texture;
 			uint32_t width;
@@ -116,7 +116,7 @@ namespace gpu
 		/// @param window Associated window
 		/// @return Swapchain texture and its dimensions, or error if failed
 		///
-		std::expected<std::optional<Swapchain_texture_result>, util::Error> acquire_swapchain_texture(
+		std::expected<std::optional<SwapchainTextureResult>, util::Error> acquire_swapchain_texture(
 			SDL_Window* window
 		) const noexcept;
 
@@ -126,7 +126,7 @@ namespace gpu
 		/// @param window Associated window
 		/// @return Swapchain texture and its dimensions, or error if failed
 		///
-		std::expected<Swapchain_texture_result, util::Error> wait_and_acquire_swapchain_texture(
+		std::expected<SwapchainTextureResult, util::Error> wait_and_acquire_swapchain_texture(
 			SDL_Window* window
 		) const noexcept;
 
@@ -238,7 +238,7 @@ namespace gpu
 
 	  private:
 
-		Command_buffer(SDL_GPUDevice* device, SDL_GPUCommandBuffer* resource) noexcept;
+		CommandBuffer(SDL_GPUDevice* device, SDL_GPUCommandBuffer* resource) noexcept;
 
 		SDL_GPUDevice* device;
 		SDL_GPUCommandBuffer* cmd_buffer;

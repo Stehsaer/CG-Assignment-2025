@@ -40,14 +40,14 @@ namespace image
 	/// @return Generated mipmap chain
 	///
 	template <typename T>
-	std::vector<Image_container<T>> generate_mipmap(
-		const Image_container<T>& base_image,
+	std::vector<ImageContainer<T>> generate_mipmap(
+		const ImageContainer<T>& base_image,
 		glm::u32vec2 min_size = {1, 1}
 	) noexcept
 	{
 		const size_t levels = calc_mipmap_levels(base_image.size, min_size);
 
-		std::vector<Image_container<T>> mipmap_chain(levels);
+		std::vector<ImageContainer<T>> mipmap_chain(levels);
 		mipmap_chain[0] = base_image;
 
 		for (auto [in, out] : mipmap_chain | std::views::adjacent<2>) out = in.shrink_half();

@@ -10,11 +10,11 @@
 
 namespace graphics::aa
 {
-	static constexpr gpu::Sampler::Create_info sampler_info = {
-		.mipmap_mode = gpu::Sampler::Mipmap_mode::Nearest,
-		.address_mode_u = gpu::Sampler::Address_mode::Clamp_to_edge,
-		.address_mode_v = gpu::Sampler::Address_mode::Clamp_to_edge,
-		.address_mode_w = gpu::Sampler::Address_mode::Clamp_to_edge
+	static constexpr gpu::Sampler::CreateInfo sampler_info = {
+		.mipmap_mode = gpu::Sampler::MipmapMode::Nearest,
+		.address_mode_u = gpu::Sampler::AddressMode::Clamp_to_edge,
+		.address_mode_v = gpu::Sampler::AddressMode::Clamp_to_edge,
+		.address_mode_w = gpu::Sampler::AddressMode::Clamp_to_edge
 	};
 
 	static constexpr auto edge_texture_format = gpu::Texture::Format{
@@ -39,17 +39,17 @@ namespace graphics::aa
 		auto sampler = gpu::Sampler::create(device, sampler_info);
 		if (!sampler) return sampler.error().forward("Create sampler failed");
 
-		auto shader1 = gpu::Graphics_shader::create(
+		auto shader1 = gpu::GraphicsShader::create(
 			device,
 			std::as_bytes(shader_asset::mlaa_pass1_frag),
-			gpu::Graphics_shader::Stage::Fragment,
+			gpu::GraphicsShader::Stage::Fragment,
 			1,
 			0,
 			0,
 			0
 		);
-		auto pass1 = std::move(shader1).and_then([device](gpu::Graphics_shader shader) {
-			return Fullscreen_pass<true>::create(
+		auto pass1 = std::move(shader1).and_then([device](gpu::GraphicsShader shader) {
+			return FullscreenPass<true>::create(
 				device,
 				shader,
 				edge_texture_format,
@@ -58,17 +58,17 @@ namespace graphics::aa
 			);
 		});
 
-		auto shader2 = gpu::Graphics_shader::create(
+		auto shader2 = gpu::GraphicsShader::create(
 			device,
 			std::as_bytes(shader_asset::mlaa_pass2_frag),
-			gpu::Graphics_shader::Stage::Fragment,
+			gpu::GraphicsShader::Stage::Fragment,
 			2,
 			0,
 			0,
 			0
 		);
-		auto pass2 = std::move(shader2).and_then([device](gpu::Graphics_shader shader) {
-			return Fullscreen_pass<true>::create(
+		auto pass2 = std::move(shader2).and_then([device](gpu::GraphicsShader shader) {
+			return FullscreenPass<true>::create(
 				device,
 				shader,
 				blend_texture_format,
@@ -77,17 +77,17 @@ namespace graphics::aa
 			);
 		});
 
-		auto shader3 = gpu::Graphics_shader::create(
+		auto shader3 = gpu::GraphicsShader::create(
 			device,
 			std::as_bytes(shader_asset::mlaa_pass3_frag),
-			gpu::Graphics_shader::Stage::Fragment,
+			gpu::GraphicsShader::Stage::Fragment,
 			2,
 			0,
 			0,
 			0
 		);
-		auto pass3 = std::move(shader3).and_then([&](gpu::Graphics_shader shader) {
-			return Fullscreen_pass<true>::create(
+		auto pass3 = std::move(shader3).and_then([&](gpu::GraphicsShader shader) {
+			return FullscreenPass<true>::create(
 				device,
 				shader,
 				{.type = SDL_GPU_TEXTURETYPE_2D, .format = format, .usage = {.color_target = true}},
@@ -112,9 +112,9 @@ namespace graphics::aa
 	MLAA::MLAA(
 		gpu::Sampler sampler,
 		gpu::Texture blend_lut,
-		Fullscreen_pass<true> pass1,
-		Fullscreen_pass<true> pass2,
-		Fullscreen_pass<true> pass3
+		FullscreenPass<true> pass1,
+		FullscreenPass<true> pass2,
+		FullscreenPass<true> pass3
 	) noexcept :
 		sampler(std::move(sampler)),
 		blend_lut(std::move(blend_lut)),
@@ -127,7 +127,7 @@ namespace graphics::aa
 
 	std::expected<void, util::Error> MLAA::run_antialiasing(
 		SDL_GPUDevice* device,
-		const gpu::Command_buffer& command_buffer,
+		const gpu::CommandBuffer& command_buffer,
 		SDL_GPUTexture* source,
 		SDL_GPUTexture* target,
 		glm::u32vec2 size

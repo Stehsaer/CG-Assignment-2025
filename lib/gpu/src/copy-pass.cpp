@@ -2,7 +2,7 @@
 
 namespace gpu
 {
-	void Copy_pass::copy_buffer_to_buffer(
+	void CopyPass::copy_buffer_to_buffer(
 		const Buffer& src_buffer,
 		uint32_t src_offset,
 		const Buffer& dst_buffer,
@@ -18,7 +18,7 @@ namespace gpu
 		SDL_CopyGPUBufferToBuffer(resource, &src_location, &dst_location, size, cycle);
 	}
 
-	void Copy_pass::copy_texture_to_texture(
+	void CopyPass::copy_texture_to_texture(
 		const SDL_GPUTextureLocation& src_location,
 		const SDL_GPUTextureLocation& dst_location,
 		uint32_t region_width,
@@ -40,8 +40,8 @@ namespace gpu
 		);
 	}
 
-	void Copy_pass::upload_to_buffer(
-		const Transfer_buffer& src_buffer,
+	void CopyPass::upload_to_buffer(
+		const TransferBuffer& src_buffer,
 		uint32_t src_offset,
 		const Buffer& dst_buffer,
 		uint32_t dst_offset,
@@ -57,7 +57,7 @@ namespace gpu
 		SDL_UploadToGPUBuffer(resource, &src_location, &dst_region, cycle);
 	}
 
-	void Copy_pass::upload_to_texture(
+	void CopyPass::upload_to_texture(
 		const SDL_GPUTextureTransferInfo& src_info,
 		const SDL_GPUTextureRegion& dst_region,
 		bool cycle
@@ -67,10 +67,10 @@ namespace gpu
 		SDL_UploadToGPUTexture(resource, &src_info, &dst_region, cycle);
 	}
 
-	void Copy_pass::download_from_buffer(
+	void CopyPass::download_from_buffer(
 		const Buffer& src_buffer,
 		uint32_t src_offset,
-		const Transfer_buffer& dst_buffer,
+		const TransferBuffer& dst_buffer,
 		uint32_t dst_offset,
 		uint32_t size
 	) const noexcept
@@ -83,7 +83,7 @@ namespace gpu
 		SDL_DownloadFromGPUBuffer(resource, &src_region, &dst_location);
 	}
 
-	void Copy_pass::download_from_texture(
+	void CopyPass::download_from_texture(
 		const SDL_GPUTextureRegion& src_region,
 		const SDL_GPUTextureTransferInfo& dst_info
 	) const noexcept

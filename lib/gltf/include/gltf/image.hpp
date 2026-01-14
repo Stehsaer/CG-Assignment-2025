@@ -13,7 +13,7 @@
 namespace gltf
 {
 	// Compress mode for 3/4-channel color or linear textures
-	enum class Color_compress_mode
+	enum class ColorCompressMode
 	{
 		RGBA8_raw,  // Load 8bit and 16bit Image as-is
 		RGBA8_BC3,  // Compress to BC3 in addition to `RGBA8_raw`
@@ -21,7 +21,7 @@ namespace gltf
 	};
 
 	// Compress mode for 2-channel normal map textures
-	enum class Normal_compress_mode
+	enum class NormalCompressMode
 	{
 		RGn_raw,           // Load RGn Image as-is, bit-depth will be preserved
 		RGn_BC5,           // Compress to BC5 in addition to `RGn_raw`.
@@ -42,7 +42,7 @@ namespace gltf
 	std::expected<gpu::Texture, util::Error> create_color_texture_from_image(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		Color_compress_mode compress_mode,
+		ColorCompressMode compress_mode,
 		bool srgb,
 		const std::string& name
 	) noexcept;
@@ -60,7 +60,7 @@ namespace gltf
 	std::expected<gpu::Texture, util::Error> create_normal_texture_from_image(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		Normal_compress_mode compress_mode,
+		NormalCompressMode compress_mode,
 		const std::string& name
 	) noexcept;
 

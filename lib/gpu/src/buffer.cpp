@@ -29,7 +29,7 @@ namespace gpu
 		return std::bit_cast<uint8_t>(self) & 0x3f;
 	}
 
-	std::expected<Transfer_buffer, util::Error> Transfer_buffer::create(
+	std::expected<TransferBuffer, util::Error> TransferBuffer::create(
 		SDL_GPUDevice* device,
 		Usage usage,
 		uint32_t size
@@ -45,14 +45,14 @@ namespace gpu
 		auto* const transfer_buffer = SDL_CreateGPUTransferBuffer(device, &create_info);
 		if (transfer_buffer == nullptr) RETURN_SDL_ERROR;
 
-		auto buffer = Transfer_buffer(device, transfer_buffer);
+		auto buffer = TransferBuffer(device, transfer_buffer);
 		buffer.size = size;
 		buffer.usage = usage;
 
 		return buffer;
 	}
 
-	std::expected<void, util::Error> Transfer_buffer::transfer(
+	std::expected<void, util::Error> TransferBuffer::transfer(
 		const std::function<void(void* mapped_ptr)>& callback,
 		bool cycle
 	) const noexcept
@@ -69,7 +69,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<void, util::Error> Transfer_buffer::upload_to_buffer(
+	std::expected<void, util::Error> TransferBuffer::upload_to_buffer(
 		std::span<const std::byte> data,
 		bool cycle
 	)
@@ -92,9 +92,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<void, util::Error> Transfer_buffer::download_from_buffer(
-		std::span<std::byte> out_data
-	) const
+	std::expected<void, util::Error> TransferBuffer::download_from_buffer(std::span<std::byte> out_data) const
 	{
 		assert(resource != nullptr);
 
@@ -119,7 +117,7 @@ namespace gpu
 		return {};
 	}
 
-	std::expected<Transfer_buffer, util::Error> Transfer_buffer::create_from_data(
+	std::expected<TransferBuffer, util::Error> TransferBuffer::create_from_data(
 		SDL_GPUDevice* device,
 		std::span<const std::byte> data
 	) noexcept

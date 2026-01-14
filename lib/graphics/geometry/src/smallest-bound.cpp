@@ -88,7 +88,7 @@ namespace graphics
 		return convex_hull_stack;
 	}
 
-	Smallest_bound find_smallest_bound(
+	SmallestBound find_smallest_bound(
 		const std::array<glm::vec3, 8>& frustum_corners,
 		const glm::vec3& view_dir
 	) noexcept
@@ -144,7 +144,7 @@ namespace graphics
 			[](const auto& acc, const auto& p) { return glm::max(acc, p); }
 		);
 
-		return Smallest_bound{
+		return SmallestBound{
 			.view_matrix = rotation_mat * view_matrix,
 			.left = min.x,
 			.right = max.x,

@@ -19,44 +19,44 @@ namespace gltf
 		}
 	}
 
-	static gpu::Sampler::Mipmap_mode get_mipmap_mode(int mode) noexcept
+	static gpu::Sampler::MipmapMode get_mipmap_mode(int mode) noexcept
 	{
 		switch (mode)
 		{
 		case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
 		case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
-			return gpu::Sampler::Mipmap_mode::Nearest;
+			return gpu::Sampler::MipmapMode::Nearest;
 
 		case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
 		case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
 		default:
-			return gpu::Sampler::Mipmap_mode::Linear;
+			return gpu::Sampler::MipmapMode::Linear;
 		}
 	}
 
-	static gpu::Sampler::Address_mode get_address_mode(int mode) noexcept
+	static gpu::Sampler::AddressMode get_address_mode(int mode) noexcept
 	{
 		switch (mode)
 		{
 		case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
-			return gpu::Sampler::Address_mode::Clamp_to_edge;
+			return gpu::Sampler::AddressMode::Clamp_to_edge;
 
 		case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
-			return gpu::Sampler::Address_mode::Mirrored_repeat;
+			return gpu::Sampler::AddressMode::Mirrored_repeat;
 
 		case TINYGLTF_TEXTURE_WRAP_REPEAT:
 		default:
-			return gpu::Sampler::Address_mode::Repeat;
+			return gpu::Sampler::AddressMode::Repeat;
 		}
 	}
 
 	std::expected<gpu::Sampler, util::Error> create_sampler(
 		SDL_GPUDevice* device,
 		const tinygltf::Sampler& sampler,
-		const Sampler_config& config
+		const SamplerConfig& config
 	) noexcept
 	{
-		const gpu::Sampler::Create_info create_info{
+		const gpu::Sampler::CreateInfo create_info{
 			.min_filter = get_filter_mode(sampler.minFilter),
 			.mag_filter = get_filter_mode(sampler.magFilter),
 			.mipmap_mode = get_mipmap_mode(sampler.minFilter),

@@ -13,7 +13,7 @@ namespace gpu
 	/// @brief Compute pass
 	///
 	///
-	class Compute_pass : public Scoped_pass<SDL_GPUComputePass>
+	class ComputePass : public ScopedPass<SDL_GPUComputePass>
 	{
 	  public:
 
@@ -22,7 +22,7 @@ namespace gpu
 		///
 		/// @param pipeline Compute pipeline
 		///
-		void bind_pipeline(const Compute_pipeline& pipeline) const noexcept;
+		void bind_pipeline(const ComputePipeline& pipeline) const noexcept;
 
 		///
 		/// @brief Bind samplers
@@ -122,6 +122,6 @@ namespace gpu
 
 	  private:
 
-		using Scoped_pass<SDL_GPUComputePass>::Scoped_pass;
+		using ScopedPass<SDL_GPUComputePass>::ScopedPass;
 	};
 }

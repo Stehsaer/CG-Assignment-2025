@@ -226,7 +226,7 @@ namespace graphics::aa
 		size_t lut_size
 	) noexcept
 	{
-		const auto image = image::Image_container<glm::u8vec2>{
+		const auto image = image::ImageContainer<glm::u8vec2>{
 			.size = {uint32_t(lut_size * 4), uint32_t(lut_size * 4)},
 			.pixels = generate_diagonal_area_lut_data(lut_size)
 		};

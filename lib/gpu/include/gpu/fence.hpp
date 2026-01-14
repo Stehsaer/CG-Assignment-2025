@@ -13,7 +13,7 @@ namespace gpu
 	/// @brief GPU Synchronization Fence
 	///
 	///
-	class Fence : public Resource_box<SDL_GPUFence>
+	class Fence : public ResourceBox<SDL_GPUFence>
 	{
 	  public:
 
@@ -57,8 +57,8 @@ namespace gpu
 
 	  private:
 
-		friend class Command_buffer;
+		friend class CommandBuffer;
 
-		using Resource_box<SDL_GPUFence>::Resource_box;
+		using ResourceBox<SDL_GPUFence>::ResourceBox;
 	};
 }

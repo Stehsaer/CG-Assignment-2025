@@ -12,7 +12,7 @@ namespace gpu
 	/// @brief GPU Texture
 	///
 	///
-	class Texture : public Resource_box<SDL_GPUTexture>
+	class Texture : public ResourceBox<SDL_GPUTexture>
 	{
 	  public:
 
@@ -93,7 +93,7 @@ namespace gpu
 
 	  private:
 
-		using Resource_box<SDL_GPUTexture>::Resource_box;
+		using ResourceBox<SDL_GPUTexture>::ResourceBox;
 	};
 
 }

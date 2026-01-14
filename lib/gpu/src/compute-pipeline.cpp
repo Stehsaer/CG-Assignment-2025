@@ -3,9 +3,9 @@
 
 namespace gpu
 {
-	std::expected<Compute_pipeline, util::Error> Compute_pipeline::create(
+	std::expected<ComputePipeline, util::Error> ComputePipeline::create(
 		SDL_GPUDevice* device,
-		const Create_info& create_info,
+		const CreateInfo& create_info,
 		const std::string& name
 	) noexcept
 	{
@@ -37,6 +37,6 @@ namespace gpu
 		SDL_DestroyProperties(prop);
 		if (pipeline == nullptr) RETURN_SDL_ERROR;
 
-		return Compute_pipeline(device, pipeline);
+		return ComputePipeline(device, pipeline);
 	}
 }

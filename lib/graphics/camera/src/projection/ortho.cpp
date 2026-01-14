@@ -21,7 +21,7 @@ namespace graphics::camera::projection
 		);
 	}
 
-	glm::dmat4 Ortho_fixed::matrix(float aspect_ratio [[maybe_unused]]) const noexcept
+	glm::dmat4 OrthoFixed::matrix(float aspect_ratio [[maybe_unused]]) const noexcept
 	{
 		return glm::ortho<double>(
 			-viewport_size.x / 2,

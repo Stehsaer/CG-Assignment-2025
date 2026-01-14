@@ -14,7 +14,7 @@ namespace gpu
 	/// @brief GPU Buffer
 	///
 	///
-	class Buffer : public Resource_box<SDL_GPUBuffer>
+	class Buffer : public ResourceBox<SDL_GPUBuffer>
 	{
 	  public:
 
@@ -60,22 +60,22 @@ namespace gpu
 
 	  private:
 
-		using Resource_box<SDL_GPUBuffer>::Resource_box;
+		using ResourceBox<SDL_GPUBuffer>::ResourceBox;
 	};
 
 	///
 	/// @brief CPU-side transfer buffer
 	///
 	///
-	class Transfer_buffer : public Resource_box<SDL_GPUTransferBuffer>
+	class TransferBuffer : public ResourceBox<SDL_GPUTransferBuffer>
 	{
 	  public:
 
-		Transfer_buffer(const Transfer_buffer&) = delete;
-		Transfer_buffer& operator=(const Transfer_buffer&) = delete;
-		Transfer_buffer(Transfer_buffer&&) = default;
-		Transfer_buffer& operator=(Transfer_buffer&&) = default;
-		~Transfer_buffer() noexcept = default;
+		TransferBuffer(const TransferBuffer&) = delete;
+		TransferBuffer& operator=(const TransferBuffer&) = delete;
+		TransferBuffer(TransferBuffer&&) = default;
+		TransferBuffer& operator=(TransferBuffer&&) = default;
+		~TransferBuffer() noexcept = default;
 
 		enum class Usage
 		{
@@ -90,7 +90,7 @@ namespace gpu
 		/// @param size Size of the buffer in bytes, must be greater than 0
 		/// @return Transfer buffer object, or error if failed
 		///
-		static std::expected<Transfer_buffer, util::Error> create(
+		static std::expected<TransferBuffer, util::Error> create(
 			SDL_GPUDevice* device,
 			Usage usage,
 			uint32_t size
@@ -131,14 +131,14 @@ namespace gpu
 		/// @param data Data to upload
 		/// @return Transfer buffer object, or error if failed
 		///
-		static std::expected<Transfer_buffer, util::Error> create_from_data(
+		static std::expected<TransferBuffer, util::Error> create_from_data(
 			SDL_GPUDevice* device,
 			std::span<const std::byte> data
 		) noexcept;
 
 	  private:
 
-		using Resource_box<SDL_GPUTransferBuffer>::Resource_box;
+		using ResourceBox<SDL_GPUTransferBuffer>::ResourceBox;
 
 		uint32_t size;
 		Usage usage;

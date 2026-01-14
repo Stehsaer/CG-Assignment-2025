@@ -13,7 +13,7 @@ namespace graphics::camera::view
 	struct Orbit
 	{
 		double distance;
-		Spherical_angle angles;
+		SphericalAngle angles;
 		glm::dvec3 center;
 		glm::dvec3 up;
 

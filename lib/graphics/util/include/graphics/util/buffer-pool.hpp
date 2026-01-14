@@ -8,25 +8,25 @@
 
 namespace graphics
 {
-	class Buffer_pool
+	class BufferPool
 	{
-		struct Pool_key
+		struct PoolKey
 		{
 			uint32_t size;
 			gpu::Buffer::Usage usage;
 
-			auto operator<=>(const Pool_key&) const = default;
-			bool operator==(const Pool_key&) const = default;
+			auto operator<=>(const PoolKey&) const = default;
+			bool operator==(const PoolKey&) const = default;
 		};
 
-		std::map<Pool_key, std::vector<std::shared_ptr<gpu::Buffer>>> backup_pool;
-		std::vector<std::pair<Pool_key, std::shared_ptr<gpu::Buffer>>> in_use_buffers;
+		std::map<PoolKey, std::vector<std::shared_ptr<gpu::Buffer>>> backup_pool;
+		std::vector<std::pair<PoolKey, std::shared_ptr<gpu::Buffer>>> in_use_buffers;
 
 		SDL_GPUDevice* device;
 
 	  public:
 
-		Buffer_pool(SDL_GPUDevice* device) noexcept :
+		BufferPool(SDL_GPUDevice* device) noexcept :
 			device(device)
 		{}
 
@@ -59,31 +59,31 @@ namespace graphics
 		///
 		void gc() noexcept;
 
-		Buffer_pool(const Buffer_pool&) = delete;
-		Buffer_pool(Buffer_pool&&) = default;
-		Buffer_pool& operator=(const Buffer_pool&) = delete;
-		Buffer_pool& operator=(Buffer_pool&&) = default;
+		BufferPool(const BufferPool&) = delete;
+		BufferPool(BufferPool&&) = default;
+		BufferPool& operator=(const BufferPool&) = delete;
+		BufferPool& operator=(BufferPool&&) = default;
 	};
 
-	class Transfer_buffer_pool
+	class TransferBufferPool
 	{
-		struct Pool_key
+		struct PoolKey
 		{
-			gpu::Transfer_buffer::Usage usage;
+			gpu::TransferBuffer::Usage usage;
 			uint32_t size;
 
-			auto operator<=>(const Pool_key&) const = default;
-			bool operator==(const Pool_key&) const = default;
+			auto operator<=>(const PoolKey&) const = default;
+			bool operator==(const PoolKey&) const = default;
 		};
 
-		std::map<Pool_key, std::vector<std::shared_ptr<gpu::Transfer_buffer>>> backup_pool;
-		std::vector<std::pair<Pool_key, std::shared_ptr<gpu::Transfer_buffer>>> in_use_buffers;
+		std::map<PoolKey, std::vector<std::shared_ptr<gpu::TransferBuffer>>> backup_pool;
+		std::vector<std::pair<PoolKey, std::shared_ptr<gpu::TransferBuffer>>> in_use_buffers;
 
 		SDL_GPUDevice* device;
 
 	  public:
 
-		Transfer_buffer_pool(SDL_GPUDevice* device) noexcept :
+		TransferBufferPool(SDL_GPUDevice* device) noexcept :
 			device(device)
 		{}
 
@@ -104,8 +104,8 @@ namespace graphics
 		/// @param size Size of the buffer in size
 		/// @return Acquired buffer, or error if failed
 		///
-		std::expected<std::shared_ptr<gpu::Transfer_buffer>, util::Error> acquire_buffer(
-			gpu::Transfer_buffer::Usage usage,
+		std::expected<std::shared_ptr<gpu::TransferBuffer>, util::Error> acquire_buffer(
+			gpu::TransferBuffer::Usage usage,
 			uint32_t size
 		) noexcept;
 
@@ -116,9 +116,9 @@ namespace graphics
 		///
 		void gc() noexcept;
 
-		Transfer_buffer_pool(const Transfer_buffer_pool&) = delete;
-		Transfer_buffer_pool(Transfer_buffer_pool&&) = default;
-		Transfer_buffer_pool& operator=(const Transfer_buffer_pool&) = delete;
-		Transfer_buffer_pool& operator=(Transfer_buffer_pool&&) = default;
+		TransferBufferPool(const TransferBufferPool&) = delete;
+		TransferBufferPool(TransferBufferPool&&) = default;
+		TransferBufferPool& operator=(const TransferBufferPool&) = delete;
+		TransferBufferPool& operator=(TransferBufferPool&&) = default;
 	};
 }

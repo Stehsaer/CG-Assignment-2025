@@ -11,7 +11,7 @@ namespace graphics
 {
 	namespace detail
 	{
-		struct Image_data
+		struct ImageData
 		{
 			glm::u32vec2 size;
 			std::span<const std::byte> pixels;
@@ -21,7 +21,7 @@ namespace graphics
 		std::expected<gpu::Texture, util::Error> create_texture_from_image_internal(
 			SDL_GPUDevice* device,
 			gpu::Texture::Format format,
-			Image_data image,
+			ImageData image,
 			const std::string& name
 		) noexcept;
 
@@ -29,7 +29,7 @@ namespace graphics
 		std::expected<gpu::Texture, util::Error> create_texture_from_mipmap_internal(
 			SDL_GPUDevice* device,
 			gpu::Texture::Format format,
-			std::span<const Image_data> mipmap_chain,
+			std::span<const ImageData> mipmap_chain,
 			const std::string& name
 		) noexcept;
 	}
@@ -68,7 +68,7 @@ namespace graphics
 	std::expected<gpu::Texture, util::Error> create_texture_from_image(
 		SDL_GPUDevice* device,
 		gpu::Texture::Format format,
-		const image::Image_container<T>& image,
+		const image::ImageContainer<T>& image,
 		const std::string& name
 	) noexcept
 	{
@@ -96,15 +96,15 @@ namespace graphics
 	std::expected<gpu::Texture, util::Error> create_texture_from_mipmap(
 		SDL_GPUDevice* device,
 		gpu::Texture::Format format,
-		const std::vector<image::Image_container<T>>& mipmap_chain,
+		const std::vector<image::ImageContainer<T>>& mipmap_chain,
 		const std::string& name
 	) noexcept
 	{
-		std::vector<detail::Image_data> chain_data;
+		std::vector<detail::ImageData> chain_data;
 		chain_data.reserve(mipmap_chain.size());
 		for (const auto& level : mipmap_chain)
 			chain_data.push_back(
-				detail::Image_data{.size = level.size, .pixels = util::as_bytes(level.pixels)}
+				detail::ImageData{.size = level.size, .pixels = util::as_bytes(level.pixels)}
 			);
 
 		return detail::create_texture_from_mipmap_internal(device, format, chain_data, name);

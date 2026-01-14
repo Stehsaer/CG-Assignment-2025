@@ -24,7 +24,7 @@ namespace gltf
 		{
 			auto sampler_result = detail::animation::Sampler<glm::vec3>::from_tinygltf(model, sampler);
 			if (!sampler_result) return sampler_result.error().forward("Parse translation sampler failed");
-			return std::make_unique<detail::animation::Translation_channel>(
+			return std::make_unique<detail::animation::TranslationChannel>(
 				target_node,
 				std::move(*sampler_result)
 			);
@@ -33,7 +33,7 @@ namespace gltf
 		{
 			auto sampler_result = detail::animation::Sampler<glm::quat>::from_tinygltf(model, sampler);
 			if (!sampler_result) return sampler_result.error().forward("Parse rotation sampler failed");
-			return std::make_unique<detail::animation::Rotation_channel>(
+			return std::make_unique<detail::animation::RotationChannel>(
 				target_node,
 				std::move(*sampler_result)
 			);
@@ -42,10 +42,7 @@ namespace gltf
 		{
 			auto sampler_result = detail::animation::Sampler<glm::vec3>::from_tinygltf(model, sampler);
 			if (!sampler_result) return sampler_result.error().forward("Parse scale sampler failed");
-			return std::make_unique<detail::animation::Scale_channel>(
-				target_node,
-				std::move(*sampler_result)
-			);
+			return std::make_unique<detail::animation::ScaleChannel>(target_node, std::move(*sampler_result));
 		}
 		else
 			return util::Error(
@@ -79,7 +76,7 @@ namespace gltf
 		);
 	}
 
-	void Animation::apply(std::span<Node::Transform_override> overrides, float time) const noexcept
+	void Animation::apply(std::span<Node::TransformOverride> overrides, float time) const noexcept
 	{
 		for (const auto& channel : channels) channel->apply(overrides, time);
 	}

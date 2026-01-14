@@ -3,12 +3,12 @@
 namespace image::internal
 {
 	template <>
-	Load_result<Precision_t<Precision::U8>> load_from_memory<Precision::U8>(
+	LoadResult<Precision_t<Precision::U8>> load_from_memory<Precision::U8>(
 		std::span<const std::byte> data,
 		int desired_channel
 	) noexcept
 	{
-		Load_result<Precision_t<Precision::U8>> result;
+		LoadResult<Precision_t<Precision::U8>> result;
 		result.pixels = stbi_load_from_memory(
 			reinterpret_cast<const stbi_uc*>(data.data()),
 			static_cast<int>(data.size()),
@@ -21,12 +21,12 @@ namespace image::internal
 	}
 
 	template <>
-	Load_result<Precision_t<Precision::U16>> load_from_memory<Precision::U16>(
+	LoadResult<Precision_t<Precision::U16>> load_from_memory<Precision::U16>(
 		std::span<const std::byte> data,
 		int desired_channel
 	) noexcept
 	{
-		Load_result<Precision_t<Precision::U16>> result;
+		LoadResult<Precision_t<Precision::U16>> result;
 		result.pixels = stbi_load_16_from_memory(
 			reinterpret_cast<const stbi_uc*>(data.data()),
 			static_cast<int>(data.size()),
@@ -39,12 +39,12 @@ namespace image::internal
 	}
 
 	template <>
-	Load_result<Precision_t<Precision::F32>> load_from_memory<Precision::F32>(
+	LoadResult<Precision_t<Precision::F32>> load_from_memory<Precision::F32>(
 		std::span<const std::byte> data,
 		int desired_channel
 	) noexcept
 	{
-		Load_result<Precision_t<Precision::F32>> result;
+		LoadResult<Precision_t<Precision::F32>> result;
 		result.pixels = stbi_loadf_from_memory(
 			reinterpret_cast<const stbi_uc*>(data.data()),
 			static_cast<int>(data.size()),

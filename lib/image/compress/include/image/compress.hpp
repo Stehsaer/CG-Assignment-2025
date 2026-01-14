@@ -14,12 +14,12 @@ namespace image
 	/// @brief BC block for 8 bits per pixel formats
 	///
 	///
-	struct BC_block_8bpp
+	struct CompressionBlock
 	{
 		std::array<uint8_t, 16> block;
 	};
 
-	using BC_image_8bpp = Image_container<BC_block_8bpp>;
+	using BCImage = ImageContainer<CompressionBlock>;
 
 	///
 	/// @brief Compress a raw image into BC3 format
@@ -27,7 +27,7 @@ namespace image
 	/// @param src_image Source image in RGBA8 format. Size must be a multiple of 4x4.
 	/// @return Compressed BC3 image, or error on failure
 	///
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc3(
+	std::expected<BCImage, util::Error> compress_to_bc3(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept;
 
@@ -38,7 +38,7 @@ namespace image
 	/// are preserved and compressed
 	/// @return Compressed BC5 image, or error on failure
 	///
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc5(
+	std::expected<BCImage, util::Error> compress_to_bc5(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept;
 
@@ -48,7 +48,7 @@ namespace image
 	/// @param src_image Source image in RGBA8 format. Size must be a multiple of 4x4.
 	/// @return Compressed BC7 image, or error on failure
 	///
-	std::expected<BC_image_8bpp, util::Error> compress_to_bc7(
+	std::expected<BCImage, util::Error> compress_to_bc7(
 		const Image<Precision::U8, Format::RGBA>& src_image
 	) noexcept;
 
@@ -62,33 +62,31 @@ namespace image
 	/// @tparam Pixel_out Type of output pixel
 	///
 	template <typename Pixel_in, typename Pixel_out>
-	class Compress_mipmap
+	class CompressMipmap
 	{
-		std::function<std::expected<Image_container<Pixel_out>, util::Error>(
-			const Image_container<Pixel_in>&
-		)>
+		std::function<std::expected<ImageContainer<Pixel_out>, util::Error>(const ImageContainer<Pixel_in>&)>
 			func;
 
 	  public:
 
-		Compress_mipmap(const Compress_mipmap&) = default;
-		Compress_mipmap(Compress_mipmap&&) = default;
-		Compress_mipmap& operator=(const Compress_mipmap&) = default;
-		Compress_mipmap& operator=(Compress_mipmap&&) = default;
+		CompressMipmap(const CompressMipmap&) = default;
+		CompressMipmap(CompressMipmap&&) = default;
+		CompressMipmap& operator=(const CompressMipmap&) = default;
+		CompressMipmap& operator=(CompressMipmap&&) = default;
 
-		~Compress_mipmap() = default;
+		~CompressMipmap() = default;
 
 		template <typename F>
-			requires(!std::is_same_v<std::remove_cvref_t<F>, Compress_mipmap>)
-		Compress_mipmap(F&& func) :
+			requires(!std::is_same_v<std::remove_cvref_t<F>, CompressMipmap>)
+		CompressMipmap(F&& func) :
 			func(std::forward<F>(func))
 		{}
 
-		std::expected<std::vector<Image_container<Pixel_out>>, util::Error> operator()(
-			std::span<const Image_container<Pixel_in>> src_mipmap_chain
+		std::expected<std::vector<ImageContainer<Pixel_out>>, util::Error> operator()(
+			std::span<const ImageContainer<Pixel_in>> src_mipmap_chain
 		) const noexcept
 		{
-			std::vector<Image_container<Pixel_out>> dst_mipmap_chain;
+			std::vector<ImageContainer<Pixel_out>> dst_mipmap_chain;
 			dst_mipmap_chain.reserve(src_mipmap_chain.size());
 
 			for (const auto& [idx, src_image] : src_mipmap_chain | std::views::enumerate)
@@ -107,6 +105,6 @@ namespace image
 	};
 
 	template <typename Pixel_in, typename Output>
-	Compress_mipmap(Output (&)(const Image_container<Pixel_in>&))
-		-> Compress_mipmap<Pixel_in, typename Output::value_type::Pixel_type>;
+	CompressMipmap(Output (&)(const ImageContainer<Pixel_in>&))
+		-> CompressMipmap<Pixel_in, typename Output::value_type::Pixel_type>;
 }

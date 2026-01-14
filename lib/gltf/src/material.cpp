@@ -7,19 +7,19 @@
 
 namespace gltf
 {
-	std::string Pipeline_mode::to_string() const noexcept
+	std::string PipelineMode::to_string() const noexcept
 	{
 		std::string alpha_mode_str;
 
 		switch (alpha_mode)
 		{
-		case Alpha_mode::Opaque:
+		case AlphaMode::Opaque:
 			alpha_mode_str = "Opaque";
 			break;
-		case Alpha_mode::Mask:
+		case AlphaMode::Mask:
 			alpha_mode_str = "Mask";
 			break;
-		case Alpha_mode::Blend:
+		case AlphaMode::Blend:
 			alpha_mode_str = "Blend";
 			break;
 		}
@@ -44,17 +44,17 @@ namespace gltf
 			return static_cast<uint32_t>(texture_info.index);
 	}
 
-	Material_cache::Ref Material_cache::ref() const noexcept
+	MaterialCache::Ref MaterialCache::ref() const noexcept
 	{
 		return {.materials = materials, .default_material = std::ref(default_material)};
 	}
 
-	std::expected<Material_indexed, util::Error> Material_indexed::from_tinygltf(
+	std::expected<MaterialIndexed, util::Error> MaterialIndexed::from_tinygltf(
 		const tinygltf::Model& model,
 		const tinygltf::Material& material
 	) noexcept
 	{
-		Material_indexed mat;
+		MaterialIndexed mat;
 
 		/* Root Scope */
 
@@ -62,11 +62,11 @@ namespace gltf
 		mat.params.pipeline.double_sided = material.doubleSided;
 
 		if (material.alphaMode == "OPAQUE")
-			mat.params.pipeline.alpha_mode = Alpha_mode::Opaque;
+			mat.params.pipeline.alpha_mode = AlphaMode::Opaque;
 		else if (material.alphaMode == "MASK")
-			mat.params.pipeline.alpha_mode = Alpha_mode::Mask;
+			mat.params.pipeline.alpha_mode = AlphaMode::Mask;
 		else if (material.alphaMode == "BLEND")
-			mat.params.pipeline.alpha_mode = Alpha_mode::Blend;
+			mat.params.pipeline.alpha_mode = AlphaMode::Blend;
 		else
 			return util::Error(std::format("Unknown alpha mode: {}", material.alphaMode));
 
@@ -150,11 +150,11 @@ namespace gltf
 		return mat;
 	}
 
-	std::vector<Material_list::Image_refcount> Material_list::compute_image_refcounts(
+	std::vector<MaterialList::ImageRefCount> MaterialList::compute_image_refcounts(
 		const tinygltf::Model& model
 	) noexcept
 	{
-		std::vector<Image_refcount> refcount_list(model.images.size());
+		std::vector<ImageRefCount> refcount_list(model.images.size());
 
 		const auto count_texture = [&model, &refcount_list](auto proj, const auto& texture_info) {
 			if (const auto index = texture_info.index;
@@ -170,22 +170,22 @@ namespace gltf
 
 		for (const auto& material : model.materials)
 		{
-			count_texture(&Image_refcount::color_refcount, material.pbrMetallicRoughness.baseColorTexture);
+			count_texture(&ImageRefCount::color_refcount, material.pbrMetallicRoughness.baseColorTexture);
 			count_texture(
-				&Image_refcount::linear_refcount,
+				&ImageRefCount::linear_refcount,
 				material.pbrMetallicRoughness.metallicRoughnessTexture
 			);
-			count_texture(&Image_refcount::linear_refcount, material.occlusionTexture);
-			count_texture(&Image_refcount::color_refcount, material.emissiveTexture);
-			count_texture(&Image_refcount::normal_refcount, material.normalTexture);
+			count_texture(&ImageRefCount::linear_refcount, material.occlusionTexture);
+			count_texture(&ImageRefCount::color_refcount, material.emissiveTexture);
+			count_texture(&ImageRefCount::normal_refcount, material.normalTexture);
 		}
 
 		return refcount_list;
 	}
 
-	std::optional<std::unique_ptr<Material_cache>> Material_list::gen_material_cache() const noexcept
+	std::optional<std::unique_ptr<MaterialCache>> MaterialList::gen_material_cache() const noexcept
 	{
-		std::vector<Material_gpu> material_binds;
+		std::vector<MaterialGPU> material_binds;
 		material_binds.reserve(materials.size());
 
 		for (const auto idx : std::views::iota(0zu, materials.size()))
@@ -198,10 +198,10 @@ namespace gltf
 		const auto default_bind = gen_binding_info(std::nullopt);
 		if (!default_bind.has_value()) return std::nullopt;
 
-		return std::make_unique<Material_cache>(std::move(material_binds), *default_bind);
+		return std::make_unique<MaterialCache>(std::move(material_binds), *default_bind);
 	}
 
-	std::expected<void, util::Error> Material_list::create_default_textures(SDL_GPUDevice* device) noexcept
+	std::expected<void, util::Error> MaterialList::create_default_textures(SDL_GPUDevice* device) noexcept
 	{
 		auto default_white_tex =
 			gltf::create_placeholder_image(device, glm::vec4(1.0f), "GLTF Default Base Color");
@@ -217,7 +217,7 @@ namespace gltf
 		return {};
 	}
 
-	std::expected<void, util::Error> Material_list::create_default_sampler(SDL_GPUDevice* device) noexcept
+	std::expected<void, util::Error> MaterialList::create_default_sampler(SDL_GPUDevice* device) noexcept
 	{
 		auto sampler = gpu::Sampler::create(device, {});
 		if (!sampler) return sampler.error();
@@ -226,14 +226,14 @@ namespace gltf
 		return {};
 	}
 
-	std::expected<Material_list::Image_entry, util::Error> Material_list::load_image_thread(
+	std::expected<MaterialList::ImageEntry, util::Error> MaterialList::load_image_thread(
 		SDL_GPUDevice* device,
 		const tinygltf::Image& image,
-		const Image_config& image_config,
-		Image_refcount refcount
+		const ImageConfig& image_config,
+		ImageRefCount refcount
 	) noexcept
 	{
-		Image_entry entry;
+		ImageEntry entry;
 
 		if (refcount.color_refcount > 0)
 		{
@@ -279,10 +279,10 @@ namespace gltf
 		return entry;
 	}
 
-	std::expected<void, util::Error> Material_list::load_images(
+	std::expected<void, util::Error> MaterialList::load_images(
 		SDL_GPUDevice* device,
 		const tinygltf::Model& model,
-		const Image_config& image_config,
+		const ImageConfig& image_config,
 		const Load_progress_callback& progress_callback
 	) noexcept
 	{
@@ -338,10 +338,10 @@ namespace gltf
 		return {};
 	}
 
-	std::expected<void, util::Error> Material_list::load_samplers(
+	std::expected<void, util::Error> MaterialList::load_samplers(
 		SDL_GPUDevice* device,
 		const tinygltf::Model& model,
-		const Sampler_config& sampler_config
+		const SamplerConfig& sampler_config
 	) noexcept
 	{
 		samplers.reserve(model.samplers.size());
@@ -357,7 +357,7 @@ namespace gltf
 		return {};
 	}
 
-	std::expected<void, util::Error> Material_list::load_textures(const tinygltf::Model& model) noexcept
+	std::expected<void, util::Error> MaterialList::load_textures(const tinygltf::Model& model) noexcept
 	{
 		textures.reserve(model.textures.size());
 
@@ -372,13 +372,13 @@ namespace gltf
 		return {};
 	}
 
-	std::expected<void, util::Error> Material_list::load_materials(const tinygltf::Model& model) noexcept
+	std::expected<void, util::Error> MaterialList::load_materials(const tinygltf::Model& model) noexcept
 	{
 		materials.reserve(model.materials.size());
 
 		for (const auto& [idx, tinygltf_material] : model.materials | std::views::enumerate)
 		{
-			auto material = Material_indexed::from_tinygltf(model, tinygltf_material);
+			auto material = MaterialIndexed::from_tinygltf(model, tinygltf_material);
 			if (!material)
 				return material.error().forward(std::format("Load material at index {} failed", idx));
 
@@ -388,7 +388,7 @@ namespace gltf
 		return {};
 	}
 
-	std::optional<SDL_GPUTextureSamplerBinding> Material_list::get_texture_sampler_binding(
+	std::optional<SDL_GPUTextureSamplerBinding> MaterialList::get_texture_sampler_binding(
 		const std::unique_ptr<gpu::Texture>& default_texture,
 		std::optional<uint32_t> texture_index,
 		auto element
@@ -415,17 +415,17 @@ namespace gltf
 		return SDL_GPUTextureSamplerBinding{.texture = texture, .sampler = sampler};
 	}
 
-	std::expected<Material_list, util::Error> Material_list::from_tinygltf(
+	std::expected<MaterialList, util::Error> MaterialList::from_tinygltf(
 		SDL_GPUDevice* device,
 		const tinygltf::Model& model,
-		const Sampler_config& sampler_config,
-		const Image_config& image_config,
+		const SamplerConfig& sampler_config,
+		const ImageConfig& image_config,
 		const Load_progress_callback& progress_callback
 	) noexcept
 	{
 		if (progress_callback) progress_callback(std::nullopt, 0);
 
-		Material_list material_list;
+		MaterialList material_list;
 
 		auto result = material_list.create_default_textures(device);
 		if (!result) return result.error().forward("Create default textures failed");
@@ -448,7 +448,7 @@ namespace gltf
 		return material_list;
 	}
 
-	std::optional<Material_gpu> Material_list::gen_binding_info(
+	std::optional<MaterialGPU> MaterialList::gen_binding_info(
 		std::optional<uint32_t> material_index
 	) const noexcept
 	{
@@ -458,7 +458,7 @@ namespace gltf
 		std::optional<uint32_t> occlusion_index = std::nullopt;
 		std::optional<uint32_t> emissive_index = std::nullopt;
 
-		Material_gpu bind;
+		MaterialGPU bind;
 
 		if (material_index.has_value()) [[likely]]
 		{
@@ -476,30 +476,27 @@ namespace gltf
 		}
 
 		auto base_color_binding =
-			get_texture_sampler_binding(default_white, base_color_index, &Image_entry::color_texture);
+			get_texture_sampler_binding(default_white, base_color_index, &ImageEntry::color_texture);
 		if (!base_color_binding) return std::nullopt;
 		bind.base_color = *base_color_binding;
 
-		auto metallic_roughness_binding = get_texture_sampler_binding(
-			default_white,
-			metallic_roughness_index,
-			&Image_entry::linear_texture
-		);
+		auto metallic_roughness_binding =
+			get_texture_sampler_binding(default_white, metallic_roughness_index, &ImageEntry::linear_texture);
 		if (!metallic_roughness_binding) return std::nullopt;
 		bind.metallic_roughness = *metallic_roughness_binding;
 
 		auto normal_binding =
-			get_texture_sampler_binding(default_normal, normal_index, &Image_entry::normal_texture);
+			get_texture_sampler_binding(default_normal, normal_index, &ImageEntry::normal_texture);
 		if (!normal_binding) return std::nullopt;
 		bind.normal = *normal_binding;
 
 		auto occlusion_binding =
-			get_texture_sampler_binding(default_white, occlusion_index, &Image_entry::linear_texture);
+			get_texture_sampler_binding(default_white, occlusion_index, &ImageEntry::linear_texture);
 		if (!occlusion_binding) return std::nullopt;
 		bind.occlusion = *occlusion_binding;
 
 		auto emissive_binding =
-			get_texture_sampler_binding(default_white, emissive_index, &Image_entry::color_texture);
+			get_texture_sampler_binding(default_white, emissive_index, &ImageEntry::color_texture);
 		if (!emissive_binding) return std::nullopt;
 		bind.emissive = *emissive_binding;
 

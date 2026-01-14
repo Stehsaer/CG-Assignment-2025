@@ -13,17 +13,17 @@ namespace gpu
 	/// @brief Compute pipeline
 	///
 	///
-	class Compute_pipeline : public Resource_box<SDL_GPUComputePipeline>
+	class ComputePipeline : public ResourceBox<SDL_GPUComputePipeline>
 	{
 	  public:
 
-		Compute_pipeline(const Compute_pipeline&) = delete;
-		Compute_pipeline& operator=(const Compute_pipeline&) = delete;
-		Compute_pipeline(Compute_pipeline&&) noexcept = default;
-		Compute_pipeline& operator=(Compute_pipeline&&) noexcept = default;
-		~Compute_pipeline() noexcept = default;
+		ComputePipeline(const ComputePipeline&) = delete;
+		ComputePipeline& operator=(const ComputePipeline&) = delete;
+		ComputePipeline(ComputePipeline&&) noexcept = default;
+		ComputePipeline& operator=(ComputePipeline&&) noexcept = default;
+		~ComputePipeline() noexcept = default;
 
-		struct Create_info
+		struct CreateInfo
 		{
 			std::span<const std::byte> shader_data;
 			uint32_t num_samplers = 0;
@@ -42,14 +42,14 @@ namespace gpu
 		///
 		/// @return Compute pipeline object, or error if failed
 		///
-		static std::expected<Compute_pipeline, util::Error> create(
+		static std::expected<ComputePipeline, util::Error> create(
 			SDL_GPUDevice* device,
-			const Create_info& create_info,
+			const CreateInfo& create_info,
 			const std::string& name
 		) noexcept;
 
 	  private:
 
-		using Resource_box<SDL_GPUComputePipeline>::Resource_box;
+		using ResourceBox<SDL_GPUComputePipeline>::ResourceBox;
 	};
 }

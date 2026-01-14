@@ -3,7 +3,7 @@
 
 namespace gpu
 {
-	SDL_GPUSamplerCreateInfo Sampler::Create_info::create() const noexcept
+	SDL_GPUSamplerCreateInfo Sampler::CreateInfo::create() const noexcept
 	{
 		const SDL_GPUSamplerCreateInfo info{
 			.min_filter = static_cast<SDL_GPUFilter>(min_filter),
@@ -14,7 +14,7 @@ namespace gpu
 			.address_mode_w = static_cast<SDL_GPUSamplerAddressMode>(address_mode_w),
 			.mip_lod_bias = mip_lod_bias,
 			.max_anisotropy = max_anisotropy.value_or(1.0f),
-			.compare_op = static_cast<SDL_GPUCompareOp>(compare_op.value_or(Compare_op::Always)),
+			.compare_op = static_cast<SDL_GPUCompareOp>(compare_op.value_or(CompareOp::Always)),
 			.min_lod = min_lod,
 			.max_lod = max_lod,
 			.enable_anisotropy = max_anisotropy.has_value(),
@@ -29,7 +29,7 @@ namespace gpu
 
 	std::expected<Sampler, util::Error> Sampler::create(
 		SDL_GPUDevice* device,
-		const Create_info& create_info
+		const CreateInfo& create_info
 	) noexcept
 	{
 		assert(device != nullptr);

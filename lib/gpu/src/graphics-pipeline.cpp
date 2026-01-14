@@ -4,7 +4,7 @@
 
 namespace gpu
 {
-	std::expected<Graphics_shader, util::Error> Graphics_shader::create(
+	std::expected<GraphicsShader, util::Error> GraphicsShader::create(
 		SDL_GPUDevice* device,
 		std::span<const std::byte> shader_data,
 		Stage stage,
@@ -34,11 +34,11 @@ namespace gpu
 		SDL_GPUShader* const shader = SDL_CreateGPUShader(device, &info);
 		if (shader == nullptr) RETURN_SDL_ERROR;
 
-		return Graphics_shader(device, shader);
+		return GraphicsShader(device, shader);
 	}
 
-	SDL_GPUDepthStencilState Graphics_pipeline::Depth_stencil_state::to_sdl(
-		this const Depth_stencil_state& self
+	SDL_GPUDepthStencilState GraphicsPipeline::DepthStencilState::to_sdl(
+		this const DepthStencilState& self
 	) noexcept
 	{
 		return SDL_GPUDepthStencilState{
@@ -56,17 +56,17 @@ namespace gpu
 		};
 	}
 
-	std::expected<Graphics_pipeline, util::Error> Graphics_pipeline::create(
+	std::expected<GraphicsPipeline, util::Error> GraphicsPipeline::create(
 		SDL_GPUDevice* device,
-		const Graphics_shader& vertex_shader,
-		const Graphics_shader& fragment_shader,
+		const GraphicsShader& vertex_shader,
+		const GraphicsShader& fragment_shader,
 		SDL_GPUPrimitiveType primitive_type,
 		SDL_GPUSampleCount multisample_count,
 		const SDL_GPURasterizerState& rasterizer_state,
 		std::span<const SDL_GPUVertexAttribute> vertex_attributes,
 		std::span<const SDL_GPUVertexBufferDescription> vertex_buffer_descs,
 		std::span<const SDL_GPUColorTargetDescription> color_target_descs,
-		const std::optional<Graphics_pipeline::Depth_stencil_state>& depth_stencil_state,
+		const std::optional<GraphicsPipeline::DepthStencilState>& depth_stencil_state,
 		const std::string& name
 	) noexcept
 	{
@@ -106,6 +106,6 @@ namespace gpu
 		SDL_DestroyProperties(prop);
 		if (raw_pipeline == nullptr) RETURN_SDL_ERROR;
 
-		return Graphics_pipeline(device, raw_pipeline);
+		return GraphicsPipeline(device, raw_pipeline);
 	}
 }

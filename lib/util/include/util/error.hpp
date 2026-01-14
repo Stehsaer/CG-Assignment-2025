@@ -26,7 +26,7 @@ namespace util
 		/// @brief Error trace entry
 		///
 		///
-		struct Trace_entry
+		struct TraceEntry
 		{
 			std::source_location location;  // Source location of the error
 			std::string message;            // Information about the error
@@ -34,7 +34,7 @@ namespace util
 
 	  private:
 
-		std::vector<Trace_entry> entries;
+		std::vector<TraceEntry> entries;
 
 	  public:
 
@@ -85,7 +85,7 @@ namespace util
 		///
 		void dump_trace(std::ostream& os = std::cerr, bool color = true) const noexcept;
 
-		const std::vector<Trace_entry>& operator*() const noexcept { return entries; }
-		const std::vector<Trace_entry>* operator->() const noexcept { return &(**this); }
+		const std::vector<TraceEntry>& operator*() const noexcept { return entries; }
+		const std::vector<TraceEntry>* operator->() const noexcept { return &(**this); }
 	};
 }

@@ -11,7 +11,7 @@
 
 namespace graphics
 {
-	std::expected<Renderpass_copy, util::Error> Renderpass_copy::create(
+	std::expected<RenderpassCopy, util::Error> RenderpassCopy::create(
 		SDL_GPUDevice* device,
 		size_t channels,
 		gpu::Texture::Format dst_format
@@ -34,10 +34,10 @@ namespace graphics
 			return util::Error(std::format("Unsupported channel count for Renderpass_copy: {}", channels));
 		}
 
-		auto fragment_shader = gpu::Graphics_shader::create(
+		auto fragment_shader = gpu::GraphicsShader::create(
 			device,
 			fragment_code,
-			gpu::Graphics_shader::Stage::Fragment,
+			gpu::GraphicsShader::Stage::Fragment,
 			1,
 			0,
 			0,
@@ -46,32 +46,32 @@ namespace graphics
 		if (!fragment_shader)
 			return fragment_shader.error().forward("Create fragment shader for Renderpass_copy failed");
 
-		auto copy_pass = Fullscreen_pass<true>::create(
+		auto copy_pass = FullscreenPass<true>::create(
 			device,
 			*fragment_shader,
 			dst_format,
-			{.clear_before_render = false, .blend_mode = Fullscreen_blend_mode::Overwrite},
+			{.clear_before_render = false, .blend_mode = FullscreenBlendMode::Overwrite},
 			std::format("Renderpass_copy Pipeline ({} channels)", channels)
 		);
-		if (!copy_pass) return copy_pass.error().forward("Create Fullscreen_pass for Renderpass_copy failed");
+		if (!copy_pass) return copy_pass.error().forward("Create FullscreenPass for Renderpass_copy failed");
 
 		auto sampler = gpu::Sampler::create(
 			device,
-			gpu::Sampler::Create_info{
+			gpu::Sampler::CreateInfo{
 				.min_filter = gpu::Sampler::Filter::Nearest,
 				.mag_filter = gpu::Sampler::Filter::Nearest,
-				.address_mode_u = gpu::Sampler::Address_mode::Clamp_to_edge,
-				.address_mode_v = gpu::Sampler::Address_mode::Clamp_to_edge,
-				.address_mode_w = gpu::Sampler::Address_mode::Clamp_to_edge
+				.address_mode_u = gpu::Sampler::AddressMode::Clamp_to_edge,
+				.address_mode_v = gpu::Sampler::AddressMode::Clamp_to_edge,
+				.address_mode_w = gpu::Sampler::AddressMode::Clamp_to_edge
 			}
 		);
 		if (!sampler) return sampler.error().forward("Create sampler for Renderpass_copy failed");
 
-		return Renderpass_copy(std::move(*copy_pass), std::move(*sampler));
+		return RenderpassCopy(std::move(*copy_pass), std::move(*sampler));
 	}
 
-	std::expected<void, util::Error> Renderpass_copy::copy(
-		const gpu::Command_buffer& command_buffer,
+	std::expected<void, util::Error> RenderpassCopy::copy(
+		const gpu::CommandBuffer& command_buffer,
 		SDL_GPUTexture* src,
 		SDL_GPUTexture* dst
 	) const noexcept

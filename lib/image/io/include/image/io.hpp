@@ -16,7 +16,7 @@ namespace image
 	namespace internal
 	{
 		template <typename T>
-		struct Load_result
+		struct LoadResult
 		{
 			T* pixels;
 			int width;
@@ -25,7 +25,7 @@ namespace image
 		};
 
 		template <Precision P>
-		Load_result<Precision_t<P>> load_from_memory(
+		LoadResult<Precision_t<P>> load_from_memory(
 			std::span<const std::byte> data [[maybe_unused]],
 			int desired_channel [[maybe_unused]]
 		) noexcept
@@ -34,23 +34,22 @@ namespace image
 		}
 
 		template <>
-		Load_result<Precision_t<Precision::U8>> load_from_memory<Precision::U8>(
+		LoadResult<Precision_t<Precision::U8>> load_from_memory<Precision::U8>(
 			std::span<const std::byte> data,
 			int desired_channel
 		) noexcept;
 
 		template <>
-		Load_result<Precision_t<Precision::U16>> load_from_memory<Precision::U16>(
+		LoadResult<Precision_t<Precision::U16>> load_from_memory<Precision::U16>(
 			std::span<const std::byte> data,
 			int desired_channel
 		) noexcept;
 
 		template <>
-		Load_result<Precision_t<Precision::F32>> load_from_memory<Precision::F32>(
+		LoadResult<Precision_t<Precision::F32>> load_from_memory<Precision::F32>(
 			std::span<const std::byte> data,
 			int desired_channel
 		) noexcept;
-
 	}
 
 	///

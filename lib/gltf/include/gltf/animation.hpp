@@ -12,7 +12,7 @@
 
 namespace gltf
 {
-	struct Animation_key
+	struct AnimationKey
 	{
 		std::variant<uint32_t, std::string> animation;
 		float time;
@@ -40,7 +40,7 @@ namespace gltf
 		/// @param overrides Node transform overrides
 		/// @param time Absolute timestamp
 		///
-		void apply(std::span<Node::Transform_override> overrides, float time) const noexcept;
+		void apply(std::span<Node::TransformOverride> overrides, float time) const noexcept;
 
 		// Name of the animation, can be none
 		std::optional<std::string> name;

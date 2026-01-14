@@ -4,7 +4,7 @@ namespace graphics::aa
 {
 	std::expected<void, util::Error> Empty::run_antialiasing(
 		SDL_GPUDevice* device [[maybe_unused]],
-		const gpu::Command_buffer& command_buffer,
+		const gpu::CommandBuffer& command_buffer,
 		SDL_GPUTexture* source,
 		SDL_GPUTexture* target,
 		glm::u32vec2 size

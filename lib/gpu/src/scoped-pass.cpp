@@ -4,7 +4,7 @@ namespace gpu
 {
 #define DEF_DELETER(name)                                                                                    \
 	template <>                                                                                              \
-	void Scoped_pass<SDL_GPU##name>::delete_resource() noexcept                                              \
+	void ScopedPass<SDL_GPU##name>::delete_resource() noexcept                                               \
 	{                                                                                                        \
 		if (resource == nullptr) return;                                                                     \
 		SDL_EndGPU##name(resource);                                                                          \

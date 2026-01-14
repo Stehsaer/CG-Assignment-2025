@@ -15,10 +15,10 @@ namespace graphics
 		auto buffer = gpu::Buffer::create(device, usage, data.size(), name);
 		if (!buffer) return buffer.error().forward("Create buffer failed");
 
-		auto transfer_buffer = gpu::Transfer_buffer::create_from_data(device, data);
+		auto transfer_buffer = gpu::TransferBuffer::create_from_data(device, data);
 		if (!transfer_buffer) return transfer_buffer.error().forward("Create transfer buffer failed");
 
-		const auto copy_result = execute_copy_task(device, [&](const gpu::Copy_pass& copy_pass) {
+		const auto copy_result = execute_copy_task(device, [&](const gpu::CopyPass& copy_pass) {
 			copy_pass.upload_to_buffer(*transfer_buffer, 0, *buffer, 0, data.size(), false);
 		});
 
@@ -30,7 +30,7 @@ namespace graphics
 	std::expected<gpu::Texture, util::Error> detail::create_texture_from_image_internal(
 		SDL_GPUDevice* device,
 		gpu::Texture::Format format,
-		Image_data image,
+		ImageData image,
 		const std::string& name
 	) noexcept
 	{
@@ -39,7 +39,7 @@ namespace graphics
 		auto texture = gpu::Texture::create(device, format.create(image.size.x, image.size.y, 1, 1), name);
 		if (!texture) return texture.error().forward("Create texture failed");
 
-		auto transfer_buffer = gpu::Transfer_buffer::create_from_data(device, image.pixels);
+		auto transfer_buffer = gpu::TransferBuffer::create_from_data(device, image.pixels);
 		if (!transfer_buffer) return transfer_buffer.error().forward("Create transfer buffer failed");
 
 		const SDL_GPUTextureTransferInfo transfer_info{
@@ -73,7 +73,7 @@ namespace graphics
 	std::expected<gpu::Texture, util::Error> detail::create_texture_from_mipmap_internal(
 		SDL_GPUDevice* device,
 		gpu::Texture::Format format,
-		std::span<const Image_data> mipmap_chain,
+		std::span<const ImageData> mipmap_chain,
 		const std::string& name
 	) noexcept
 	{
@@ -88,8 +88,8 @@ namespace graphics
 
 		const auto transfer_buffers =
 			mipmap_chain
-			| std::views::transform([&](const Image_data& image) {
-				  return gpu::Transfer_buffer::create_from_data(device, image.pixels);
+			| std::views::transform([&](const ImageData& image) {
+				  return gpu::TransferBuffer::create_from_data(device, image.pixels);
 			  })
 			| std::ranges::to<std::vector>();
 		for (const auto& buffer : transfer_buffers)

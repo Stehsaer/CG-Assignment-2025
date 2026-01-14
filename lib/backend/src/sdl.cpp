@@ -10,24 +10,24 @@
 
 namespace backend
 {
-	struct SDL_cleanup
+	struct SDLCleanup
 	{
-		~SDL_cleanup() noexcept { SDL_Quit(); }
+		~SDLCleanup() noexcept { SDL_Quit(); }
 	};
 
-	static std::unique_ptr<SDL_cleanup> sdl_cleanup_instance = nullptr;
+	static std::unique_ptr<SDLCleanup> sdl_cleanup_instance = nullptr;
 
 	std::expected<void, util::Error> initialize_sdl()
 	{
 		if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 			return util::Error(std::format("Initialize SDL failed: {}", SDL_GetError()));
 
-		sdl_cleanup_instance = std::make_unique<SDL_cleanup>();
+		sdl_cleanup_instance = std::make_unique<SDLCleanup>();
 
 		return {};
 	}
 
-	static std::expected<SDL_GPUDevice*, util::Error> create_gpu(const Vulkan_config& vk_config) noexcept
+	static std::expected<SDL_GPUDevice*, util::Error> create_gpu(const VulkanConfig& vk_config) noexcept
 	{
 		SDL_GPUVulkanOptions vulkan_options{
 			.vulkan_api_version = VK_MAKE_VERSION(
@@ -70,12 +70,12 @@ namespace backend
 		return gpu_device;
 	}
 
-	std::expected<std::unique_ptr<SDL_context>, util::Error> SDL_context::create(
+	std::expected<std::unique_ptr<SDLcontext>, util::Error> SDLcontext::create(
 		int width,
 		int height,
 		const std::string& title,
 		SDL_WindowFlags additional_flags,
-		const Vulkan_config& vk_config
+		const VulkanConfig& vk_config
 	) noexcept
 	{
 		/* Create Window */
@@ -117,27 +117,27 @@ namespace backend
 			return util::Error(std::format("Set SDL Swapchain Parameters Failed: {}", SDL_GetError()));
 		}
 
-		return std::make_unique<SDL_context>(window, gpu_device);
+		return std::make_unique<SDLcontext>(window, gpu_device);
 	}
 
-	float SDL_context::get_window_scale() const noexcept
+	float SDLcontext::get_window_scale() const noexcept
 	{
 		return SDL_GetDisplayContentScale(SDL_GetDisplayForWindow(window));
 	}
 
-	glm::u32vec2 SDL_context::get_window_size() const noexcept
+	glm::u32vec2 SDLcontext::get_window_size() const noexcept
 	{
 		glm::ivec2 size;
 		SDL_GetWindowSize(window, &size.x, &size.y);
 		return size;
 	}
 
-	SDL_GPUTextureFormat SDL_context::get_swapchain_texture_format() const noexcept
+	SDL_GPUTextureFormat SDLcontext::get_swapchain_texture_format() const noexcept
 	{
 		return SDL_GetGPUSwapchainTextureFormat(device, window);
 	}
 
-	SDL_context::~SDL_context() noexcept
+	SDLcontext::~SDLcontext() noexcept
 	{
 		SDL_WaitForGPUSwapchain(device, window);
 		SDL_WaitForGPUIdle(device);

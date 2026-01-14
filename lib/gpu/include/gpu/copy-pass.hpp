@@ -7,7 +7,7 @@
 
 namespace gpu
 {
-	class Copy_pass : public Scoped_pass<SDL_GPUCopyPass>
+	class CopyPass : public ScopedPass<SDL_GPUCopyPass>
 	{
 	  public:
 
@@ -60,7 +60,7 @@ namespace gpu
 		/// @param cycle Use cycle mode
 		///
 		void upload_to_buffer(
-			const Transfer_buffer& src_buffer,
+			const TransferBuffer& src_buffer,
 			uint32_t src_offset,
 			const Buffer& dst_buffer,
 			uint32_t dst_offset,
@@ -93,7 +93,7 @@ namespace gpu
 		void download_from_buffer(
 			const Buffer& src_buffer,
 			uint32_t src_offset,
-			const Transfer_buffer& dst_buffer,
+			const TransferBuffer& dst_buffer,
 			uint32_t dst_offset,
 			uint32_t size
 		) const noexcept;
@@ -111,6 +111,6 @@ namespace gpu
 
 	  private:
 
-		using Scoped_pass<SDL_GPUCopyPass>::Scoped_pass;
+		using ScopedPass<SDL_GPUCopyPass>::ScopedPass;
 	};
 }

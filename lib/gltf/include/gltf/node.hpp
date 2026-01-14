@@ -22,7 +22,7 @@ namespace gltf
 	struct Node
 	{
 		// Transform override values
-		struct Transform_override
+		struct TransformOverride
 		{
 			std::optional<glm::vec3> translation;
 			std::optional<glm::quat> rotation;
@@ -48,7 +48,7 @@ namespace gltf
 			/// @param override Override for translation
 			/// @return The new Transform with overrides applied
 			///
-			FORCE_INLINE Transform override_with(const Transform_override& override) const noexcept
+			FORCE_INLINE Transform override_with(const TransformOverride& override) const noexcept
 			{
 				return {
 					.translation = override.translation.value_or(translation),
@@ -102,7 +102,7 @@ namespace gltf
 		/// @param scale_override Scale override
 		/// @return Local transformation matrix
 		///
-		FORCE_INLINE glm::mat4 get_local_transform(const Transform_override& override = {}) const noexcept
+		FORCE_INLINE glm::mat4 get_local_transform(const TransformOverride& override = {}) const noexcept
 		{
 			if (std::holds_alternative<glm::mat4>(transform)) [[unlikely]]
 			{

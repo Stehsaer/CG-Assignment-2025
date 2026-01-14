@@ -4,7 +4,7 @@
 
 namespace wavefront::detail
 {
-	std::optional<Face_line::Index> parse_face_index(const std::string_view& slice) noexcept
+	std::optional<FaceLine::Index> parse_face_index(const std::string_view& slice) noexcept
 	{
 		std::array<std::string_view, 16> buffer;
 		std::pmr::monotonic_buffer_resource pool(buffer.data(), buffer.size());
@@ -26,7 +26,7 @@ namespace wavefront::detail
 		if (!pos_index || !uv_index || !normal_index) return std::nullopt;
 		if (*pos_index == 0 || *uv_index == 0 || *normal_index == 0) return std::nullopt;
 
-		return Face_line::Index{
+		return FaceLine::Index{
 			.pos_index = *pos_index - 1,
 			.uv_index = *uv_index - 1,
 			.normal_index = *normal_index - 1

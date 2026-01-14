@@ -101,10 +101,10 @@ namespace gltf
 
 	namespace detail
 	{
-		static std::expected<std::vector<Mesh_gpu>, util::Error> load_meshes(
+		static std::expected<std::vector<MeshGPU>, util::Error> load_meshes(
 			SDL_GPUDevice* device,
 			const tinygltf::Model& tinygltf_model,
-			const std::optional<std::reference_wrapper<std::atomic<Model::Load_progress>>>& progress
+			const std::optional<std::reference_wrapper<std::atomic<Model::LoadProgress>>>& progress
 		) noexcept
 		{
 			std::mutex progress_mutex;
@@ -114,11 +114,11 @@ namespace gltf
 			const auto task =
 				[device, &progress, &progress_count, &progress_mutex, &tinygltf_model](
 					const tinygltf::Mesh& tinygltf_mesh
-				) -> std::expected<Mesh_gpu, util::Error> {
+				) -> std::expected<MeshGPU, util::Error> {
 				auto mesh_cpu = Mesh::from_tinygltf(tinygltf_model, tinygltf_mesh);
 				if (!mesh_cpu) return mesh_cpu.error().forward("Create mesh from tinygltf failed");
 
-				auto mesh_gpu = Mesh_gpu::from_mesh(device, *mesh_cpu);
+				auto mesh_gpu = MeshGPU::from_mesh(device, *mesh_cpu);
 				if (!mesh_gpu) return mesh_gpu.error().forward("Create mesh GPU resources failed");
 
 				{
@@ -127,7 +127,7 @@ namespace gltf
 
 					if (progress.has_value())
 						progress->get() = {
-							.stage = Model::Load_stage::Mesh,
+							.stage = Model::LoadStage::Mesh,
 							.progress = float(progress_count) / tinygltf_model.meshes.size()
 						};
 				}
@@ -135,7 +135,7 @@ namespace gltf
 				return mesh_gpu;
 			};
 
-			std::vector<std::future<std::expected<Mesh_gpu, util::Error>>> mesh_futures =
+			std::vector<std::future<std::expected<MeshGPU, util::Error>>> mesh_futures =
 				tinygltf_model.meshes
 				| std::views::transform([&](const auto& tinygltf_mesh) {
 					  return thread_pool.enqueue(std::bind(task, tinygltf_mesh));
@@ -144,7 +144,7 @@ namespace gltf
 
 			thread_pool.wait_for_tasks();
 
-			std::vector<Mesh_gpu> meshes;
+			std::vector<MeshGPU> meshes;
 			for (auto [idx, future] : mesh_futures | std::views::enumerate)
 			{
 				auto result = future.get();
@@ -178,14 +178,14 @@ namespace gltf
 	std::expected<Model, util::Error> Model::from_tinygltf(
 		SDL_GPUDevice* device,
 		const tinygltf::Model& tinygltf_model,
-		const Sampler_config& sampler_config,
-		const Material_list::Image_config& image_config,
-		const std::optional<std::reference_wrapper<std::atomic<Load_progress>>>& progress
+		const SamplerConfig& sampler_config,
+		const MaterialList::ImageConfig& image_config,
+		const std::optional<std::reference_wrapper<std::atomic<LoadProgress>>>& progress
 	) noexcept
 	{
 		/* Load Node & Lights */
 
-		if (progress) progress->get() = {.stage = Load_stage::Node, .progress = -1};
+		if (progress) progress->get() = {.stage = LoadStage::Node, .progress = -1};
 
 		auto root_nodes_result = parse_root_nodes(tinygltf_model);
 		if (!root_nodes_result) return root_nodes_result.error().forward("Parse root nodes failed");
@@ -212,15 +212,15 @@ namespace gltf
 
 		/* Load Meshes */
 
-		if (progress) progress->get() = {.stage = Load_stage::Mesh, .progress = 0};
+		if (progress) progress->get() = {.stage = LoadStage::Mesh, .progress = 0};
 
 		auto mesh_result = detail::load_meshes(device, tinygltf_model, progress);
 		if (!mesh_result) return mesh_result.error().forward("Load meshes failed");
 
 		/* Load Materials */
 
-		if (progress) progress->get() = {.stage = Load_stage::Material, .progress = 0};
-		auto material_list_result = Material_list::from_tinygltf(
+		if (progress) progress->get() = {.stage = LoadStage::Material, .progress = 0};
+		auto material_list_result = MaterialList::from_tinygltf(
 			device,
 			tinygltf_model,
 			sampler_config,
@@ -228,7 +228,7 @@ namespace gltf
 			[&progress](std::optional<uint32_t> current, uint32_t total) {
 				if (!progress) return;
 				progress->get() = {
-					.stage = Load_stage::Material,
+					.stage = LoadStage::Material,
 					.progress = current.value_or(0) / float(total == 0 ? 1 : total)
 				};
 			}
@@ -237,21 +237,21 @@ namespace gltf
 
 		/* Load Animations */
 
-		if (progress) progress->get() = {.stage = Load_stage::Animation, .progress = -1};
+		if (progress) progress->get() = {.stage = LoadStage::Animation, .progress = -1};
 
 		auto animation_result = detail::load_animations(tinygltf_model);
 		if (!animation_result) return animation_result.error().forward("Load animations failed");
 
 		/* Load Skins */
 
-		if (progress) progress->get() = {.stage = Load_stage::Skin, .progress = -1};
+		if (progress) progress->get() = {.stage = LoadStage::Skin, .progress = -1};
 
-		auto skin_collection_result = Skin_list::from_tinygltf(tinygltf_model);
+		auto skin_collection_result = SkinList::from_tinygltf(tinygltf_model);
 		if (!skin_collection_result) return skin_collection_result.error().forward("Load skins failed");
 
 		/* Post Process */
 
-		if (progress) progress->get() = {.stage = Load_stage::Postprocess, .progress = -1};
+		if (progress) progress->get() = {.stage = LoadStage::Postprocess, .progress = -1};
 
 		Model model(
 			std::move(*material_list_result),
@@ -279,12 +279,12 @@ namespace gltf
 	}
 
 	Model::Model(
-		Material_list material_list,
-		std::vector<Mesh_gpu> meshes,
+		MaterialList material_list,
+		std::vector<MeshGPU> meshes,
 		std::vector<Node> nodes,
 		std::vector<Animation> animations,
 		std::vector<uint32_t> root_nodes,
-		Skin_list skin_collection,
+		SkinList skin_collection,
 		std::vector<Light> lights
 	) noexcept :
 		material_list(std::move(material_list)),
@@ -296,7 +296,7 @@ namespace gltf
 		lights(std::move(lights)),
 		primitive_count(
 			std::ranges::fold_left(
-				meshes | std::views::transform([](const Mesh_gpu& mesh) { return mesh.primitives.size(); }),
+				meshes | std::views::transform([](const MeshGPU& mesh) { return mesh.primitives.size(); }),
 				0zu,
 				std::plus()
 			)
@@ -306,11 +306,11 @@ namespace gltf
 			if (animation.name.has_value()) animation_name_map[*animation.name] = idx;
 	}
 
-	std::vector<Node::Transform_override> Model::compute_node_overrides(
-		std::span<const Animation_key> animation
+	std::vector<Node::TransformOverride> Model::compute_node_overrides(
+		std::span<const AnimationKey> animation
 	) const noexcept
 	{
-		std::vector<Node::Transform_override> node_overrides(nodes.size());
+		std::vector<Node::TransformOverride> node_overrides(nodes.size());
 
 		for (const auto& key : animation)
 		{
@@ -337,7 +337,7 @@ namespace gltf
 
 	std::vector<glm::mat4> Model::compute_node_world_matrices(
 		const glm::mat4& model_transform,
-		std::span<const Node::Transform_override> node_overrides
+		std::span<const Node::TransformOverride> node_overrides
 	) const noexcept
 	{
 		std::vector<glm::mat4> node_world_matrices(nodes.size(), glm::mat4(1.0f));
@@ -360,13 +360,13 @@ namespace gltf
 		return node_world_matrices;
 	}
 
-	std::vector<Primitive_drawcall> Model::compute_drawcalls(
+	std::vector<PrimitiveDrawcall> Model::compute_drawcalls(
 		const std::vector<glm::mat4>& node_world_matrices,
 		std::span<const std::pair<uint32_t, float>> emission_overrides,
 		std::span<const uint32_t> hidden_nodes
 	) const noexcept
 	{
-		std::vector<Primitive_drawcall> drawdata_list;
+		std::vector<PrimitiveDrawcall> drawdata_list;
 		drawdata_list.reserve(primitive_count);
 
 		auto renderable_nodes = this->renderable_nodes;
@@ -416,7 +416,7 @@ namespace gltf
 					const float sphere_diameter = glm::distance(local_min, local_max);
 
 					drawdata_list.emplace_back(
-						Primitive_drawcall{
+						PrimitiveDrawcall{
 							.world_position_min = world_min - glm::vec3(sphere_diameter),
 							.world_position_max = world_max + glm::vec3(sphere_diameter),
 							.material_index = primitive.material,
@@ -436,7 +436,7 @@ namespace gltf
 						graphics::local_bound_to_world(local_min, local_max, world_matrix);
 
 					drawdata_list.emplace_back(
-						Primitive_drawcall{
+						PrimitiveDrawcall{
 							.world_position_min = world_min,
 							.world_position_max = world_max,
 							.material_index = primitive.material,
@@ -454,7 +454,7 @@ namespace gltf
 
 	Drawdata Model::generate_drawdata(
 		const glm::mat4& model_transform,
-		std::span<const Animation_key> animation,
+		std::span<const AnimationKey> animation,
 		std::span<const std::pair<uint32_t, float>> emission_overrides,
 		std::span<const uint32_t> hidden_nodes
 	) const noexcept
@@ -469,7 +469,7 @@ namespace gltf
 			.node_matrices = std::move(node_world_matrices),
 			.deferred_skin_resource = joint_matrices.empty()
 				? nullptr
-				: std::make_shared<Deferred_skinning_resource>(std::move(joint_matrices)),
+				: std::make_shared<DeferredSkinningResource>(std::move(joint_matrices)),
 			.material_cache = material_bind_cache->ref()
 		};
 	}

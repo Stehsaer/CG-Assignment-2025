@@ -23,7 +23,7 @@
 namespace gltf
 {
 	// glTF Material Alpha Mode
-	enum class Alpha_mode
+	enum class AlphaMode
 	{
 		Opaque,
 		Mask,
@@ -31,19 +31,19 @@ namespace gltf
 	};
 
 	// Pipeline mode
-	struct Pipeline_mode
+	struct PipelineMode
 	{
-		Alpha_mode alpha_mode = Alpha_mode::Opaque;
+		AlphaMode alpha_mode = AlphaMode::Opaque;
 		bool double_sided = false;
 
-		std::strong_ordering operator<=>(const Pipeline_mode&) const noexcept = default;
-		bool operator==(const Pipeline_mode&) const noexcept = default;
+		std::strong_ordering operator<=>(const PipelineMode&) const noexcept = default;
+		bool operator==(const PipelineMode&) const noexcept = default;
 
 		std::string to_string() const noexcept;
 	};
 
 	// Material Parameters
-	struct Material_params
+	struct MaterialParams
 	{
 		// Material factors
 		struct Factor
@@ -58,15 +58,15 @@ namespace gltf
 		};
 
 		Factor factor = {};
-		Pipeline_mode pipeline = {};
+		PipelineMode pipeline = {};
 	};
 
 	// Material object, with textures stored as indices to external texture list
-	struct Material_indexed
+	struct MaterialIndexed
 	{
 		std::optional<uint32_t> base_color, metallic_roughness, normal, occlusion, emissive;
 
-		Material_params params;
+		MaterialParams params;
 
 		///
 		/// @brief Create a Material from a `tinygltf::Material`
@@ -75,17 +75,17 @@ namespace gltf
 		/// @param material Tinygltf material
 		/// @return Material, or error on failure
 		///
-		static std::expected<Material_indexed, util::Error> from_tinygltf(
+		static std::expected<MaterialIndexed, util::Error> from_tinygltf(
 			const tinygltf::Model& model,
 			const tinygltf::Material& material
 		) noexcept;
 	};
 
 	// Material object, with textures stored as actual GPU texture bindings
-	struct Material_gpu
+	struct MaterialGPU
 	{
 		SDL_GPUTextureSamplerBinding base_color, metallic_roughness, normal, occlusion, emissive;
-		Material_params params;
+		MaterialParams params;
 	};
 
 	///
@@ -94,10 +94,10 @@ namespace gltf
 	/// references.
 	/// @note The object is forbidden to be copied or moved, to ensure the stability of references.
 	///
-	class Material_cache
+	class MaterialCache
 	{
-		std::vector<Material_gpu> materials;
-		Material_gpu default_material;
+		std::vector<MaterialGPU> materials;
+		MaterialGPU default_material;
 
 	  public:
 
@@ -107,23 +107,23 @@ namespace gltf
 		///
 		struct Ref
 		{
-			std::span<const Material_gpu> materials;
-			std::reference_wrapper<const Material_gpu> default_material;
+			std::span<const MaterialGPU> materials;
+			std::reference_wrapper<const MaterialGPU> default_material;
 
 			// Get material bind for a drawcall
-			FORCE_INLINE Material_gpu operator[](std::optional<uint32_t> material_index) const noexcept
+			FORCE_INLINE MaterialGPU operator[](std::optional<uint32_t> material_index) const noexcept
 			{
 				return material_index.transform([this](uint32_t index) { return materials[index]; })
 					.value_or(default_material.get());
 			}
 		};
 
-		Material_cache(const Material_cache&) = delete;
-		Material_cache(Material_cache&&) = delete;
-		Material_cache& operator=(const Material_cache&) = delete;
-		Material_cache& operator=(Material_cache&&) = delete;
+		MaterialCache(const MaterialCache&) = delete;
+		MaterialCache(MaterialCache&&) = delete;
+		MaterialCache& operator=(const MaterialCache&) = delete;
+		MaterialCache& operator=(MaterialCache&&) = delete;
 
-		Material_cache(std::vector<Material_gpu> materials, Material_gpu default_material) noexcept :
+		MaterialCache(std::vector<MaterialGPU> materials, MaterialGPU default_material) noexcept :
 			materials(std::move(materials)),
 			default_material(default_material)
 		{}
@@ -137,16 +137,16 @@ namespace gltf
 	/// @details Loads, uploads and manages materials from a glTF model. All textures are loaded into GPU
 	/// memory.
 	///
-	class Material_list
+	class MaterialList
 	{
 	  public:
 
 		using Load_progress_callback = std::function<void(std::optional<size_t> current, size_t total)>;
 
-		struct Image_config
+		struct ImageConfig
 		{
-			Color_compress_mode color_mode = Color_compress_mode::RGBA8_BC7;
-			Normal_compress_mode normal_mode = Normal_compress_mode::RGn_BC5;
+			ColorCompressMode color_mode = ColorCompressMode::RGBA8_BC7;
+			NormalCompressMode normal_mode = NormalCompressMode::RGn_BC5;
 		};
 
 		///
@@ -158,11 +158,11 @@ namespace gltf
 		/// @param progress_callback Progress callback, refer to `Load_progress_callback`
 		/// @return Material_list on success, or error on failure
 		///
-		static std::expected<Material_list, util::Error> from_tinygltf(
+		static std::expected<MaterialList, util::Error> from_tinygltf(
 			SDL_GPUDevice* device,
 			const tinygltf::Model& model,
-			const Sampler_config& sampler_config,
-			const Image_config& image_config,
+			const SamplerConfig& sampler_config,
+			const ImageConfig& image_config,
 			const Load_progress_callback& progress_callback = nullptr
 		) noexcept;
 
@@ -172,31 +172,31 @@ namespace gltf
 		/// must live longer than any material cache generated here.
 		/// @return Material_cache on success, or nullopt on failure
 		///
-		std::optional<std::unique_ptr<Material_cache>> gen_material_cache() const noexcept;
+		std::optional<std::unique_ptr<MaterialCache>> gen_material_cache() const noexcept;
 
 	  private:
 
-		struct Image_entry
+		struct ImageEntry
 		{
 			std::optional<gpu::Texture> color_texture;
 			std::optional<gpu::Texture> linear_texture;
 			std::optional<gpu::Texture> normal_texture;
 		};
 
-		struct Image_refcount
+		struct ImageRefCount
 		{
 			uint32_t color_refcount = 0;   // Use count as SRGB color texture (RGB/RGBA)
 			uint32_t linear_refcount = 0;  // Use count as linear texture (RGB/RGBA)
 			uint32_t normal_refcount = 0;  // Use count as normal map (RG only)
 		};
 
-		static std::vector<Image_refcount> compute_image_refcounts(const tinygltf::Model& model) noexcept;
+		static std::vector<ImageRefCount> compute_image_refcounts(const tinygltf::Model& model) noexcept;
 
-		std::vector<Image_entry> images;
+		std::vector<ImageEntry> images;
 		std::vector<gpu::Sampler> samplers;
 
 		std::vector<Texture> textures;
-		std::vector<Material_indexed> materials;
+		std::vector<MaterialIndexed> materials;
 
 		std::unique_ptr<gpu::Texture> default_white;
 		std::unique_ptr<gpu::Texture> default_normal;
@@ -212,18 +212,18 @@ namespace gltf
 		std::expected<void, util::Error> create_default_sampler(SDL_GPUDevice* device) noexcept;
 
 		// Worker thread for loading an image
-		static std::expected<Image_entry, util::Error> load_image_thread(
+		static std::expected<ImageEntry, util::Error> load_image_thread(
 			SDL_GPUDevice* device,
 			const tinygltf::Image& image,
-			const Image_config& image_config,
-			Image_refcount refcount
+			const ImageConfig& image_config,
+			ImageRefCount refcount
 		) noexcept;
 
 		// Load all images from the model, concurrently
 		std::expected<void, util::Error> load_images(
 			SDL_GPUDevice* device,
 			const tinygltf::Model& model,
-			const Image_config& image_config,
+			const ImageConfig& image_config,
 			const Load_progress_callback& progress_callback
 		) noexcept;
 
@@ -231,7 +231,7 @@ namespace gltf
 		std::expected<void, util::Error> load_samplers(
 			SDL_GPUDevice* device,
 			const tinygltf::Model& model,
-			const Sampler_config& sampler_config
+			const SamplerConfig& sampler_config
 		) noexcept;
 
 		// Load all textures from the model
@@ -242,7 +242,7 @@ namespace gltf
 
 		/*===== Construct =====*/
 
-		Material_list() = default;
+		MaterialList() = default;
 
 		/*===== Acquire =====*/
 
@@ -265,14 +265,14 @@ namespace gltf
 		/// @param material_index Input material index
 		/// @return Material_bind on success, or nullopt on failure
 		///
-		std::optional<Material_gpu> gen_binding_info(std::optional<uint32_t> material_index) const noexcept;
+		std::optional<MaterialGPU> gen_binding_info(std::optional<uint32_t> material_index) const noexcept;
 
 	  public:
 
-		Material_list(const Material_list&) = delete;
-		Material_list(Material_list&&) = default;
-		Material_list& operator=(const Material_list&) = delete;
-		Material_list& operator=(Material_list&&) = default;
-		~Material_list() = default;
+		MaterialList(const MaterialList&) = delete;
+		MaterialList(MaterialList&&) = default;
+		MaterialList& operator=(const MaterialList&) = delete;
+		MaterialList& operator=(MaterialList&&) = default;
+		~MaterialList() = default;
 	};
 }

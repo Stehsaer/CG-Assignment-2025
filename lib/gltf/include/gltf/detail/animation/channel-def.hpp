@@ -19,6 +19,6 @@ namespace gltf::detail::animation
 		/// @param overrides Node transform overrides
 		/// @param time Absolute timestamp
 		///
-		virtual void apply(std::span<Node::Transform_override> overrides, float time) const noexcept = 0;
+		virtual void apply(std::span<Node::TransformOverride> overrides, float time) const noexcept = 0;
 	};
 }

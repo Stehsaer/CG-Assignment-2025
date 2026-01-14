@@ -15,11 +15,11 @@ namespace graphics
 	/// @brief Texture copier using a render pass, for copying from depth to color
 	///
 	///
-	class Renderpass_copy
+	class RenderpassCopy
 	{
 	  public:
 
-		static std::expected<Renderpass_copy, util::Error> create(
+		static std::expected<RenderpassCopy, util::Error> create(
 			SDL_GPUDevice* device,
 			size_t channels,
 			gpu::Texture::Format dst_format
@@ -34,26 +34,26 @@ namespace graphics
 		/// @return Result
 		///
 		std::expected<void, util::Error> copy(
-			const gpu::Command_buffer& command_buffer,
+			const gpu::CommandBuffer& command_buffer,
 			SDL_GPUTexture* src,
 			SDL_GPUTexture* dst
 		) const noexcept;
 
 	  private:
 
-		Fullscreen_pass<true> copy_pass;
+		FullscreenPass<true> copy_pass;
 		gpu::Sampler sampler;
 
-		Renderpass_copy(Fullscreen_pass<true> copy_pass, gpu::Sampler sampler) :
+		RenderpassCopy(FullscreenPass<true> copy_pass, gpu::Sampler sampler) :
 			copy_pass(std::move(copy_pass)),
 			sampler(std::move(sampler))
 		{}
 
 	  public:
 
-		Renderpass_copy(const Renderpass_copy&) = delete;
-		Renderpass_copy(Renderpass_copy&&) = default;
-		Renderpass_copy& operator=(const Renderpass_copy&) = delete;
-		Renderpass_copy& operator=(Renderpass_copy&&) = default;
+		RenderpassCopy(const RenderpassCopy&) = delete;
+		RenderpassCopy(RenderpassCopy&&) = default;
+		RenderpassCopy& operator=(const RenderpassCopy&) = delete;
+		RenderpassCopy& operator=(RenderpassCopy&&) = default;
 	};
 }

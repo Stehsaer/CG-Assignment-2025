@@ -19,41 +19,41 @@ namespace image
 		};
 
 		template <typename T>
-		struct Component_widen;
+		struct ComponentWiden;
 
 		template <>
-		struct Component_widen<uint8_t>
+		struct ComponentWiden<uint8_t>
 		{
 			using type = uint16_t;
 		};
 
 		template <>
-		struct Component_widen<uint16_t>
+		struct ComponentWiden<uint16_t>
 		{
 			using type = uint32_t;
 		};
 
 		template <>
-		struct Component_widen<uint32_t>
+		struct ComponentWiden<uint32_t>
 		{
 			using type = uint64_t;
 		};
 
 		template <>
-		struct Component_widen<float>
+		struct ComponentWiden<float>
 		{
 			using type = float;
 		};
 
 		template <>
-		struct Component_widen<double>
+		struct ComponentWiden<double>
 		{
 			using type = double;
 		};
 	}
 
 	template <typename T>
-	struct Image_container
+	struct ImageContainer
 	{
 		using Pixel_type = T;
 
@@ -84,7 +84,7 @@ namespace image
 		auto map(this const auto& self, F func) noexcept
 		{
 			using Return_type = std::invoke_result_t<F, T>;
-			Image_container<Return_type> result{
+			ImageContainer<Return_type> result{
 				.size = self.size,
 				.pixels = std::vector<Return_type>(self.pixels.size())
 			};
@@ -99,17 +99,17 @@ namespace image
 		///
 		/// @return Shrunk Image
 		///
-		Image_container shrink_half(this const Image_container& self) noexcept
+		ImageContainer shrink_half(this const ImageContainer& self) noexcept
 			requires detail::GLM_type<T>
 		{
 			using Comp = typename T::value_type;
 			constexpr glm::length_t len = sizeof(T) / sizeof(Comp);
 
-			using Widened_comp = typename detail::Component_widen<Comp>::type;
+			using Widened_comp = typename detail::ComponentWiden<Comp>::type;
 			using Wide_t = glm::vec<len, Widened_comp>;
 
 			const glm::u32vec2 new_size(glm::floor(glm::vec2(self.size) / 2.0f));
-			Image_container result{.size = new_size, .pixels = std::vector<T>(new_size.x * new_size.y)};
+			ImageContainer result{.size = new_size, .pixels = std::vector<T>(new_size.x * new_size.y)};
 
 			for (const auto [y, x] : std::views::cartesian_product(
 					 std::views::iota(0u, new_size.y),
@@ -144,33 +144,33 @@ namespace image
 	namespace internal
 	{
 		template <Precision P>
-		struct Precision_type_mapping;
+		struct PrecisionTypeMapping;
 
 		template <>
-		struct Precision_type_mapping<Precision::U8>
+		struct PrecisionTypeMapping<Precision::U8>
 		{
 			using type = std::uint8_t;
 		};
 
 		template <>
-		struct Precision_type_mapping<Precision::U16>
+		struct PrecisionTypeMapping<Precision::U16>
 		{
 			using type = std::uint16_t;
 		};
 
 		template <>
-		struct Precision_type_mapping<Precision::F32>
+		struct PrecisionTypeMapping<Precision::F32>
 		{
 			using type = float;
 		};
 	}
 
 	template <Precision P>
-	using Precision_t = internal::Precision_type_mapping<P>::type;
+	using Precision_t = internal::PrecisionTypeMapping<P>::type;
 
 	template <Precision P, Format F>
 	using Pixel_t = glm::vec<static_cast<glm::length_t>(F), Precision_t<P>>;
 
 	template <Precision P, Format F>
-	using Image = Image_container<Pixel_t<P, F>>;
+	using Image = ImageContainer<Pixel_t<P, F>>;
 }

@@ -22,7 +22,7 @@ namespace backend
 	///
 	std::expected<void, util::Error> initialize_sdl();
 
-	struct Vulkan_config
+	struct VulkanConfig
 	{
 		bool debug_enabled = false;
 		uint8_t vulkan_version_major = 1;
@@ -34,21 +34,21 @@ namespace backend
 	/// @brief SDL Context, holds SDL Window and GPU Device and provides helper functions
 	///
 	///
-	class SDL_context
+	class SDLcontext
 	{
 	  public:
 
-		SDL_context(SDL_Window* window, SDL_GPUDevice* device) noexcept :
+		SDLcontext(SDL_Window* window, SDL_GPUDevice* device) noexcept :
 			window(window),
 			device(device)
 		{}
 
-		~SDL_context() noexcept;
+		~SDLcontext() noexcept;
 
-		SDL_context(const SDL_context&) = delete;
-		SDL_context(SDL_context&&) = delete;
-		SDL_context& operator=(const SDL_context&) = delete;
-		SDL_context& operator=(SDL_context&&) = delete;
+		SDLcontext(const SDLcontext&) = delete;
+		SDLcontext(SDLcontext&&) = delete;
+		SDLcontext& operator=(const SDLcontext&) = delete;
+		SDLcontext& operator=(SDLcontext&&) = delete;
 
 		SDL_Window* const window;
 		SDL_GPUDevice* const device;
@@ -64,12 +64,12 @@ namespace backend
 		/// @param debug_enabled Enable debug layer for GPU Device
 		/// @return `SDL_context` object on success, or `util::Error` on failure
 		///
-		static std::expected<std::unique_ptr<SDL_context>, util::Error> create(
+		static std::expected<std::unique_ptr<SDLcontext>, util::Error> create(
 			int width,
 			int height,
 			const std::string& title,
 			SDL_WindowFlags additional_flags = 0,
-			const Vulkan_config& vk_config = {}
+			const VulkanConfig& vk_config = {}
 		) noexcept;
 
 		///

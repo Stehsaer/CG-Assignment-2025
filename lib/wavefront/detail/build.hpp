@@ -9,9 +9,9 @@
 
 namespace wavefront::detail
 {
-	std::expected<std::vector<Parsed_line>, util::Error> parse_tokenize(
+	std::expected<std::vector<ParsedLine>, util::Error> parse_tokenize(
 		const std::string_view& content
 	) noexcept;
 
-	std::expected<Object, util::Error> build_object(const std::vector<Parsed_line>& lines) noexcept;
+	std::expected<Object, util::Error> build_object(const std::vector<ParsedLine>& lines) noexcept;
 }

@@ -9,7 +9,7 @@
 
 namespace gpu
 {
-	class Sampler : public Resource_box<SDL_GPUSampler>
+	class Sampler : public ResourceBox<SDL_GPUSampler>
 	{
 	  public:
 
@@ -19,13 +19,13 @@ namespace gpu
 		Sampler& operator=(Sampler&&) = default;
 		~Sampler() noexcept = default;
 
-		enum class Mipmap_mode
+		enum class MipmapMode
 		{
 			Nearest = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
 			Linear = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR
 		};
 
-		enum class Address_mode
+		enum class AddressMode
 		{
 			Repeat = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
 			Mirrored_repeat = SDL_GPU_SAMPLERADDRESSMODE_MIRRORED_REPEAT,
@@ -38,7 +38,7 @@ namespace gpu
 			Linear = SDL_GPU_FILTER_LINEAR
 		};
 
-		enum class Compare_op
+		enum class CompareOp
 		{
 			Never = SDL_GPU_COMPAREOP_NEVER,
 			Invalid = SDL_GPU_COMPAREOP_INVALID,
@@ -51,19 +51,19 @@ namespace gpu
 			Always = SDL_GPU_COMPAREOP_ALWAYS
 		};
 
-		struct Create_info
+		struct CreateInfo
 		{
 			Filter min_filter = Filter::Linear;
 			Filter mag_filter = Filter::Linear;
-			Mipmap_mode mipmap_mode = Mipmap_mode::Linear;
-			Address_mode address_mode_u = Address_mode::Repeat;
-			Address_mode address_mode_v = Address_mode::Repeat;
-			Address_mode address_mode_w = Address_mode::Repeat;
+			MipmapMode mipmap_mode = MipmapMode::Linear;
+			AddressMode address_mode_u = AddressMode::Repeat;
+			AddressMode address_mode_v = AddressMode::Repeat;
+			AddressMode address_mode_w = AddressMode::Repeat;
 			float min_lod = 0.0f;
 			float max_lod = 16.0f;
 			float mip_lod_bias = 0.0f;
 			std::optional<float> max_anisotropy = std::nullopt;
-			std::optional<Compare_op> compare_op = std::nullopt;
+			std::optional<CompareOp> compare_op = std::nullopt;
 
 			SDL_GPUSamplerCreateInfo create() const noexcept;
 		};
@@ -76,11 +76,11 @@ namespace gpu
 		///
 		static std::expected<Sampler, util::Error> create(
 			SDL_GPUDevice* device,
-			const Create_info& create_info
+			const CreateInfo& create_info
 		) noexcept;
 
 	  private:
 
-		using Resource_box<SDL_GPUSampler>::Resource_box;
+		using ResourceBox<SDL_GPUSampler>::ResourceBox;
 	};
 }

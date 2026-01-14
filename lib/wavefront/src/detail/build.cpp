@@ -12,7 +12,7 @@ namespace wavefront::detail
 		return str.empty() || std::ranges::all_of(str, isspace);
 	}
 
-	std::expected<std::vector<Parsed_line>, util::Error> parse_tokenize(
+	std::expected<std::vector<ParsedLine>, util::Error> parse_tokenize(
 		const std::string_view& content
 	) noexcept
 	{
@@ -23,7 +23,7 @@ namespace wavefront::detail
 			if (!is_string_empty(line)) lines.push_back(std::move(line));
 		}
 
-		std::vector<Parsed_line> result;
+		std::vector<ParsedLine> result;
 		for (const auto [i, line] : lines | std::views::enumerate)
 		{
 			const auto parsed_line = parse_line(line);
@@ -35,16 +35,16 @@ namespace wavefront::detail
 		return result;
 	}
 
-	std::expected<Object, util::Error> build_object(const std::vector<Parsed_line>& lines) noexcept
+	std::expected<Object, util::Error> build_object(const std::vector<ParsedLine>& lines) noexcept
 	{
 		/* Extract */
 
-		const auto positions = extract_lines<Position_line>(lines);
-		const auto uvs = extract_lines<Uv_line>(lines);
-		const auto normals = extract_lines<Normal_line>(lines);
+		const auto positions = extract_lines<PositionLine>(lines);
+		const auto uvs = extract_lines<UvLine>(lines);
+		const auto normals = extract_lines<NormalLine>(lines);
 
-		const auto vertex_indices = extract_lines<Face_line>(lines)
-			| std::views::transform(&Face_line::as_array)
+		const auto vertex_indices = extract_lines<FaceLine>(lines)
+			| std::views::transform(&FaceLine::as_array)
 			| std::views::join
 			| std::ranges::to<std::vector>();
 

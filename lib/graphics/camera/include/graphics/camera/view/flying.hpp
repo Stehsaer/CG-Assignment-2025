@@ -9,7 +9,7 @@ namespace graphics::camera::view
 	struct Flying
 	{
 		glm::dvec3 position;
-		Spherical_angle angles;
+		SphericalAngle angles;
 		glm::dvec3 up;
 
 		glm::dmat4 matrix() const noexcept;

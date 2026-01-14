@@ -20,7 +20,7 @@ namespace graphics::camera::projection
 	///
 	/// @brief Fixed-aspect Orthographic Projection
 	///
-	struct Ortho_fixed
+	struct OrthoFixed
 	{
 		glm::vec2 viewport_size;
 		float near_plane;

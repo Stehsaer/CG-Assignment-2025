@@ -5,12 +5,12 @@
 
 namespace graphics
 {
-	glm::u32vec2 Auto_texture::get_size() const noexcept
+	glm::u32vec2 AutoTexture::get_size() const noexcept
 	{
 		return size;
 	}
 
-	std::expected<void, util::Error> Auto_texture::resize(
+	std::expected<void, util::Error> AutoTexture::resize(
 		SDL_GPUDevice* device,
 		glm::u32vec2 new_size
 	) noexcept
@@ -28,19 +28,19 @@ namespace graphics
 		return {};
 	}
 
-	const gpu::Texture& Auto_texture::operator*() const noexcept
+	const gpu::Texture& AutoTexture::operator*() const noexcept
 	{
 		assert(texture != nullptr && "Texture not initialized. Call resize() first.");
 		return *texture;
 	}
 
-	const gpu::Texture* Auto_texture::operator->() const noexcept
+	const gpu::Texture* AutoTexture::operator->() const noexcept
 	{
 		assert(texture != nullptr && "Texture not initialized. Call resize() first.");
 		return texture.get();
 	}
 
-	std::expected<void, util::Error> Cycle_texture::resize_and_cycle(
+	std::expected<void, util::Error> CycleTexture::resize_and_cycle(
 		SDL_GPUDevice* device,
 		glm::u32vec2 new_size
 	) noexcept
@@ -78,18 +78,18 @@ namespace graphics
 		return {};
 	}
 
-	glm::u32vec2 Cycle_texture::get_size() const noexcept
+	glm::u32vec2 CycleTexture::get_size() const noexcept
 	{
 		return size;
 	}
 
-	const gpu::Texture& Cycle_texture::current() const noexcept
+	const gpu::Texture& CycleTexture::current() const noexcept
 	{
 		assert(!texture_pool.empty() && "Texture not initialized. Call resize_and_cycle() first.");
 		return *texture_pool[0];
 	}
 
-	const gpu::Texture& Cycle_texture::prev() const noexcept
+	const gpu::Texture& CycleTexture::prev() const noexcept
 	{
 		assert(texture_pool.size() >= 2 && "Texture not initialized. Call resize_and_cycle() first.");
 		return *texture_pool[1];

@@ -6,7 +6,7 @@
 
 namespace wavefront::detail
 {
-	std::expected<Parsed_line, util::Error> parse_pos(const std::vector<std::string>& parameters) noexcept
+	std::expected<ParsedLine, util::Error> parse_pos(const std::vector<std::string>& parameters) noexcept
 	{
 		if (parameters.size() != 4) return util::Error("Invalid arguments");
 
@@ -16,12 +16,12 @@ namespace wavefront::detail
 
 		if (!x || !y || !z) return util::Error("Invalid coordinates");
 
-		return Position_line{
+		return PositionLine{
 			.pos = {*x, *y, *z}
 		};
 	}
 
-	std::expected<Parsed_line, util::Error> parse_uv(const std::vector<std::string>& parameters) noexcept
+	std::expected<ParsedLine, util::Error> parse_uv(const std::vector<std::string>& parameters) noexcept
 	{
 		if (parameters.size() != 3) return util::Error("Invalid arguments");
 
@@ -30,12 +30,12 @@ namespace wavefront::detail
 
 		if (!u || !v) return util::Error("Invalid coordinates");
 
-		return Uv_line{
+		return UvLine{
 			.uv = {*u, *v}
 		};
 	}
 
-	std::expected<Parsed_line, util::Error> parse_normal(const std::vector<std::string>& parameters) noexcept
+	std::expected<ParsedLine, util::Error> parse_normal(const std::vector<std::string>& parameters) noexcept
 	{
 		if (parameters.size() != 4) return util::Error("Invalid arguments");
 
@@ -45,12 +45,12 @@ namespace wavefront::detail
 
 		if (!x && !y && !z) return util::Error("Invalid coordinates");
 
-		return Normal_line{
+		return NormalLine{
 			.normal = {*x, *y, *z}
 		};
 	}
 
-	std::expected<Parsed_line, util::Error> parse_face(const std::vector<std::string>& parameters) noexcept
+	std::expected<ParsedLine, util::Error> parse_face(const std::vector<std::string>& parameters) noexcept
 	{
 		if (parameters.size() != 4) util::Error("Invalid arguments");
 
@@ -60,10 +60,10 @@ namespace wavefront::detail
 
 		if (!v1 || !v2 || !v3) return util::Error("Invalid vertex index");
 
-		return Face_line{.v1 = *v1, .v2 = *v2, .v3 = *v3};
+		return FaceLine{.v1 = *v1, .v2 = *v2, .v3 = *v3};
 	}
 
-	std::expected<Parsed_line, util::Error> parse_line(const std::string_view& slice) noexcept
+	std::expected<ParsedLine, util::Error> parse_line(const std::string_view& slice) noexcept
 	{
 		/* Slice */
 
@@ -84,7 +84,7 @@ namespace wavefront::detail
 
 		/* Parse */
 
-		using Parse_func = std::expected<Parsed_line, util::Error>(const std::vector<std::string>&);
+		using Parse_func = std::expected<ParsedLine, util::Error>(const std::vector<std::string>&);
 
 		const std::map<std::string, Parse_func*> parsers = {
 			{"v",  parse_pos   },
