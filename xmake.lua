@@ -18,7 +18,7 @@ if is_plat("linux") then
 end
 
 -- Additional Defs
-add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", "GLM_ENABLE_EXPERIMENTAL", "GLM_FORCE_INTRINSICS")
+add_defines("GLM_FORCE_DEPTH_ZERO_TO_ONE", "GLM_ENABLE_EXPERIMENTAL")
 add_defines("TINYGLTF_NOEXCEPTION")
 
 -- Rules, tasks and custom packages
@@ -40,4 +40,4 @@ add_requires(
 add_requireconfs("**libsdl3", {override=true, version="main"})
 add_requireconfs("**imgui", {override=true, version="v1.92.1-docking", configs={sdl3=true, sdl3_gpu=true, wchar32=true}})
 
-includes("project", "lib")
+includes("homework3", "lib")

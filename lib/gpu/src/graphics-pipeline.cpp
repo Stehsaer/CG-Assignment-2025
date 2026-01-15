@@ -11,7 +11,8 @@ namespace gpu
 		uint32_t num_samplers,
 		uint32_t num_storage_textures,
 		uint32_t num_storage_buffers,
-		uint32_t num_uniform_buffers
+		uint32_t num_uniform_buffers,
+		const std::string& entry_point
 	) noexcept
 	{
 		assert(device != nullptr);
@@ -21,7 +22,7 @@ namespace gpu
 		const SDL_GPUShaderCreateInfo info{
 			.code_size = shader_data.size(),
 			.code = reinterpret_cast<const uint8_t*>(shader_data.data()),
-			.entrypoint = "main",
+			.entrypoint = entry_point.c_str(),
 			.format = SDL_GPU_SHADERFORMAT_SPIRV,
 			.stage = static_cast<SDL_GPUShaderStage>(stage),
 			.num_samplers = num_samplers,

@@ -40,7 +40,8 @@ namespace gpu
 			uint32_t num_samplers,
 			uint32_t num_storage_textures,
 			uint32_t num_storage_buffers,
-			uint32_t num_uniform_buffers
+			uint32_t num_uniform_buffers,
+			const std::string& entry_point = "main"
 		) noexcept;
 
 	  private:

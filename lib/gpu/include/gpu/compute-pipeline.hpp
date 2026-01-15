@@ -26,6 +26,7 @@ namespace gpu
 		struct CreateInfo
 		{
 			std::span<const std::byte> shader_data;
+			std::string entry_point = "main";
 			uint32_t num_samplers = 0;
 			uint32_t num_readonly_storage_textures = 0;
 			uint32_t num_readwrite_storage_textures = 0;

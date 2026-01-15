@@ -19,7 +19,7 @@ namespace gpu
 		const SDL_GPUComputePipelineCreateInfo sdl_create_info{
 			.code_size = create_info.shader_data.size(),
 			.code = reinterpret_cast<const uint8_t*>(create_info.shader_data.data()),
-			.entrypoint = "main",
+			.entrypoint = create_info.entry_point.c_str(),
 			.format = SDL_GPU_SHADERFORMAT_SPIRV,
 			.num_samplers = create_info.num_samplers,
 			.num_readonly_storage_textures = create_info.num_readonly_storage_textures,
