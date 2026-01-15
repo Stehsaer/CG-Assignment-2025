@@ -25,10 +25,16 @@ namespace graphics
 		AutoTexture(AutoTexture&&) = default;
 		AutoTexture& operator=(AutoTexture&&) = default;
 
-		AutoTexture(gpu::Texture::Format format, std::string name, uint32_t mip_levels = 1) noexcept :
+		AutoTexture(
+			gpu::Texture::Format format,
+			std::string name,
+			uint32_t mip_levels = 1,
+			SDL_GPUSampleCount samples = SDL_GPU_SAMPLECOUNT_1
+		) noexcept :
 			format(format),
 			name(std::move(name)),
-			mip_levels(mip_levels)
+			mip_levels(mip_levels),
+			samples(samples)
 		{}
 
 		~AutoTexture() = default;
@@ -58,6 +64,7 @@ namespace graphics
 
 		glm::u32vec2 size = {0, 0};
 		uint32_t mip_levels = 1;
+		SDL_GPUSampleCount samples = SDL_GPU_SAMPLECOUNT_1;
 		std::unique_ptr<gpu::Texture> texture;
 	};
 

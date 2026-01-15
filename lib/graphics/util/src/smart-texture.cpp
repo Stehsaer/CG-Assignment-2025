@@ -21,7 +21,7 @@ namespace graphics
 
 		size = new_size;
 		auto create_texture_result =
-			gpu::Texture::create(device, format.create(size.x, size.y, 1, mip_levels), name);
+			gpu::Texture::create(device, format.create(size.x, size.y, 1, mip_levels, samples), name);
 		if (!create_texture_result) return create_texture_result.error().forward("Resize failed");
 
 		texture = std::make_unique<gpu::Texture>(std::move(create_texture_result.value()));

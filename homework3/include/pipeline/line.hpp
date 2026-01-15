@@ -15,10 +15,7 @@ namespace pipeline
 			glm::mat4 vp_matrix;
 		};
 
-		static std::expected<Line, util::Error> create(
-			SDL_GPUDevice* device,
-			SDL_GPUTextureFormat swapchain_format
-		) noexcept;
+		static std::expected<Line, util::Error> create(SDL_GPUDevice* device) noexcept;
 
 		gpu::GraphicsPipeline pipeline;
 
