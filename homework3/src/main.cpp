@@ -17,9 +17,9 @@
 
 int main()
 {
-	const primitive::BezierCurve test_curve{
-		.color = {255, 255, 0, 255},
-		.control_points = {{-0.5, -0.5}, {-0.5, 0.5}, {0.5, 0.5}, {0.5, -0.5}, {1, 1}}
+	const primitive::CubicSpline test_curve{
+		.color = {255, 0, 0, 255},
+		.control_points = {{-0.5, -0.5}, {-0.5, 0.5}, {0, 0.5}, {0, -0.5}, {0.5, -0.5}, {0.5, 0.5}}
 	};
 	const auto curve_vertices = test_curve.gen_vertices();
 

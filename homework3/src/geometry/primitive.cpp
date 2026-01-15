@@ -28,6 +28,8 @@ namespace primitive
 
 	std::vector<LineVertex> BezierCurve::gen_vertices(this const BezierCurve& self) noexcept
 	{
+		if (self.control_points.size() < 2) return {};
+
 		std::vector<glm::vec2> buffer(self.control_points.size());
 
 		const auto point_at_t = [&self, &buffer](float t) {
@@ -44,6 +46,37 @@ namespace primitive
 			| std::views::transform([&point_at_t](uint32_t i) {
 				   const float t = i / static_cast<float>(SEGMENTS);
 				   return point_at_t(t);
+			   })
+			| std::ranges::to<std::vector>();
+	}
+
+	std::vector<LineVertex> CubicSpline::gen_vertices(this const CubicSpline& self) noexcept
+	{
+		if (self.control_points.size() < 4) return {};
+
+		const auto point_at_t = [&self](float t) -> glm::vec2 {
+			const uint32_t p0_idx = glm::floor(t);
+			const float u = t - float(p0_idx);
+			const float u2 = u * u;
+			const float u3 = u2 * u;
+
+			const auto p0 = self.control_points[p0_idx];
+			const auto p1 = self.control_points[p0_idx + 1];
+			const auto p2 = self.control_points[p0_idx + 2];
+			const auto p3 = self.control_points[p0_idx + 3];
+
+			const auto p0_coeff_6 = -u3 + 3 * u2 - 3 * u + 1;
+			const auto p1_coeff_6 = 3 * u3 - 6 * u2 + 4;
+			const auto p2_coeff_6 = -3 * u3 + 3 * u2 + 3 * u + 1;
+			const auto p3_coeff_6 = u3;
+
+			return ((p0 * p0_coeff_6) + (p1 * p1_coeff_6) + (p2 * p2_coeff_6) + (p3 * p3_coeff_6)) / 6.0f;
+		};
+
+		return std::views::iota(0u, SEGMENTS_PER_PATH * (self.control_points.size() - 3))
+			| std::views::transform([&point_at_t, &self](uint32_t i) {
+				   const float t = i / static_cast<float>(SEGMENTS_PER_PATH);
+				   return LineVertex{.position = point_at_t(t), .color = self.color};
 			   })
 			| std::ranges::to<std::vector>();
 	}
