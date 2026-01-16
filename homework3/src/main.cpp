@@ -2,6 +2,7 @@
 #include "backend/sdl.hpp"
 #include "capsule-ui.hpp"
 #include "geometry/primitive.hpp"
+#include "gpu/buffer.hpp"
 #include "gpu/command-buffer.hpp"
 #include "gpu/render-pass.hpp"
 #include "graphics/util/quick-create.hpp"
@@ -19,11 +20,18 @@
 
 int main()
 {
-	const primitive::CubicSpline test_curve{
+	primitive::CubicSpline test_curve{
 		.color = {255, 0, 0, 255},
-		.control_points = {{-0.5, -0.5}, {-0.5, 0.5}, {0, 0.5}, {0, -0.5}, {0.5, -0.5}, {0.5, 0.5}}
+		.control_points = {
+				  {.position = {-0.5, -0.5}},
+				  {.position = {-0.5, 0.5}},
+				  {.position = {0, 0.5}},
+				  {.position = {0, -0.5}},
+				  {.position = {0.5, -0.5}},
+				  {.position = {0.5, 0.5}}
+		}
 	};
-	const auto curve_vertices = test_curve.gen_vertices();
+	const auto init_curve_vertices = test_curve.gen_vertices();
 
 	Camera2D camera;
 
@@ -34,15 +42,23 @@ int main()
 		backend::initialize_imgui(*sdl_context) | util::unwrap();
 
 		const auto line_pipeline = pipeline::Line::create(sdl_context->device) | util::unwrap();
-		const auto test_buffer =
+		auto msaa_buffer = target::MSAADraw();
+
+		const auto vertex_buffer =
 			graphics::create_buffer_from_data(
 				sdl_context->device,
 				{.vertex = true},
-				util::as_bytes(curve_vertices),
+				util::as_bytes(init_curve_vertices),
 				""
 			)
 			| util::unwrap();
-		auto msaa_buffer = target::MSAADraw();
+		const auto transfer_buffer =
+			gpu::TransferBuffer::create(
+				sdl_context->device,
+				gpu::TransferBuffer::Usage::Upload,
+				util::as_bytes(init_curve_vertices).size()
+			)
+			| util::unwrap();
 
 		while (true)
 		{
@@ -58,6 +74,8 @@ int main()
 			capsule::window("Test", capsule::Position::BottomCenter, [] { capsule::button("w"); });
 
 			const auto& io = ImGui::GetIO();
+			const auto cam_matrix = camera.get_matrix(io.DisplaySize.x / io.DisplaySize.y);
+
 			if (!io.WantCaptureMouse)
 			{
 				if (io.MouseDown[ImGuiMouseButton_Right])
@@ -71,14 +89,32 @@ int main()
 					);
 			}
 
+			test_curve.draw_ui(cam_matrix);
+			for (auto& cp : test_curve.control_points) cp.drag(cam_matrix);
+
+			const auto curve_vertices = test_curve.gen_vertices();
+			if (curve_vertices.size() > init_curve_vertices.size())
+				throw util::Error("Too many curve vertices generated");
+			transfer_buffer.upload_to_buffer(util::as_bytes(curve_vertices), true) | util::unwrap();
+
 			auto command_buffer = gpu::CommandBuffer::acquire_from(sdl_context->device) | util::unwrap();
 
 			auto swapchain = command_buffer.acquire_swapchain_texture(sdl_context->window) | util::unwrap();
 			if (!swapchain.has_value()) continue;
 
 			msaa_buffer.resize(sdl_context->device, {swapchain->width, swapchain->height}) | util::unwrap();
-
 			backend::imgui_upload_data(command_buffer);
+
+			command_buffer.run_copy_pass([&](const gpu::CopyPass& copy_pass) {
+				copy_pass.upload_to_buffer(
+					transfer_buffer,
+					0,
+					vertex_buffer,
+					0,
+					util::as_bytes(curve_vertices).size(),
+					true
+				);
+			}) | util::unwrap();
 
 			const auto msaa_color_target_info = SDL_GPUColorTargetInfo{
 				.texture = *msaa_buffer.texture,
@@ -101,15 +137,13 @@ int main()
 				msaa_color_target_info_list,
 				std::nullopt,
 				[&](const gpu::RenderPass& render_pass) {
-					const auto vp_matrix =
-						camera.get_matrix(static_cast<float>(swapchain->width) / swapchain->height);
-					command_buffer.push_uniform_to_vertex(0, util::as_bytes(vp_matrix));
+					command_buffer.push_uniform_to_vertex(0, util::as_bytes(cam_matrix));
 
 					render_pass.bind_pipeline(line_pipeline.pipeline);
 					render_pass
-						.bind_vertex_buffers(0, SDL_GPUBufferBinding{.buffer = test_buffer, .offset = 0});
+						.bind_vertex_buffers(0, SDL_GPUBufferBinding{.buffer = vertex_buffer, .offset = 0});
 
-					render_pass.draw(curve_vertices.size(), 0, 1, 0);
+					render_pass.draw(init_curve_vertices.size(), 0, 1, 0);
 				}
 			) | util::unwrap();
 

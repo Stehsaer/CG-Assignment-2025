@@ -1,4 +1,5 @@
 #include "logic/camera-2d.hpp"
+#include "math.hpp"
 
 #include <glm/ext/matrix_clip_space.hpp>
 
@@ -32,9 +33,7 @@ void Camera2D::zoom(
 {
 	const auto old_mat = self.get_matrix(viewport_size.x / viewport_size.y);
 	const auto mouse_uv = mouse_pos / viewport_size;
-	const auto mouse_ndc = mouse_uv * glm::vec2(2.0f, -2.0f) + glm::vec2(-1.0f, 1.0f);
-	const auto mouse_world_h = glm::inverse(old_mat) * glm::vec4(mouse_ndc, 0.0f, 1.0f);
-	const auto mouse_world = glm::vec2(mouse_world_h) / mouse_world_h.w;
+	const auto mouse_world = math::uv_to_world(mouse_uv, old_mat);
 
 	self.height *= zoom_factor;
 	self.center = mouse_world + (self.center - mouse_world) * zoom_factor;

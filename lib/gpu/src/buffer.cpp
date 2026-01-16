@@ -72,7 +72,7 @@ namespace gpu
 	std::expected<void, util::Error> TransferBuffer::upload_to_buffer(
 		std::span<const std::byte> data,
 		bool cycle
-	)
+	) const
 	{
 		assert(resource != nullptr);
 

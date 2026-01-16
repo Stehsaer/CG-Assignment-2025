@@ -115,7 +115,7 @@ namespace gpu
 		/// @param data Data to upload
 		/// @param cycle Cycle mode
 		///
-		std::expected<void, util::Error> upload_to_buffer(std::span<const std::byte> data, bool cycle);
+		std::expected<void, util::Error> upload_to_buffer(std::span<const std::byte> data, bool cycle) const;
 
 		///
 		/// @brief Maps and downloads data from the transfer buffer

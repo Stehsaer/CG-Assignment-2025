@@ -1,7 +1,9 @@
 #pragma once
 
+#include "control-point.hpp"
 #include "vertex.hpp"
 
+#include <glm/fwd.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -9,41 +11,40 @@ namespace primitive
 {
 	struct Line
 	{
-		LineVertex begin, end;
+		ControlPoint begin, end;
+		glm::u8vec4 color;
 
 		bool operator==(const Line& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const Line& self) noexcept;
+
+		void draw_ui(this const Line& self, const glm::mat4& vp_matrix) noexcept;
 	};
 
 	struct Circle
 	{
-		glm::vec2 center;
+		ControlPoint center, border;
 		glm::u8vec4 color;
-		float radius;
 
 		static constexpr uint32_t SEGMENTS = 64;
-
-		static Circle from_three_points(
-			const glm::vec2& p1,
-			const glm::vec2& p2,
-			const glm::vec2& p3,
-			const glm::u8vec4& color
-		) noexcept;
 
 		bool operator==(const Circle& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const Circle& self) noexcept;
+
+		void draw_ui(this const Circle& self, const glm::mat4& vp_matrix) noexcept;
 	};
 
 	struct BezierCurve
 	{
 		glm::u8vec4 color;
-		std::vector<glm::vec2> control_points;
+		std::vector<ControlPoint> control_points;
 
 		bool operator==(const BezierCurve& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const BezierCurve& self) noexcept;
+
+		void draw_ui(this const BezierCurve& self, const glm::mat4& vp_matrix) noexcept;
 
 	  private:
 
@@ -53,11 +54,13 @@ namespace primitive
 	struct CubicSpline
 	{
 		glm::u8vec4 color;
-		std::vector<glm::vec2> control_points;
+		std::vector<ControlPoint> control_points;
 
 		bool operator==(const CubicSpline& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const CubicSpline& self) noexcept;
+
+		void draw_ui(this const CubicSpline& self, const glm::mat4& vp_matrix) noexcept;
 
 	  private:
 
