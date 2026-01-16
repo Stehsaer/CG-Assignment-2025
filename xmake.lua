@@ -27,7 +27,7 @@ includes("xmake/rule", "xmake/task/*.lua")
 -- Packages
 add_requires(
 	"libsdl3",
-	"glm 1.0.2",
+	"glm 1.0.3",
 	"gzip-hpp v0.1.0",
 	"stb 2025.03.14",
 	"tinygltf v2.9.6",

@@ -5,6 +5,7 @@
 #include "gpu/command-buffer.hpp"
 #include "gpu/render-pass.hpp"
 #include "graphics/util/quick-create.hpp"
+#include "logic/camera-2d.hpp"
 #include "pipeline/line.hpp"
 #include "target/msaa-draw.hpp"
 #include "util/as-byte.hpp"
@@ -13,6 +14,7 @@
 
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_video.h>
+#include <imgui.h>
 #include <print>
 
 int main()
@@ -22,6 +24,8 @@ int main()
 		.control_points = {{-0.5, -0.5}, {-0.5, 0.5}, {0, 0.5}, {0, -0.5}, {0.5, -0.5}, {0.5, 0.5}}
 	};
 	const auto curve_vertices = test_curve.gen_vertices();
+
+	Camera2D camera;
 
 	try
 	{
@@ -53,6 +57,20 @@ int main()
 
 			capsule::window("Test", capsule::Position::BottomCenter, [] { capsule::button("w"); });
 
+			const auto& io = ImGui::GetIO();
+			if (!io.WantCaptureMouse)
+			{
+				if (io.MouseDown[ImGuiMouseButton_Right])
+					camera.pan({io.MouseDelta.x, -io.MouseDelta.y}, {io.DisplaySize.x, io.DisplaySize.y});
+
+				if (io.MouseWheel != 0.0f)
+					camera.zoom(
+						io.MouseWheel > 0.0f ? 0.9f : 1.1f,
+						{io.MousePos.x, io.MousePos.y},
+						{io.DisplaySize.x, io.DisplaySize.y}
+					);
+			}
+
 			auto command_buffer = gpu::CommandBuffer::acquire_from(sdl_context->device) | util::unwrap();
 
 			auto swapchain = command_buffer.acquire_swapchain_texture(sdl_context->window) | util::unwrap();
@@ -83,7 +101,8 @@ int main()
 				msaa_color_target_info_list,
 				std::nullopt,
 				[&](const gpu::RenderPass& render_pass) {
-					const auto vp_matrix = glm::mat4(1.0f);
+					const auto vp_matrix =
+						camera.get_matrix(static_cast<float>(swapchain->width) / swapchain->height);
 					command_buffer.push_uniform_to_vertex(0, util::as_bytes(vp_matrix));
 
 					render_pass.bind_pipeline(line_pipeline.pipeline);

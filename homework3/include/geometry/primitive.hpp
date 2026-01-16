@@ -41,11 +41,13 @@ namespace primitive
 		glm::u8vec4 color;
 		std::vector<glm::vec2> control_points;
 
-		static constexpr uint32_t SEGMENTS = 128;
-
 		bool operator==(const BezierCurve& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const BezierCurve& self) noexcept;
+
+	  private:
+
+		static constexpr uint32_t SEGMENTS = 128;
 	};
 
 	struct CubicSpline
@@ -53,10 +55,14 @@ namespace primitive
 		glm::u8vec4 color;
 		std::vector<glm::vec2> control_points;
 
-		static constexpr uint32_t SEGMENTS_PER_PATH = 24;
-
 		bool operator==(const CubicSpline& other) const = default;
 
 		std::vector<LineVertex> gen_vertices(this const CubicSpline& self) noexcept;
+
+	  private:
+
+		static constexpr uint32_t SEGMENTS_PER_PATH = 24;
+
+		glm::vec2 point_at(this const CubicSpline& self, float t) noexcept;
 	};
 }
