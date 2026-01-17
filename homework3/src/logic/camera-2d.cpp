@@ -38,3 +38,8 @@ void Camera2D::zoom(
 	self.height *= zoom_factor;
 	self.center = mouse_world + (self.center - mouse_world) * zoom_factor;
 }
+
+Camera2D Camera2D::mix(const Camera2D& a, const Camera2D& b, float t) noexcept
+{
+	return {.center = glm::mix(a.center, b.center, t), .height = glm::mix(a.height, b.height, t)};
+}

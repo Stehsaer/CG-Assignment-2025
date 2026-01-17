@@ -255,7 +255,7 @@ namespace gpu
 		/// @param count Number of draw calls
 		/// @param offset Buffer offset
 		///
-		void draw_indirect(const Buffer& buffer, uint32_t count, uint32_t offset) const noexcept;
+		void draw_indirect(SDL_GPUBuffer* buffer, uint32_t count, uint32_t offset) const noexcept;
 
 		///
 		/// @brief Draws primitives indirectly and indexed
@@ -264,7 +264,7 @@ namespace gpu
 		/// @param count Number of draw calls
 		/// @param offset Buffer offset
 		///
-		void draw_indexed_indirect(const Buffer& buffer, uint32_t count, uint32_t offset) const noexcept;
+		void draw_indexed_indirect(SDL_GPUBuffer* buffer, uint32_t count, uint32_t offset) const noexcept;
 
 		///
 		/// @brief Sets the viewport

@@ -145,14 +145,14 @@ namespace gpu
 		SDL_DrawGPUPrimitives(resource, vertex_count, instance_count, vertex_offset, instance_offset);
 	}
 
-	void RenderPass::draw_indirect(const Buffer& buffer, uint32_t count, uint32_t offset) const noexcept
+	void RenderPass::draw_indirect(SDL_GPUBuffer* buffer, uint32_t count, uint32_t offset) const noexcept
 	{
 		assert(resource != nullptr);
 		SDL_DrawGPUPrimitivesIndirect(resource, buffer, offset, count);
 	}
 
 	void RenderPass::draw_indexed_indirect(
-		const Buffer& buffer,
+		SDL_GPUBuffer* buffer,
 		uint32_t count,
 		uint32_t offset
 	) const noexcept

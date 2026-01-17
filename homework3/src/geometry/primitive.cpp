@@ -26,6 +26,13 @@ namespace primitive
 		self.end.draw(vp_matrix);
 	}
 
+	void Line::edit(this Line& self, const glm::mat4& vp_matrix) noexcept
+	{
+		self.draw_ui(vp_matrix);
+		self.begin.drag(vp_matrix);
+		self.end.drag(vp_matrix);
+	}
+
 	std::vector<LineVertex> Circle::gen_vertices(this const Circle& self) noexcept
 	{
 		const auto radius = glm::distance(self.center.position, self.border.position);
@@ -62,6 +69,13 @@ namespace primitive
 
 		self.center.draw(vp_matrix);
 		self.border.draw(vp_matrix);
+	}
+
+	void Circle::edit(this Circle& self, const glm::mat4& vp_matrix) noexcept
+	{
+		self.draw_ui(vp_matrix);
+		self.center.drag(vp_matrix);
+		self.border.drag(vp_matrix);
 	}
 
 	std::vector<LineVertex> BezierCurve::gen_vertices(this const BezierCurve& self) noexcept
@@ -105,6 +119,12 @@ namespace primitive
 			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, UI_LINE_COLOR, UI_LINE_WIDTH);
 
 		for (const auto& cp : self.control_points) cp.draw(vp_matrix);
+	}
+
+	void BezierCurve::edit(this BezierCurve& self, const glm::mat4& vp_matrix) noexcept
+	{
+		self.draw_ui(vp_matrix);
+		for (auto& cp : self.control_points) cp.drag(vp_matrix);
 	}
 
 	glm::vec2 CubicSpline::point_at(this const CubicSpline& self, float t) noexcept
@@ -153,5 +173,11 @@ namespace primitive
 			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, UI_LINE_COLOR, UI_LINE_WIDTH);
 
 		for (const auto& cp : self.control_points) cp.draw(vp_matrix);
+	}
+
+	void CubicSpline::edit(this CubicSpline& self, const glm::mat4& vp_matrix) noexcept
+	{
+		self.draw_ui(vp_matrix);
+		for (auto& cp : self.control_points) cp.drag(vp_matrix);
 	}
 }

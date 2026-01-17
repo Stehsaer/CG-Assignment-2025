@@ -1,16 +1,14 @@
 #pragma once
 
-#include "vertex.hpp"
+#include "geometry/primitive.hpp"
+#include "geometry/vertex.hpp"
+
 #include <optional>
 #include <span>
-namespace primitive
-{
-	template <typename T>
-	concept PrimitiveType = requires(T a) {
-		{ a.gen_vertices() } -> std::same_as<std::vector<LineVertex>>;
-	} && std::copyable<T> && std::equality_comparable<T>;
 
-	template <PrimitiveType T>
+namespace logic
+{
+	template <primitive::PrimitiveType T>
 	class VertexCache
 	{
 		struct CacheEntry

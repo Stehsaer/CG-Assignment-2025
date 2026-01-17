@@ -69,10 +69,11 @@ namespace capsule
 		const auto [window_pos, pivot] =
 			calc_window_pos(position, glm::vec2(offset) * (WINDOW_MARGIN + WINDOW_WEIGHT) * scale);
 		ImGui::SetNextWindowPos({window_pos.x, window_pos.y}, ImGuiCond_Always, {pivot.x, pivot.y});
-		ImGui::SetNextWindowSizeConstraints(
-			{WINDOW_WEIGHT * scale, WINDOW_WEIGHT * scale},
-			{FLT_MAX, FLT_MAX}
-		);
+		if (!less_rounding)
+			ImGui::SetNextWindowSizeConstraints(
+				{WINDOW_WEIGHT * scale, WINDOW_WEIGHT * scale},
+				{FLT_MAX, FLT_MAX}
+			);
 		ImGui::SetNextWindowCollapsed(false, ImGuiCond_Always);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);

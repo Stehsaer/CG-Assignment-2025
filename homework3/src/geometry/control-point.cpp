@@ -5,7 +5,7 @@
 
 namespace primitive
 {
-	static constexpr float HANDLE_RADIUS = 8.0f;
+	static constexpr float HANDLE_RADIUS = 4.0f;
 	static constexpr float HANDLE_BORDER_SIZE = 1.5f;
 	static constexpr auto HANDLE_COLOR = IM_COL32(40, 53, 147, 255);
 	static constexpr auto HANDLE_BORDER_COLOR = IM_COL32(255, 255, 255, 255);

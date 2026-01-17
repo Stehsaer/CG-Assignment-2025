@@ -9,6 +9,11 @@
 
 namespace primitive
 {
+	template <typename T>
+	concept PrimitiveType = requires(T a) {
+		{ a.gen_vertices() } -> std::same_as<std::vector<LineVertex>>;
+	} && std::copyable<T> && std::equality_comparable<T>;
+
 	struct Line
 	{
 		ControlPoint begin, end;
@@ -19,6 +24,7 @@ namespace primitive
 		std::vector<LineVertex> gen_vertices(this const Line& self) noexcept;
 
 		void draw_ui(this const Line& self, const glm::mat4& vp_matrix) noexcept;
+		void edit(this Line& self, const glm::mat4& vp_matrix) noexcept;
 	};
 
 	struct Circle
@@ -33,6 +39,7 @@ namespace primitive
 		std::vector<LineVertex> gen_vertices(this const Circle& self) noexcept;
 
 		void draw_ui(this const Circle& self, const glm::mat4& vp_matrix) noexcept;
+		void edit(this Circle& self, const glm::mat4& vp_matrix) noexcept;
 	};
 
 	struct BezierCurve
@@ -45,6 +52,7 @@ namespace primitive
 		std::vector<LineVertex> gen_vertices(this const BezierCurve& self) noexcept;
 
 		void draw_ui(this const BezierCurve& self, const glm::mat4& vp_matrix) noexcept;
+		void edit(this BezierCurve& self, const glm::mat4& vp_matrix) noexcept;
 
 	  private:
 
@@ -61,6 +69,7 @@ namespace primitive
 		std::vector<LineVertex> gen_vertices(this const CubicSpline& self) noexcept;
 
 		void draw_ui(this const CubicSpline& self, const glm::mat4& vp_matrix) noexcept;
+		void edit(this CubicSpline& self, const glm::mat4& vp_matrix) noexcept;
 
 	  private:
 

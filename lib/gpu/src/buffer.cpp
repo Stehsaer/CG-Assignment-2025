@@ -1,5 +1,6 @@
 #include "gpu/buffer.hpp"
 #include "gpu/util.hpp"
+#include <utility>
 
 namespace gpu
 {
@@ -76,7 +77,7 @@ namespace gpu
 	{
 		assert(resource != nullptr);
 
-		if (std::cmp_not_equal(data.size(), size))
+		if (std::cmp_greater(data.size(), size))
 			return util::Error(
 				std::format("Can't upload {}B to a transfer buffer with size of {}B", size, data.size())
 			);

@@ -17,4 +17,6 @@ struct Camera2D
 		const glm::vec2& mouse_pos,
 		const glm::vec2& viewport_size
 	) noexcept;
+
+	static Camera2D mix(const Camera2D& a, const Camera2D& b, float t) noexcept;
 };
