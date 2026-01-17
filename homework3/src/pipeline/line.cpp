@@ -32,11 +32,11 @@ namespace pipeline
 			"fs_main"
 		);
 
-		if (!shader_vertex) return shader_vertex.error();
-		if (!shader_fragment) return shader_fragment.error();
+		if (!shader_vertex) return shader_vertex.error().forward("Create line vertex shader failed");
+		if (!shader_fragment) return shader_fragment.error().forward("Create line fragment shader failed");
 
 		const auto swapchain_desc = SDL_GPUColorTargetDescription{
-			.format = target::MSAADraw::FORMAT.format,
+			.format = target::MSAADraw::COLOR_FORMAT.format,
 			.blend_state = {
 							.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
 							.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
@@ -74,7 +74,15 @@ namespace pipeline
 			LineVertex::attributes,
 			LineVertex::buffer_description,
 			color_target_descs,
-			std::nullopt,
+			gpu::GraphicsPipeline::DepthStencilState{
+				.format = target::MSAADraw::DEPTH_FORMAT.format,
+				.compare_op = SDL_GPU_COMPAREOP_ALWAYS,
+				.compare_mask = 0x00,
+				.write_mask = 0x00,
+				.enable_depth_test = false,
+				.enable_depth_write = false,
+				.enable_stencil_test = false,
+			},
 			"Line Pipeline"
 		);
 

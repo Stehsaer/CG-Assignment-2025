@@ -9,6 +9,27 @@
 
 namespace primitive
 {
+	static glm::vec4 get_hsv(float hue, float sat, float value)
+	{
+		const auto K = glm::vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+
+		const glm::vec3 p =
+			abs(fract(glm::vec3(hue, hue, hue) + glm::vec3(K.x, K.y, K.z)) * 6.0f - glm::vec3(K.w));
+
+		return glm::vec4(
+			value * glm::mix(glm::vec3(K.x), glm::clamp(p - glm::vec3(K.x), 0.0f, 1.0f), sat),
+			1.0f
+		);
+	}
+
+	static ImU32 get_ui_line_color()
+	{
+		const float fract_time = glm::fract(ImGui::GetTime() / 2.0f);
+		const glm::u8vec4 color = get_hsv(fract_time, 0.6f, 0.9f) * 255.0f;
+
+		return IM_COL32(color.r, color.g, color.b, color.a);
+	}
+
 	static constexpr float UI_LINE_WIDTH = 1.5f;
 	static constexpr auto UI_LINE_COLOR = IM_COL32(200, 200, 200, 200);
 
@@ -110,13 +131,14 @@ namespace primitive
 		auto& io = ImGui::GetIO();
 		auto drawlist = ImGui::GetBackgroundDrawList();
 		const auto viewport_size = glm::vec2(io.DisplaySize.x, io.DisplaySize.y);
+		const auto color = get_ui_line_color();
 
 		for (const auto [vp1, vp2] :
 			 self.control_points | std::views::transform([&vp_matrix, viewport_size](const ControlPoint& cp) {
 				 const auto uv = math::world_to_uv(cp.position, vp_matrix);
 				 return uv * viewport_size;
 			 }) | std::views::adjacent<2>)
-			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, UI_LINE_COLOR, UI_LINE_WIDTH);
+			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, color, UI_LINE_WIDTH);
 
 		for (const auto& cp : self.control_points) cp.draw(vp_matrix);
 	}
@@ -164,13 +186,14 @@ namespace primitive
 		auto& io = ImGui::GetIO();
 		auto drawlist = ImGui::GetBackgroundDrawList();
 		const auto viewport_size = glm::vec2(io.DisplaySize.x, io.DisplaySize.y);
+		const auto color = get_ui_line_color();
 
 		for (const auto [vp1, vp2] :
 			 self.control_points | std::views::transform([&vp_matrix, viewport_size](const ControlPoint& cp) {
 				 const auto uv = math::world_to_uv(cp.position, vp_matrix);
 				 return uv * viewport_size;
 			 }) | std::views::adjacent<2>)
-			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, UI_LINE_COLOR, UI_LINE_WIDTH);
+			drawlist->AddLine({vp1.x, vp1.y}, {vp2.x, vp2.y}, color, UI_LINE_WIDTH);
 
 		for (const auto& cp : self.control_points) cp.draw(vp_matrix);
 	}

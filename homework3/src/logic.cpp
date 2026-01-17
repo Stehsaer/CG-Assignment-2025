@@ -2,12 +2,14 @@
 #include "capsule-ui.hpp"
 #include "geometry/primitive.hpp"
 #include "geometry/vertex.hpp"
+#include "pipeline/surface.hpp"
 #include "util/as-byte.hpp"
 
 #include <SDL3/SDL_gpu.h>
 #include <format>
+#include <imgui-knobs.h>
 #include <imgui.h>
-#include <set>
+#include <ranges>
 #include <utility>
 #include <variant>
 
@@ -34,21 +36,50 @@ namespace logic
 
 	std::expected<void, util::Error> App::imgui_frame(SDL_GPUDevice* device) noexcept
 	{
-		update_camera();
-		const auto vp_matrix =
-			current_camera.get_matrix(ImGui::GetIO().DisplaySize.x / ImGui::GetIO().DisplaySize.y);
+		switch (mode)
+		{
+		case Mode::Line2D:
+		{
+			update_camera_2d();
+			const auto vp_matrix =
+				current_camera_2d.get_matrix(ImGui::GetIO().DisplaySize.x / ImGui::GetIO().DisplaySize.y);
 
-		const auto new_tab = bottom_bar_ui(get_current_tab(draw_edit_state));
-		auto new_state = handle_state(device, std::move(draw_edit_state), new_tab, vp_matrix);
-		if (!new_state.has_value()) return new_state.error().forward("Handle app state failed");
-		draw_edit_state = std::move(new_state.value());
+			const auto new_tab = bottom_ui_2d(get_current_tab(draw_edit_state));
+			auto new_state = handle_state_2d(device, std::move(draw_edit_state), new_tab, vp_matrix);
+			if (!new_state.has_value()) return new_state.error().forward("Handle app state failed");
+			draw_edit_state = std::move(new_state.value());
+
+			break;
+		}
+		case Mode::Line3D:
+		case Mode::Solid3D:
+		{
+			const auto& io = ImGui::GetIO();
+			const auto screen_size = glm::vec2(io.DisplaySize.x, io.DisplaySize.y);
+			const auto mouse_delta = glm::vec2(io.MouseDelta.x, io.MouseDelta.y);
+
+			if (!io.WantCaptureMouse)
+			{
+				if (io.MouseDown[ImGuiMouseButton_Middle])
+					camera_3d_view.angles =
+						camera_3d_view.angles
+							.rotate(glm::radians(180.0f), glm::radians(90.0f), screen_size, mouse_delta);
+
+				camera_3d_view.distance *= glm::pow(1.2f, -io.MouseWheel);
+			}
+
+			bottom_ui_3d();
+
+			break;
+		}
+		}
 
 		performance_overlay();
 
 		return {};
 	}
 
-	std::expected<void, util::Error> App::update_temp_buffer(
+	std::expected<void, util::Error> App::update_temp_buffer_2d(
 		SDL_GPUDevice* device,
 		std::span<const LineVertex> vertices
 	) noexcept
@@ -61,13 +92,15 @@ namespace logic
 		return {};
 	}
 
-	std::expected<void, util::Error> App::reset_temp_buffer(SDL_GPUDevice* device [[maybe_unused]]) noexcept
+	std::expected<void, util::Error> App::reset_temp_buffer_2d(
+		SDL_GPUDevice* device [[maybe_unused]]
+	) noexcept
 	{
 		temp_buffer_vertex_count = 0;
 		return {};
 	}
 
-	std::expected<void, util::Error> App::rebuild_persistent_buffer(SDL_GPUDevice* device) noexcept
+	std::expected<void, util::Error> App::rebuild_persistent_buffer_2d(SDL_GPUDevice* device) noexcept
 	{
 		size_t vertex_count = 0;
 		std::vector<std::byte> vertex_data;
@@ -114,12 +147,53 @@ namespace logic
 
 	void App::upload_frame(const gpu::CopyPass& copy_pass) noexcept
 	{
+		switch (mode)
+		{
+		case Mode::Line2D:
+			upload_frame_2d(copy_pass);
+			break;
+		default:
+			break;
+		}
+	}
+
+	void App::draw_frame(
+		const gpu::GraphicsPipeline& line_pipeline,
+		const pipeline::Surface& surface_pipeline,
+		const gpu::CommandBuffer& command_buffer,
+		const gpu::RenderPass& render_pass
+	) noexcept
+	{
+		const auto& io = ImGui::GetIO();
+		const auto aspect_ratio = io.DisplaySize.x / io.DisplaySize.y;
+
+		if (io.DisplaySize.x < 100 || io.DisplaySize.y < 100) return;
+
+		switch (mode)
+		{
+		case Mode::Line2D:
+			draw_frame_2d(line_pipeline, command_buffer, render_pass);
+			break;
+		case Mode::Line3D:
+		case Mode::Solid3D:
+			surface_pipeline.draw(
+				command_buffer,
+				render_pass,
+				{.vp_matrix = camera_3d_projection.matrix(aspect_ratio) * camera_3d_view.matrix(),
+				 .control_points = bezier_3d_points},
+				mode == Mode::Line3D
+			);
+		}
+	}
+
+	void App::upload_frame_2d(const gpu::CopyPass& copy_pass) noexcept
+	{
 		temp_buffer.copy_to_gpu(copy_pass);
 		persistent_vertex_buffer.copy_to_gpu(copy_pass);
 		persistent_indirect_buffer.copy_to_gpu(copy_pass);
 	}
 
-	void App::draw_frame(
+	void App::draw_frame_2d(
 		const gpu::GraphicsPipeline& line_pipeline,
 		const gpu::CommandBuffer& command_buffer,
 		const gpu::RenderPass& render_pass
@@ -127,7 +201,7 @@ namespace logic
 	{
 		const auto& io = ImGui::GetIO();
 		const float aspect_ratio = io.DisplaySize.x / io.DisplaySize.y;
-		const auto vp_matrix = current_camera.get_matrix(aspect_ratio);
+		const auto vp_matrix = current_camera_2d.get_matrix(aspect_ratio);
 
 		command_buffer.push_uniform_to_vertex(0, util::as_bytes(vp_matrix));
 
@@ -153,17 +227,18 @@ namespace logic
 		}
 	}
 
-	void App::update_camera() noexcept
+	void App::update_camera_2d() noexcept
 	{
 		const auto& io = ImGui::GetIO();
 
 		if (!io.WantCaptureMouse)
 		{
 			if (io.MouseDown[ImGuiMouseButton_Middle])
-				target_camera.pan({io.MouseDelta.x, -io.MouseDelta.y}, {io.DisplaySize.x, io.DisplaySize.y});
+				target_camera_2d
+					.pan({io.MouseDelta.x, -io.MouseDelta.y}, {io.DisplaySize.x, io.DisplaySize.y});
 
 			if (io.MouseWheel != 0.0f)
-				target_camera.zoom(
+				target_camera_2d.zoom(
 					io.MouseWheel > 0.0f ? 0.9f : 1.1f,
 					{io.MousePos.x, io.MousePos.y},
 					{io.DisplaySize.x, io.DisplaySize.y}
@@ -171,10 +246,10 @@ namespace logic
 		}
 
 		const float lerp_factor = glm::clamp(camera_lerp_speed * io.DeltaTime, 0.0f, 1.0f);
-		current_camera = Camera2D::mix(current_camera, target_camera, lerp_factor);
+		current_camera_2d = Camera2D::mix(current_camera_2d, target_camera_2d, lerp_factor);
 	}
 
-	std::expected<std::variant<App::EditState, App::DrawState>, util::Error> App::handle_state(
+	std::expected<std::variant<App::EditState, App::DrawState>, util::Error> App::handle_state_2d(
 		SDL_GPUDevice* device,
 		std::variant<EditState, DrawState> old_state,
 		BottomBarTab new_tab,
@@ -208,13 +283,13 @@ namespace logic
 
 		if (std::holds_alternative<EditState>(new_state))
 		{
-			auto edit_result = handle_edit(device, std::get<EditState>(new_state), vp_matrix);
+			auto edit_result = handle_edit_2d(device, std::get<EditState>(new_state), vp_matrix);
 			if (!edit_result.has_value()) return edit_result.error().forward("Handle edit state failed");
 			new_state = edit_result.value();
 		}
 		else
 		{
-			auto draw_result = handle_draw(device, std::get<DrawState>(new_state), vp_matrix);
+			auto draw_result = handle_draw_2d(device, std::get<DrawState>(new_state), vp_matrix);
 			if (!draw_result.has_value()) return draw_result.error().forward("Handle draw state failed");
 
 			if (draw_result->has_value())
@@ -226,7 +301,7 @@ namespace logic
 		return new_state;
 	}
 
-	std::expected<App::EditState, util::Error> App::handle_edit(
+	std::expected<App::EditState, util::Error> App::handle_edit_2d(
 		SDL_GPUDevice* device,
 		EditState old_state,
 		const glm::mat4& vp_matrix
@@ -301,24 +376,26 @@ namespace logic
 
 		if (ImGui::Begin("曲线列表", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			if (!lines.empty() || !circles.empty() || !beziers.empty() || !splines.empty())
+			if (lines.empty() && circles.empty() && beziers.empty() && splines.empty())
 				ImGui::Text("暂无曲线，在下方工具栏选择画线工具以添加曲线。");
-
-			entry_ui("线段 #{0}##Line{0}", lines);
-			entry_ui("圆 #{0}##Circle{0}", circles);
-			entry_ui("贝塞尔曲线 #{0}##Bezier{0}", beziers);
-			entry_ui("三次样条曲线 #{0}##Spline{0}", splines);
+			else
+			{
+				entry_ui("线段 #{0}##Line{0}", lines);
+				entry_ui("圆 #{0}##Circle{0}", circles);
+				entry_ui("贝塞尔曲线 #{0}##Bezier{0}", beziers);
+				entry_ui("三次样条曲线 #{0}##Spline{0}", splines);
+			}
 		}
 		ImGui::End();
 
 		if (update_needed)
-			if (const auto rebuild_result = rebuild_persistent_buffer(device); !rebuild_result)
+			if (const auto rebuild_result = rebuild_persistent_buffer_2d(device); !rebuild_result)
 				return rebuild_result.error().forward("Rebuild persistent buffer failed");
 
 		return state;
 	}
 
-	std::expected<std::optional<App::DrawState>, util::Error> App::handle_draw(
+	std::expected<std::optional<App::DrawState>, util::Error> App::handle_draw_2d(
 		SDL_GPUDevice* device,
 		DrawState draw_state,
 		const glm::mat4& vp_matrix
@@ -331,7 +408,7 @@ namespace logic
 
 				if (std::holds_alternative<CurveInterrupt>(result))
 				{
-					if (const auto reset_result = reset_temp_buffer(device); !reset_result.has_value())
+					if (const auto reset_result = reset_temp_buffer_2d(device); !reset_result.has_value())
 						return reset_result.error().forward("Reset temp buffer failed");
 
 					return DrawState(CurveCreator<T>());
@@ -345,7 +422,7 @@ namespace logic
 						curve->draw_ui(vp_matrix);
 
 						const std::vector<LineVertex> vertex_list = curve->gen_vertices();
-						if (const auto update_result = update_temp_buffer(device, vertex_list);
+						if (const auto update_result = update_temp_buffer_2d(device, vertex_list);
 							!update_result.has_value())
 							return update_result.error().forward("Update temp buffer failed");
 					}
@@ -374,10 +451,10 @@ namespace logic
 					splines.push_back(PrimitiveEntry<primitive::CubicSpline>(std::move(curve)));
 				}
 
-				if (const auto rebuild_result = rebuild_persistent_buffer(device); !rebuild_result)
+				if (const auto rebuild_result = rebuild_persistent_buffer_2d(device); !rebuild_result)
 					return rebuild_result.error().forward("Rebuild persistent buffer failed");
 
-				if (const auto reset_result = reset_temp_buffer(device); !reset_result.has_value())
+				if (const auto reset_result = reset_temp_buffer_2d(device); !reset_result.has_value())
 					return reset_result.error().forward("Reset temp buffer failed");
 
 				return DrawState(CurveCreator<T>());
@@ -398,7 +475,7 @@ namespace logic
 		);
 	}
 
-	App::BottomBarTab App::bottom_bar_ui(BottomBarTab old_tab) noexcept
+	App::BottomBarTab App::bottom_ui_2d(BottomBarTab old_tab) noexcept
 	{
 		auto tab = old_tab;
 
@@ -420,12 +497,15 @@ namespace logic
 				}
 
 				if (capsule::button(icon)) tab = current_tab;
+				ImGui::SetItemTooltip("%s", tooltip);
 
 				if (old_tab == current_tab)
 				{
 					ImGui::PopStyleVar();
 					ImGui::PopStyleColor();
 				}
+
+				if (current_tab == BottomBarTab::Edit) capsule::vertical_separator();
 			}
 		});
 
@@ -442,7 +522,80 @@ namespace logic
 				true
 			);
 
+		capsule::window("ModeChange", capsule::Position::BottomLeft, [this] {
+			if (capsule::button("\U000f07fd")) mode = Mode::Solid3D;
+		});
+
+		capsule::window(
+			"Hints",
+			capsule::Position::BottomRight,
+			[] {
+				ImGui::SeparatorText("操作提示");
+				ImGui::BulletText("按住鼠标中键拖动视角");
+				ImGui::BulletText("按下左键绘制曲线，若没有反应则需要多按一次");
+				ImGui::BulletText("按Esc取消，按Enter完成，右键撤销上一个控制点");
+				ImGui::BulletText("左下角切换3D模式");
+				ImGui::SeparatorText("23336160 刘信杰 作业3");
+			},
+			{0, 0},
+			true
+		);
+
 		return tab;
+	}
+
+	void App::bottom_ui_3d() noexcept
+	{
+		capsule::window("Controls", capsule::Position::TopRight, [this] {
+			for (const auto [i, j] :
+				 std::views::cartesian_product(std::views::iota(0, 4), std::views::iota(0, 4)))
+			{
+				const auto label = std::format("##P{},{}", i, j);
+
+				ImGuiKnobs::Knob(
+					label.c_str(),
+					&bezier_3d_points[i][j],
+					-1.0f,
+					1.0f,
+					0.03f,
+					"%.2f",
+					ImGuiKnobVariant_Tick,
+					60,
+					ImGuiKnobFlags_NoInput | ImGuiKnobFlags_AlwaysClamp | ImGuiKnobFlags_NoTitle
+				);
+
+				if (j < 3) ImGui::SameLine();
+			}
+		});
+
+		capsule::window("ModeChange", capsule::Position::BottomLeft, [this] {
+			if (capsule::button("\U000f1a1c")) mode = Mode::Line2D;
+
+			const auto line_mode_icon = "\U000f02c1";
+			const auto solid_mode_icon = "\U000f0536";
+
+			capsule::vertical_separator();
+
+			if (mode == Mode::Line3D)
+				if (capsule::button(line_mode_icon)) mode = Mode::Solid3D;
+			if (mode == Mode::Solid3D)
+				if (capsule::button(solid_mode_icon)) mode = Mode::Line3D;
+		});
+
+		capsule::window(
+			"Hints",
+			capsule::Position::BottomRight,
+			[] {
+				ImGui::SeparatorText("操作提示");
+				ImGui::BulletText("按住鼠标中键拖动视角");
+				ImGui::BulletText("滚动鼠标滚轮缩放视角");
+				ImGui::BulletText("右上角控制点调整贝塞尔曲面形状");
+				ImGui::BulletText("左下角切换2D模式和3D显示模式");
+				ImGui::SeparatorText("23336160 刘信杰 作业3");
+			},
+			{0, 0},
+			true
+		);
 	}
 
 	void App::performance_overlay() const noexcept
